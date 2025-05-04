@@ -1,0 +1,31 @@
+[project]
+name = "sphinx_os"
+version = "0.1.0"
+description = "A 6D Theory of Everything Simulation with Universal Quantum Computing"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {file = "LICENSE"}
+authors = [
+    {name = "Travis D. Jones", email = "holedozer@icloud.com"}
+]
+dependencies = [
+    "numpy>=1.21.0",
+    "scipy>=1.7.0",
+    "sympy>=1.9",
+    "matplotlib>=3.4.0"
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.0.0",
+    "pytest-cov>=3.0.0"
+]
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project.urls]
+Homepage = "https://github.com/Holedozer1229/sphinx_os"
+Repository = "https://github.com/Holedozer1229/sphinx_os"
+Issues = "https://github.com/Holedozer1229/sphinx_os/issues"
