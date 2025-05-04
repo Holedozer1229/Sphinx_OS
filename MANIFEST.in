@@ -1,0 +1,5 @@
+include README.md
+include LICENSE
+include requirements.txt
+recursive-include sphinx_os *.py
+recursive-include tests *.py
