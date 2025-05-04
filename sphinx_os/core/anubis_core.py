@@ -24,7 +24,7 @@ logger = logging.getLogger("SphinxOS.AnubisCore")
 class AnubisCore:
     """Core kernel unifying quantum computing and 6D spacetime simulation."""
     
-    def __init__(self, grid_size: Tuple[int, ...] = CONFIG["grid_size"], num_qubits: int = CONFIG["num_qubits"]):
+    def __init__(self, grid_size: Tuple[int, ...] = (2, 2, 2, 2, 2, 2), num_qubits: int = 64):
         """
         Initialize AnubisCore.
 
@@ -78,27 +78,10 @@ class AnubisCore:
             self.spin_network.state
         )
         with self.security.authenticate("user"):
-            # Apply Rydberg gates at wormhole nodes before executing the circuit
             wormhole_nodes = self.toe.get_wormhole_nodes()
-            self.qubit_fabric.apply_rydberg_gates(wormhole_nodes)
-            # Update decoherence map due to Rydberg gates
-            node_qubit_pairs = []
-            num_points = np.prod(wormhole_nodes.shape[:-1])
-            node_coords = wormhole_nodes.reshape(num_points, 6)
-            distances = np.linalg.norm(
-                self.qubit_fabric.qubit_positions[:, np.newaxis, :] - node_coords[np.newaxis, :, :],
-                axis=2
-            )
-            within_radius = distances < self.qubit_fabric.rydberg_blockade_radius
-            for node_idx in range(num_points):
-                eligible_qubits = np.where(within_radius[:, node_idx])[0]
-                if len(eligible_qubits) >= 2:
-                    closest_qubits = eligible_qubits[np.argsort(distances[eligible_qubits, node_idx])[:2]]
-                    node_qubit_pairs.append((closest_qubits[0], closest_qubits[1]))
-            self.error_nexus.apply_rydberg_decoherence(node_qubit_pairs)
-            # Standard circuit execution
+            qubit_pairs = self.qubit_fabric.apply_rydberg_gates(wormhole_nodes)
+            self.error_nexus.apply_rydberg_decoherence(qubit_pairs)
             q_results = self.qubit_fabric.run(optimized_circuit)
-            # Evolve spacetime
             s_results = self.spin_network.evolve(
                 CONFIG["dt"],
                 self.lambda_field,
