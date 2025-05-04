@@ -21,6 +21,9 @@ class TestAnubisCore(unittest.TestCase):
         self.assertIsNotNone(self.core.toe)
         self.assertIsNotNone(self.core.qubit_fabric)
         self.assertGreater(len(self.core.toe.get_wormhole_nodes()), 0)
+        state = self.core.qubit_fabric.get_state()
+        self.assertEqual(state.shape, (5625,))
+        self.assertAlmostEqual(np.linalg.norm(state), 1.0)
 
     def test_execute_with_rydberg(self):
         """Test the execute method with a Rydberg gate on a subset of qubits."""
@@ -38,6 +41,10 @@ class TestAnubisCore(unittest.TestCase):
             for j in range(64):
                 if i != j:
                     self.assertEqual(entanglement_map[i, j], 0)
+        initial_state = self.core.qubit_fabric.get_state()
+        self.core.qubit_fabric.reset()
+        reset_state = self.core.qubit_fabric.get_state()
+        self.assertFalse(np.array_equal(initial_state, reset_state))
 
     def test_evolve_spacetime(self):
         """Test spacetime evolution with Rydberg effects."""
