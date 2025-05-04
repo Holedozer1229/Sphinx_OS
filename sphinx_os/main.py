@@ -92,6 +92,7 @@ class SphinxOS:
                 {'gate': 'CZ', 'target': 1, 'control': 0, 'type': 'rydberg'}
             ]
 
+        self.qubit_fabric.reset()
         wormhole_nodes = self.anubis_core.toe.get_wormhole_nodes()
         self.qubit_fabric.apply_rydberg_gates(wormhole_nodes)
         result = self.qubit_fabric.run(circuit, shots)
@@ -136,6 +137,8 @@ class SphinxOS:
             {"entanglement_history": [entanglement_entropy]}
         )
 
+        state = self.qubit_fabric.get_state()
+        logger.debug("Quantum state norm after CHSH test: %.3f", np.linalg.norm(state))
         result = {"counts": counts, "fidelity": fidelity_factor, "S": S}
         self.visualize_chsh(result)
         return result
