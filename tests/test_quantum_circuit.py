@@ -23,6 +23,9 @@ class TestQuantumCircuitSimulator(unittest.TestCase):
         self.assertEqual(self.qubit_fabric.entanglement_map.shape, (64, 64))
         self.assertEqual(self.qubit_fabric.qubit_positions.shape, (64, 6))
         self.assertAlmostEqual(np.linalg.norm(self.qubit_fabric.quantum_state.state), 1.0)
+        state = self.qubit_fabric.get_state()
+        self.assertEqual(state.shape, (5625,))
+        self.assertAlmostEqual(np.linalg.norm(state), 1.0)
 
     def test_bell_state(self):
         """Test Bell state preparation on qubits 0 and 1."""
@@ -36,6 +39,11 @@ class TestQuantumCircuitSimulator(unittest.TestCase):
         self.assertIn("11", counts)
         self.assertAlmostEqual(counts["00"] / 1024, 0.5, delta=0.1)
         self.assertAlmostEqual(counts["11"] / 1024, 0.5, delta=0.1)
+        initial_state = self.qubit_fabric.get_state()
+        self.qubit_fabric.reset()
+        reset_state = self.qubit_fabric.get_state()
+        self.assertFalse(np.array_equal(initial_state, reset_state))
+        self.assertAlmostEqual(np.linalg.norm(reset_state), 1.0)
 
     def test_rydberg_cz_gate(self):
         """Test circuit with a Rydberg CZ gate on qubits 0 and 1."""
