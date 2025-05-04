@@ -6,6 +6,7 @@ import numpy as np
 from sklearn.metrics.pairwise import pairwise_distances
 from typing import List, Dict, Optional, Tuple
 from ..utils.constants import CONFIG, G, c, hbar, e, epsilon_0, m_n, v_higgs, l_p, kappa, INV_LAMBDA_SQ, TEMPORAL_CONSTANT, SECP256k1_N, SEARCH_START, SEARCH_END
+from ..utils.helpers import compute_entanglement_entropy
 from .quantum_volume import QuantumVolume
 import logging
 import ecdsa
@@ -29,15 +30,41 @@ class QuantumResult:
         self.temporal_fidelity = temporal_fidelity
 
 class Hamiltonian:
-    """Defines the Hamiltonian for the 6D TOE simulation."""
+    """Defines the Hamiltonian for the 6D TOE simulation with nonlinear scalar field."""
     def __init__(self, grid_size, dx, V, wormhole_state, logger):
         self.grid_size = grid_size
         self.total_points = np.prod(grid_size)
         self.dx = dx
-        self.V = V
+        self.V = V  # Initial gravitational potential
         self.wormhole_state = wormhole_state
         self.logger = logger
         self.indices = np.arange(self.total_points).reshape(self.grid_size)
+        self.center = np.array([s // 2 for s in grid_size], dtype=np.float64)
+        self.weights = np.array(CONFIG["anisotropic_weights"])
+        self.k = 1e-3 / self.dx
+        self.omega = 2 * np.pi / (CONFIG["dt"] * 100)
+        self.alpha = CONFIG["scalar_coupling"]
+        self.time = 0.0
+
+    def compute_scalar_field(self, t: float) -> np.ndarray:
+        """
+        Compute the nonlinear scalar field phi(r, t) at time t.
+
+        Args:
+            t (float): Current simulation time.
+
+        Returns:
+            np.ndarray: Scalar field phi(r, t) over the lattice.
+        """
+        phi = np.zeros(self.total_points, dtype=np.complex128)
+        for idx in np.ndindex(self.grid_size):
+            i = self.indices[idx]
+            r_vec = (np.array(idx, dtype=np.float64) - self.center) * self.dx
+            r_6d = np.sqrt(np.sum(self.weights * r_vec**2)) + 1e-15
+            kr = self.k * r_6d
+            wt = self.omega * t
+            phi[i] = -r_6d**2 * np.cos(kr - wt) + 2 * r_6d * np.sin(kr - wt) + 2 * np.cos(kr - wt)
+        return phi
 
     def __call__(self, t, y, state_history, temporal_entanglement):
         """
@@ -52,10 +79,10 @@ class Hamiltonian:
         Returns:
             np.ndarray: Derivative of the quantum state
         """
+        self.time = t
         y_grid = y.reshape(self.grid_size)
         laplacian = np.zeros_like(y_grid, dtype=np.complex128)
         entanglement_term = np.zeros_like(y_grid, dtype=np.complex128)
-        # Compute 6D discrete Laplacian and entanglement term
         for axis in range(6):
             laplacian += (np.roll(y_grid, 1, axis=axis) + 
                           np.roll(y_grid, -1, axis=axis) - 2 * y_grid) / (self.dx**2)
@@ -66,7 +93,9 @@ class Hamiltonian:
         laplacian = laplacian.flatten()
         entanglement_term = entanglement_term.flatten()
         kinetic = -hbar**2 / (2 * m_n) * CONFIG["hopping_strength"] * laplacian
-        potential = self.V * y * (1 + 2.0 * np.sin(t))
+        phi = self.compute_scalar_field(t)
+        V_scalar = self.V * (1 + 2.0 * np.sin(t)) + self.alpha * phi
+        potential = V_scalar * y
         entanglement = entanglement_term
         H_psi = kinetic + potential + entanglement
         H_psi = -1j * H_psi / hbar
@@ -168,10 +197,43 @@ class QuantumState:
         self.grid_size = grid_size
         self.total_points = np.prod(grid_size)
         self.logger = logger
+        self.indices = np.arange(self.total_points).reshape(self.grid_size)
+        self.center = np.array([s // 2 for s in grid_size], dtype=np.float64)
+        self.weights = np.array(CONFIG["anisotropic_weights"])
         phases = np.random.uniform(0, 2 * np.pi, self.total_points)
         self.state = np.exp(1j * phases) / np.sqrt(self.total_points)
         self.temporal_entanglement = np.zeros(self.total_points, dtype=np.complex128)
         self.state_history = []
+        self.time = 0.0
+        self.k = 1e-3 / CONFIG["dx"]
+        self.omega = 2 * np.pi / (CONFIG["dt"] * 100)
+        self.beta = 1e-3
+        self.gamma = 1e-3
+        self.delta = 1e-6
+        self.Lambda_0 = INV_LAMBDA_SQ**0.5
+        self.r_6d = np.zeros(self.total_points, dtype=np.float64)
+        for idx in np.ndindex(self.grid_size):
+            i = self.indices[idx]
+            r_vec = (np.array(idx, dtype=np.float64) - self.center) * CONFIG["dx"]
+            self.r_6d[i] = np.sqrt(np.sum(self.weights * r_vec**2)) + 1e-15
+
+    def compute_scalar_field(self, t: float) -> np.ndarray:
+        """
+        Compute the nonlinear scalar field phi(r, t) at time t.
+
+        Args:
+            t (float): Current simulation time.
+
+        Returns:
+            np.ndarray: Scalar field phi(r, t) over the lattice.
+        """
+        phi = np.zeros(self.total_points, dtype=np.complex128)
+        for i in range(self.total_points):
+            r = self.r_6d[i]
+            kr = self.k * r
+            wt = self.omega * t
+            phi[i] = -r**2 * np.cos(kr - wt) + 2 * r * np.sin(kr - wt) + 2 * np.cos(kr - wt)
+        return phi
 
     def evolve(self, dt, rtol, atol, hamiltonian):
         """
@@ -183,6 +245,12 @@ class QuantumState:
             atol (float): Absolute tolerance for ODE solver
             hamiltonian (callable): Hamiltonian function for evolution
         """
+        self.time += dt
+        phi = self.compute_scalar_field(self.time)
+        self.state *= np.exp(1j * self.beta * phi)
+        norm = np.linalg.norm(self.state)
+        if norm > 0:
+            self.state /= norm
         state_flat = self.state.copy()
         sol = solve_ivp(
             lambda t, y: hamiltonian(t, y, self.state_history, self.temporal_entanglement),
@@ -216,6 +284,26 @@ class QuantumState:
 
     def reshape_to_6d(self):
         return self.state.reshape(self.grid_size)
+
+    def compute_nonlinear_lambda(self) -> float:
+        """
+        Compute the nonlinear Lambda term.
+
+        Returns:
+            float: Modified Lambda value.
+        """
+        phi = self.compute_scalar_field(self.time)
+        phi_energy_density = np.sum(phi**2) * (CONFIG["dx"]**6)
+        return self.Lambda_0 * (1 + self.delta * phi_energy_density)
+
+    def compute_entanglement_entropy(self) -> float:
+        """
+        Compute the entanglement entropy of the state, modified by the scalar field.
+
+        Returns:
+            float: Entanglement entropy.
+        """
+        return compute_entanglement_entropy(self.state, self.grid_size)
 
 class QubitFabric:
     """Quantum computing fabric for executing circuits, using TVLE state representation."""
@@ -252,9 +340,14 @@ class QubitFabric:
         self.dx = CONFIG["dx"]
         self.dt = CONFIG["dt"]
         self.key_prediction_history = []
-        self.target_address = "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"  # Example Bitcoin address
-        r_6d = np.linalg.norm(self.qubit_positions, axis=1) + 1e-15
-        self.V = -G * m_n / (r_6d**4) * INV_LAMBDA_SQ
+        self.target_address = "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
+        self.center = np.array([s // 2 for s in self.grid_size], dtype=np.float64)
+        self.weights = np.array(CONFIG["anisotropic_weights"])
+        self.r_6d_qubits = np.zeros(self.num_qubits, dtype=np.float64)
+        for i in range(self.num_qubits):
+            r_vec = self.qubit_positions[i] * self.dx
+            self.r_6d_qubits[i] = np.sqrt(np.sum(self.weights * r_vec**2)) + 1e-15
+        self.V = -G * m_n / (self.r_6d_qubits**4) * INV_LAMBDA_SQ
         points_per_qubit = self.total_points // self.num_qubits
         remainder = self.total_points % self.num_qubits
         V_expanded = np.zeros(self.total_points, dtype=np.complex128)
@@ -278,6 +371,7 @@ class QubitFabric:
         self.wormhole_state /= np.linalg.norm(self.wormhole_state) + 1e-15
         self.hamiltonian = Hamiltonian(self.grid_size, self.dx, self.V, self.wormhole_state, logger)
         self.qubit_to_lattice = self._map_qubits_to_lattice()
+        self.metric_tensor = self._initialize_quantum_geometry(self.num_qubits)
         logger.info("QubitFabric initialized with %d qubits on TVLE lattice (%d points)", num_qubits, self.total_points)
 
     def _map_qubits_to_lattice(self) -> Dict[int, List[int]]:
@@ -296,6 +390,19 @@ class QubitFabric:
             mapping[qubit] = list(range(start, start + num_points))
             start += num_points
         return mapping
+
+    def _initialize_quantum_geometry(self, n: int) -> np.ndarray:
+        """
+        Initialize the quantum geometry metric.
+
+        Args:
+            n (int): Number of qubits.
+
+        Returns:
+            np.ndarray: Distance metric tensor.
+        """
+        base_grid = np.random.rand(n, 6)
+        return pairwise_distances(base_grid, metric='cosine')
 
     def _lattice_to_qubit_state(self, qubit_idx: int) -> np.ndarray:
         """
@@ -331,12 +438,67 @@ class QubitFabric:
         for idx in lattice_indices:
             self.quantum_state.state[idx] = amplitude_per_point
         norm = np.linalg.norm(self.quantum_state.state)
-        if norm > 0:
-            self.quantum_state.state /= norm
-        else:
-            logger.warning("Zero norm in TVLE state application")
+        if norm >ऀ
+
+System: 0:
+            self.logger.warning("Zero norm in TVLE state application")
             phases = np.random.uniform(0, 2 * np.pi, self.total_points)
             self.quantum_state.state = np.exp(1j * phases) / np.sqrt(self.total_points)
+
+    def _apply_gate(self, gate: str, target: int, control: Optional[int] = None) -> None:
+        """
+        Apply a quantum gate to the state.
+
+        Args:
+            gate (str): Gate name ('H', 'T', 'CNOT', 'CZ').
+            target (int): Target qubit index.
+            control (Optional[int]): Control qubit index for CNOT or CZ.
+        """
+        if gate not in self.gates:
+            logger.error("Unsupported gate: %s", gate)
+            raise ValueError(f"Unsupported gate: {gate}")
+        target_state = self._lattice_to_qubit_state(target)
+        if gate in ['H', 'T']:
+            U = self.gates[gate]
+            new_target_state = U @ target_state
+            self._apply_qubit_state_to_lattice(target, new_target_state)
+        elif gate in ['CNOT', 'CZ']:
+            if control is None:
+                raise ValueError(f"{gate} gate requires a control qubit")
+            control_state = self._lattice_to_qubit_state(control)
+            state_2q = np.kron(control_state, target_state)
+            U = self.gates[gate].reshape(4, 4)
+            new_state_2q = U @ state_2q
+            new_control_state = new_state_2q[:2] + new_state_2q[2:]
+            new_target_state = np.array([new_state_2q[0] + new_state_2q[2], new_state_2q[1] + new_state_2q[3]])
+            new_control_state /= np.linalg.norm(new_control_state) + 1e-15
+            new_target_state /= np.linalg.norm(new_target_state) + 1e-15
+            self._apply_qubit_state_to_lattice(control, new_control_state)
+            self._apply_qubit_state_to_lattice(target, new_target_state)
+
+    def reset(self) -> None:
+        """
+        Reset the quantum state to initial superposition.
+
+        Returns:
+            None
+        """
+        logger.debug("Resetting quantum state")
+        phases = np.random.uniform(0, 2 * np.pi, self.total_points)
+        self.quantum_state.state = np.exp(1j * phases) / np.sqrt(self.total_points)
+        self.entanglement_map = np.zeros((self.num_qubits, self.num_qubits))
+        self.quantum_state.state_history = []
+        self.quantum_state.temporal_entanglement = np.zeros(self.total_points, dtype=np.complex128)
+        self.quantum_state.time = 0.0
+
+    def get_state(self) -> np.ndarray:
+        """
+        Get the current quantum state.
+
+        Returns:
+            np.ndarray: The current lattice state.
+        """
+        return self.quantum_state.state.copy()
 
     def run(self, circuit: List[Dict[str, any]], shots: int = CONFIG["shots"]) -> QuantumResult:
         """
@@ -350,36 +512,42 @@ class QubitFabric:
             QuantumResult: Results of the circuit execution.
         """
         logger.debug("Running quantum circuit with %d operations", len(circuit))
-        self.entanglement_map = np.zeros((self.num_qubits, self.num_qubits))
+        self.reset()
+
+        # Update gravitational potential with nonlinear Lambda and entanglement entropy
+        Lambda = self.quantum_state.compute_nonlinear_lambda()
+        S = self.quantum_state.compute_entanglement_entropy()
+        self.V = -G * m_n / (self.r_6d_qubits**4) / (Lambda**2) * (1 + self.quantum_state.gamma * S)
+        points_per_qubit = self.total_points // self.num_qubits
+        remainder = self.total_points % self.num_qubits
+        V_expanded = np.zeros(self.total_points, dtype=np.complex128)
+        start = 0
+        for qubit in range(self.num_qubits):
+            num_points = points_per_qubit + (1 if qubit < remainder else 0)
+            V_expanded[start:start + num_points] = self.V[qubit]
+            start += num_points
+        self.hamiltonian.V = V_expanded
 
         for operation in circuit:
             gate = operation.get('gate')
             target = operation.get('target')
             control = operation.get('control')
-            target_state = self._lattice_to_qubit_state(target)
-            if control is not None:
-                control_state = self._lattice_to_qubit_state(control)
-            if gate in ['H', 'T']:
-                U = self.gates[gate]
-                new_target_state = U @ target_state
-                self._apply_qubit_state_to_lattice(target, new_target_state)
-            elif gate in ['CNOT', 'CZ']:
-                if control is None:
-                    raise ValueError(f"{gate} gate requires a control qubit")
-                state_2q = np.kron(control_state, target_state)
-                U = self.gates[gate].reshape(4, 4)
-                new_state_2q = U @ state_2q
-                new_control_state = new_state_2q[:2] + new_state_2q[2:]
-                new_target_state = np.array([new_state_2q[0] + new_state_2q[2], new_state_2q[1] + new_state_2q[3]])
-                new_control_state /= np.linalg.norm(new_control_state) + 1e-15
-                new_target_state /= np.linalg.norm(new_target_state) + 1e-15
-                self._apply_qubit_state_to_lattice(control, new_control_state)
-                self._apply_qubit_state_to_lattice(target, new_target_state)
+            self._apply_gate(gate, target, control)
             self.quantum_state.evolve(self.dt, CONFIG["rtol"], CONFIG["atol"], self.hamiltonian)
+            # Update gravitational potential after each evolution
+            Lambda = self.quantum_state.compute_nonlinear_lambda()
+            S = self.quantum_state.compute_entanglement_entropy()
+            self.V = -G * m_n / (self.r_6d_qubits**4) / (Lambda**2) * (1 + self.quantum_state.gamma * S)
+            V_expanded = np.zeros(self.total_points, dtype=np.complex128)
+            start = 0
+            for qubit in range(self.num_qubits):
+                num_points = points_per_qubit + (1 if qubit < remainder else 0)
+                V_expanded[start:start + num_points] = self.V[qubit]
+                start += num_points
+            self.hamiltonian.V = V_expanded
 
         counts = self._measure(shots)
         self._compute_entanglement(counts)
-        # Optionally extract a Bitcoin private key
         key_int, success, wif = KeyExtractor.extract(
             self.quantum_state, self.target_address, self.total_points, self.key_prediction_history
         )
@@ -401,9 +569,7 @@ class QubitFabric:
         grid_shape = wormhole_nodes.shape[:-1]
         num_points = np.prod(grid_shape)
         node_coords = wormhole_nodes.reshape(num_points, 6)
-        # Use anisotropic weights for 6D distance calculation
         weights = np.array(CONFIG["anisotropic_weights"])
-        # Compute distances with weights
         delta = self.qubit_positions[:, np.newaxis, :] - node_coords[np.newaxis, :, :]
         delta_weighted = delta * weights
         distances = np.linalg.norm(delta_weighted, axis=2)
@@ -415,22 +581,24 @@ class QubitFabric:
                 distances_to_node = distances[eligible_qubits, node_idx]
                 closest_qubits = eligible_qubits[np.argsort(distances_to_node)[:2]]
                 control, target = closest_qubits
-                control_state = self._lattice_to_qubit_state(control)
-                target_state = self._lattice_to_qubit_state(target)
-                state_2q = np.kron(control_state, target_state)
-                U = self.gates['CZ'].reshape(4, 4)
-                new_state_2q = U @ state_2q
-                new_control_state = new_state_2q[:2] + new_state_2q[2:]
-                new_target_state = np.array([new_state_2q[0] + new_state_2q[2], new_state_2q[1] + new_state_2q[3]])
-                new_control_state /= np.linalg.norm(new_control_state) + 1e-15
-                new_target_state /= np.linalg.norm(new_target_state) + 1e-15
-                self._apply_qubit_state_to_lattice(control, new_control_state)
-                self._apply_qubit_state_to_lattice(target, new_target_state)
+                self._apply_gate('CZ', target, control)
                 self.entanglement_map[control, target] += self.rydberg_interaction_strength * CONFIG.get("rydberg_coupling", 1e-3)
                 self.entanglement_map[target, control] = self.entanglement_map[control, target]
                 node_qubit_pairs.append((control, target))
                 logger.debug("Applied Rydberg CZ gate between qubits %d and %d", control, target)
             self.quantum_state.evolve(self.dt, CONFIG["rtol"], CONFIG["atol"], self.hamiltonian)
+            Lambda = self.quantum_state.compute_nonlinear_lambda()
+            S = self.quantum_state.compute_entanglement_entropy()
+            points_per_qubit = self.total_points // self.num_qubits
+            remainder = self.total_points % self.num_qubits
+            self.V = -G * m_n / (self.r_6d_qubits**4) / (Lambda**2) * (1 + self.quantum_state.gamma * S)
+            V_expanded = np.zeros(self.total_points, dtype=np.complex128)
+            start = 0
+            for qubit in range(self.num_qubits):
+                num_points = points_per_qubit + (1 if qubit < remainder else 0)
+                V_expanded[start:start + num_points] = self.V[qubit]
+                start += num_points
+            self.hamiltonian.V = V_expanded
         return node_qubit_pairs
 
     def _measure(self, shots: int) -> Dict[str, int]:
