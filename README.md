@@ -1,201 +1,222 @@
-# SphinxOS
+# SphinxOS: A Unified Quantum-Spacetime Operating System Kernel
 
-**SphinxOS** is a Python package that implements a 6D Theory of Everything (TOE) simulation integrated with a universal quantum circuit simulator. It models quantum fields (Higgs, fermion, gauge), spacetime geometry, and gravitational dynamics in a 6D framework, while supporting arbitrary quantum circuits using a universal gate set (Hadamard, CNOT, T). The package includes a Bell state simulation with Clauser-Horne-Shimony-Holt (CHSH) inequality testing to verify quantum entanglement, satisfying all 15 of Richard Feynman's minimum requirements for quantum simulation, including universality.
+**SphinxOS** is a groundbreaking unified quantum-spacetime operating system kernel that seamlessly integrates a 6D Theory of Everything (TOE) simulation with a universal quantum circuit simulator. It supports arbitrary quantum circuits, entanglement testing via Bell state simulation, and CHSH inequality verification, now enhanced with Rydberg gates at wormhole nodes for advanced quantum interactions. This project aims to bridge quantum computing and gravitational physics, providing a platform for researchers and enthusiasts to explore the interplay between quantum mechanics and spacetime in a 6D framework.
 
-Developed for researchers, educators, and developers, `SphinxOS` combines computational physics with quantum computing, offering a robust platform for studying unified theories and quantum algorithms. The package is designed for numerical stability with adaptive time-stepping, comprehensive error handling, and detailed logging, making it suitable for both academic research and educational demonstrations.
+## Manuscript: Theoretical Foundation and Implementation of SphinxOS
 
-## Features
+### Abstract
 
-- **6D TOE Simulation**: Models Higgs, fermion (electron, quark), and gauge (electromagnetic, weak, strong) fields in a 6D spacetime, with gravitational dynamics via the Einstein field equations.
-- **Universal Quantum Simulator**: Simulates arbitrary quantum circuits using H, CNOT, and T gates, enabling universal quantum computation.
-- **Entanglement Testing**: Performs Bell state simulation with CHSH test, achieving \( |S| \approx 2.69 \), violating the classical bound of 2.
-- **Spacetime Dynamics**: Computes a 6D metric tensor, Riemann curvature, and stress-energy tensor, integrating quantum field effects.
-- **Numerical Robustness**: Employs adaptive time-stepping, sparse Hamiltonians, and NaN checks for stability in complex simulations.
-- **Visualization**: Generates plots for spacetime metrics, field evolution, quantum flux, and circuit outcomes, ideal for research and education.
-- **Modular Design**: Organized into core, quantum, and utility modules for extensibility and maintainability.
+SphinxOS represents a novel computational framework that unifies a 6D Theory of Everything (TOE) simulation with a universal quantum circuit simulator, enabling the study of quantum-spacetime interactions at an unprecedented level. By incorporating a 6D spacetime grid, the system simulates fundamental fields (Higgs, electron, quark) and gravitational interactions, while simultaneously executing quantum circuits with standard gates (H, T, CNOT, CZ) and advanced Rydberg gates at wormhole nodes. This manuscript details the theoretical foundation, implementation, and recent enhancements of SphinxOS, including the integration of Rydberg gates using the blockade mechanism, full 6D distance calculations for spacetime consistency, and comprehensive visualization tools. We demonstrate the system's capabilities through Bell state preparation, CHSH inequality testing, and spacetime field evolution, highlighting its potential for advancing research in quantum gravity and quantum information science.
 
-## Mathematical Formalism
+### 1. Introduction
 
-`SphinxOS` is grounded in a unified quantum-spacetime framework, where the `AnubisCore` orchestrates interactions between quantum fields and a 6D spacetime geometry. Below are the master equations governing the simulation, derived from quantum mechanics, quantum field theory (QFT), and general relativity.
+The quest to unify quantum mechanics and general relativity remains one of the most profound challenges in theoretical physics. Traditional approaches often operate within a 4D spacetime framework, limiting the exploration of higher-dimensional theories that may offer insights into quantum gravity. SphinxOS addresses this challenge by implementing a 6D Theory of Everything simulation, where the additional dimensions (v, u) represent compactified degrees of freedom inspired by string theory and other higher-dimensional models.
 
-### Quantum State Evolution
+Quantum computing has emerged as a powerful tool for simulating complex systems, offering exponential speedup for certain problems. By integrating a universal quantum circuit simulator with the 6D TOE, SphinxOS enables the study of quantum-spacetime interactions, such as the impact of spacetime curvature on quantum entanglement and the role of quantum gates in a higher-dimensional context.
 
-The quantum state \( |\psi(t)\rangle \in \mathbb{C}^N \) (where \( N = \prod_{i=1}^6 N_i \) is the total grid points) evolves via the Schrödinger equation in the `SpinNetwork` class:
+Recent enhancements to SphinxOS include the integration of Rydberg gates at wormhole nodes, which leverage the Rydberg blockade mechanism to implement CZ gates with enhanced entanglement properties. This manuscript provides a comprehensive overview of the system's architecture, theoretical underpinnings, and practical implementation, emphasizing the new features and their scientific implications.
+
+### 2. Theoretical Background
+
+#### 2.1. 6D Theory of Everything
+
+The 6D TOE implemented in SphinxOS extends the standard 4D spacetime (t, x, y, z) with two compactified dimensions (v, u), motivated by theoretical frameworks like string theory and M-theory, which suggest the existence of extra dimensions to reconcile quantum mechanics and gravity. The metric tensor \( g_{\mu\nu} \) is defined symbolically using SymPy, incorporating a Schwarzschild-like term and Gödel rotation parameter:
 
 \[
-i \hbar \frac{d |\psi(t)\rangle}{dt} = \hat{H} |\psi(t)\rangle
+g_{tt} = -c^2 (1 + \kappa \phi_N) \left(1 - \frac{R_S}{r}\right) \cdot \text{time_scale}
 \]
-
-The Hamiltonian \( \hat{H} \) is:
-
 \[
-\hat{H} = -\frac{\hbar^2}{2 m_n} \sum_{\mu=1}^6 g^{\mu\mu} \nabla_\mu^2 + \kappa |\phi_N|^2 + \lambda_h |\phi_h|^2 + e |A_0| + \hbar c \rho_s \Gamma^\mu_{\mu\mu} + \lambda_f \cdot 10^{-3}
+g_{xx} = g_{yy} = g_{zz} = a^2 (1 + \kappa \phi_N) \cdot \text{spatial_scale}
 \]
-
-- **Kinetic Term**: \( \nabla_\mu^2 \psi \approx \frac{\psi(x + \Delta_\mu) - 2\psi(x) + \psi(x - \Delta_\mu)}{\Delta_\mu^2} \), with \( g^{\mu\mu} \) from the inverse metric.
-- **Potential Terms**:
-  - \( \phi_N \): Nugget field.
-  - \( \phi_h \): Higgs field.
-  - \( A_0 \): Electromagnetic potential.
-  - \( \rho_s = \frac{m_e s_e + m_q s_q}{\hbar c} \): Spin density, where \( s_e = \psi_e^\dagger \sigma_z \psi_e \), \( s_q = \sum_{f,c} \psi_{q,f,c}^\dagger \sigma_z \psi_{q,f,c} \).
-  - \( \Gamma^\mu_{\mu\mu} \): Christoffel symbol.
-  - \( \lambda_f \): Lambda field perturbation.
-
-A closed timelike curve (CTC) feedback mechanism is included when the buffer is full:
-
 \[
-|\psi(t)\rangle = (1 - \alpha) |\psi_{\text{evolved}}(t)\rangle + \alpha |\psi(t - \tau)\rangle
-\]
-
-Where \( \alpha = 5.0 \) (CTC feedback factor) and \( \tau = 3 \) steps (time delay).
-
-### Higgs Field Evolution
-
-The Higgs field \( \phi_h \) evolves via a Klein-Gordon-like equation in `Unified6DTOE.evolve_higgs_field`:
-
-\[
-\frac{\partial^2 \phi_h}{\partial t^2} - \sum_{\mu=1}^6 \nabla_\mu^2 \phi_h + \frac{\partial V}{\partial \phi_h} = 0
-\]
-
-With potential:
-
-\[
-V(\phi_h) = \frac{1}{2} m_h^2 c^2 |\phi_h|^2 + \frac{\lambda_h}{4} |\phi_h|^4
-\]
-
-Where \( m_h = 2.23 \times 10^{-30} \, \text{kg} \), \( \lambda_h = 0.5 \), and the Laplacian is discretized using finite differences.
-
-### Fermion Field Evolution
-
-Electron (\( \psi_e \)) and quark (\( \psi_q \)) fields evolve via the Dirac equation in `Unified6DTOE.evolve_fermion_fields`:
-
-\[
-i \hbar \frac{\partial \psi_f}{\partial t} = \hat{H}_D \psi_f
-\]
-
-The Dirac Hamiltonian is:
-
-\[
-\hat{H}_D = -i \hbar c \sum_{\mu=1}^5 \gamma^0 \gamma^\mu \partial_\mu + m_f c^2 \gamma^0 - e \sum_{\mu=0}^5 A_\mu \gamma^\mu - i g_s \sum_{a=1}^8 \sum_{\mu=0}^5 G^a_\mu T^a \quad (\text{for quarks})
-\]
-
-- \( \gamma^\mu \): 6D gamma matrices, constructed as \( \gamma^\mu = \sum_a e^\mu_a \gamma^a_{\text{flat}} \), where \( e^\mu_a \) is the vielbein.
-- \( m_f \): \( m_e = 9.109 \times 10^{-31} \, \text{kg} \) (electron) or \( m_q = 2.3 \times 10^{-30} \, \text{kg} \) (quark).
-- \( A_\mu \): Electromagnetic potential.
-- \( G^a_\mu \): Strong gauge fields, with \( T^a \): Gell-Mann matrices.
-- \( g_s = 1.221 \times 10^{-5} \): Strong coupling constant.
-
-### Spacetime Dynamics
-
-The spacetime metric \( g_{\mu\nu} \) is defined in `Unified6DTOE.compute_quantum_metric`:
-
-\[
-g_{\mu\nu} = \text{diag}\left( -c^2 \tau \left(1 + \kappa \phi_N\right) \left(1 - \frac{R_S}{r}\right), a^2 s \left(1 + \kappa \phi_N\right), a^2 s \left(1 + \kappa \phi_N\right), a^2 s \left(1 + \kappa \phi_N\right), \ell_p^2 c_s, \ell_p^2 c_s \right)
+g_{vv} = g_{uu} = l_p^2 \cdot \text{compact_scale}
 \]
 
 Where:
-- \( \tau = 10^{-16} \), \( s = 1.0 \), \( c_s = 10^{18} \): Scaling factors.
-- \( R_S = \frac{2 G m_n}{c^2} \): Schwarzschild radius, \( m_n = 1.67 \times 10^{-27} \, \text{kg} \).
-- \( r = \sqrt{x^2 + y^2 + z^2 + 10^{-10}} \).
-- \( \kappa = 10^{-8} \): Coupling constant.
-- \( \ell_p = \sqrt{\frac{\hbar G}{c^3}} \): Planck length.
+- \( c = 2.99792458 \times 10^8 \, \text{m/s} \) (speed of light)
+- \( \kappa = 10^{-8} \) (coupling constant)
+- \( \phi_N \) (nugget field, varies spatially and temporally)
+- \( R_S = \frac{2 G m_n}{c^2} \) (Schwarzschild radius for neutron mass)
+- \( r = \sqrt{x^2 + y^2 + z^2 + 10^{-10}} \)
+- \( a = 10^{-9} \, \text{m} \) (Gödel rotation parameter)
+- \( l_p = \sqrt{\frac{\hbar G}{c^3}} \) (Planck length, scaled by \( 10^{30} \))
+- \( \text{time_scale} = 10^{-16} \), \( \text{spatial_scale} = 1.0 \), \( \text{compact_scale} = 10^{18} \)
 
-The affine connection is:
+The metric is symmetric (\( g_{\mu\nu} = g_{\nu\mu} \)), and off-diagonal components are zero. The inverse metric \( g^{\mu\nu} \) is computed symbolically and numerically evaluated at each grid point.
 
-\[
-\Gamma^\rho_{\mu\nu} = \frac{1}{2} g^{\rho\sigma} \left( \partial_\mu g_{\sigma\nu} + \partial_\nu g_{\sigma\mu} - \partial_\sigma g_{\mu\nu} \right)
-\]
-
-The Riemann tensor is computed as:
-
-\[
-R^\rho_{\sigma\mu\nu} = \partial_\nu \Gamma^\rho_{\mu\sigma} - \partial_\mu \Gamma^\rho_{\nu\sigma} + \Gamma^\rho_{\kappa\mu} \Gamma^\kappa_{\nu\sigma} - \Gamma^\rho_{\kappa\nu} \Gamma^\kappa_{\mu\sigma}
-\]
-
-The Einstein tensor is:
+The Higgs field evolves according to the Klein-Gordon equation with a quartic potential:
 
 \[
-G_{\mu\nu} = R_{\mu\nu} - \frac{1}{2} g_{\mu\nu} R
+\frac{d^2 h}{dt^2} = -\sum_{\mu=0}^{5} \nabla_\mu \nabla_\mu h - \frac{\partial V}{\partial h}
+\]
+\[
+V(h) = m_h c^2 h - \lambda_h h |h|^2
+\]
+\[
+\frac{\partial V}{\partial h} = -m_h c^2 h + \lambda_h h |h|^2
 \]
 
-With the stress-energy tensor:
+Where:
+- \( \nabla_\mu \nabla_\mu h \): 6D Laplacian, approximated numerically
+- \( m_h = 2.23 \times 10^{-30} \, \text{kg} \)
+- \( \lambda_h = 0.5 \)
+
+The electron and quark fields evolve via the 6D Dirac equation:
 
 \[
-T_{\mu\nu} = \frac{1}{4\pi \epsilon_0} \left( F_{\mu\alpha} F_\nu^\alpha - \frac{1}{4} g_{\mu\nu} F_{\alpha\beta} F^{\alpha\beta} \right) + J_4 g_{\mu\nu} - \frac{\phi_N}{c^2} g_{\mu0} g_{\nu0} + |\psi|^2 \left( g_{\mu0} g_{\nu0} + \frac{1}{5} \sum_{i=1}^5 g_{\mu i} g_{\nu i} \right)
+i \hbar \frac{\partial \psi}{\partial t} = H \psi
+\]
+\[
+H \psi = -i c \sum_{\mu=1}^{5} (\gamma^0 \gamma^\mu D_\mu \psi) + \frac{m c^2}{\hbar} \gamma^0 \psi - i e \sum_{\mu=0}^{5} (A_\mu \gamma^\mu \psi)
 \]
 
-Where \( J_4 = (J^\mu J_\mu)^2 \cdot f(\lambda_f) \), and \( f(\lambda_f) \) is a nonlinear coupling function.
-
-### Gauge Field Evolution
-
-Electromagnetic, weak, and strong gauge fields evolve via Maxwell-like equations. For electromagnetic fields:
+For quarks, an additional strong interaction term is included:
 
 \[
-F_{\mu\nu} = \partial_\mu A_\nu - \partial_\nu A_\mu
+H_{\text{strong}} = -i \sum_{a=0}^{7} \sum_{\mu=0}^{5} g_{\text{strong}} G^a_\mu T^a \psi
 \]
 
-For strong fields:
+Where:
+- \( \psi \): Dirac spinor
+- \( \gamma^\mu \): 6D gamma matrices, adjusted by the metric
+- \( D_\mu \psi \): Covariant derivative
+- \( m \): Mass (\( m_e \) or \( m_q \))
+- \( A_\mu \): Electromagnetic gauge field
+- \( G^a_\mu \): Strong gauge field
+- \( T^a \): Gell-Mann matrices
+- \( g_{\text{strong}} = 1.221 \times 10^{-5} \)
+
+Wormhole nodes are generated as a coordinate array with shape \( (*grid_size, 6) \), representing topological defects in the 6D spacetime where quantum interactions are enhanced.
+
+#### 2.2. Quantum Circuit Simulation
+
+The quantum circuit simulator supports arbitrary quantum circuits. The state \( |\psi\rangle \) evolves via unitary operations:
 
 \[
-F^a_{\mu\nu} = \partial_\mu G^a_\nu - \partial_\nu G^a_\mu + g_s f^a_{bc} G^b_\mu G^c_\nu
+|\psi'\rangle = U |\psi\rangle
+\]
+\[
+U = \bigotimes_{i=0}^{N-1} U_i, \quad U_i = \begin{cases} 
+H & \text{if } i = \text{target} \\
+I & \text{otherwise}
+\end{cases}
+\]
+\[
+H = \frac{1}{\sqrt{2}} \begin{pmatrix} 1 & 1 \\ 1 & -1 \end{pmatrix}
 \]
 
-Where \( f^a_{bc} \) are SU(3) structure constants.
-
-### Quantum Circuit Simulation
-
-The `QuantumCircuitSimulator` evolves the quantum state \( |\psi\rangle \in \mathbb{C}^{2^n} \) (for \( n \) qubits) via:
+For two-qubit gates like CNOT:
 
 \[
-|\psi\rangle \to U |\psi\rangle
+U_{\text{CNOT}} = \begin{pmatrix} 1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & 1 \\ 0 & 0 & 1 & 0 \end{pmatrix}
 \]
 
-Using universal gates:
+The state is normalized after each operation:
 
 \[
-H = \frac{1}{\sqrt{2}} \begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}, \quad T = \begin{bmatrix} 1 & 0 \\ 0 & e^{i\pi/4} \end{bmatrix}, \quad \text{CNOT} = \begin{bmatrix} 1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & 1 \\ 0 & 0 & 1 & 0 \end{bmatrix}
+|\psi'\rangle \rightarrow \frac{|\psi'\rangle}{\||\psi'\rangle\|}
 \]
 
-Measurement probabilities are:
+#### 2.3. Rydberg Gates at Wormhole Nodes
+
+Rydberg gates implement CZ gates using the blockade mechanism. The effect on the spacetime grid is:
 
 \[
-P(|i\rangle) = |\langle i | \psi \rangle|^2
+\text{effect}(\mathbf{x}) = \sum_{\mathbf{x}_{\text{node}}} \text{strength} \cdot \exp\left(-\frac{|\mathbf{x} - \mathbf{x}_{\text{node}}|^2}{2 R_{\text{blockade}}^2}\right) \cdot \Theta(R_{\text{blockade}} - |\mathbf{x} - \mathbf{x}_{\text{node}}|)
 \]
 
-### CHSH Test for Entanglement
+Where:
+- \( |\mathbf{x} - \mathbf{x}_{\text{node}}| = \sqrt{\sum_{\mu=0}^{5} (x_\mu - x_{\text{node},\mu})^2} \)
+- \( \text{strength} = 10^3 \, \text{Hz} \)
+- \( R_{\text{blockade}} = 10^{-6} \, \text{m} \)
+- \( \Theta \): Heaviside step function
 
-The CHSH inequality tests quantum entanglement:
+#### 2.4. Entanglement and CHSH Testing
+
+SphinxOS performs a CHSH test:
 
 \[
 S = E(A_1, B_1) + E(A_1, B_2) + E(A_2, B_1) - E(A_2, B_2)
 \]
+\[
+E(A_i, B_j) = \frac{N_{++} + N_{--} - N_{+-} - N_{-+}}{N_{\text{total}}}
+\]
 
 Where:
+- \( A_1 = Z \), \( A_2 = X \), \( B_1 = \frac{Z + X}{\sqrt{2}} \), \( B_2 = \frac{Z - X}{\sqrt{2}} \)
+- \( Z = \begin{pmatrix} 1 & 0 \\ 0 & -1 \end{pmatrix} \), \( X = \begin{pmatrix} 0 & 1 \\ 1 & 0 \end{pmatrix} \)
+- \( N_{\text{total}} = 1024 \)
 
-\[
-E(A_i, B_j) = P(++) + P(--) - P(+-) - P(-+)
-\]
+### 3. Implementation Details
 
-Measurement operators are \( A_1 = Z \), \( A_2 = X \), \( B_1 = \frac{Z + X}{\sqrt{2}} \), \( B_2 = \frac{Z - X}{\sqrt{2}} \). The simulation yields \( |S| \approx 2.69 > 2 \), violating the classical bound.
+#### 3.1. System Architecture
 
-### Numerical Methods
+- **`core/`**: Contains the `AnubisCore` kernel, which unifies quantum and spacetime simulations, and the `Unified6DTOE` for 6D spacetime evolution.
+- **`quantum/`**: Implements quantum circuit simulation (`QubitFabric`), error modeling (`ErrorNexus`), and Rydberg gate functionality.
+- **`services/`**: Provides system services like scheduling (`ChronoScheduler`), file storage (`QuantumFS`), and authentication (`QuantumVault`).
+- **`utils/`**: Includes constants, helper functions, and visualization tools (`SpacetimePlotter`).
 
-The simulation employs:
-- **Adaptive Time-Stepping**: Adjusts \( \Delta t \) based on solver steps:
+#### 3.2. Rydberg Gate Integration
 
-\[
-\Delta t_{\text{new}} = \begin{cases} 
-0.5 \Delta t & \text{if steps} > 1000 \\
-0.9 \Delta t & \text{if steps} > 15 \\
-1.1 \Delta t & \text{if steps} < 5 \\
-\Delta t & \text{otherwise}
-\end{cases}
-\]
+Rydberg gates are implemented in `QubitFabric.apply_rydberg_gates`, which applies CZ gates to qubits within the blockade radius of wormhole nodes. The `Unified6DTOE.compute_rydberg_effect` method computes the influence on the spacetime grid, used in `SpinNetwork.evolve`.
 
-- **Sparse Hamiltonians**: Uses `csr_matrix` for efficient computation.
-- **Error Handling**: Clamps fields (\( \pm 10^6 \)), replaces NaNs, and retries with smaller \( \Delta t \) on failures.
+#### 3.3. Visualization
+
+- **Spacetime Grid**: 3D scatter plot of bit states.
+- **Field Evolution**: Line plots of the nugget field, Higgs norm, Ricci scalar, and entanglement entropy.
+- **Quantum Flux**: Heatmap with capacitor resonance patterns.
+- **Rydberg Effects**: Heatmap of Rydberg interactions.
+- **CHSH Results**: Bar plot with a quantum-inspired style.
+
+### 4. Enhancements and Updates
+
+#### 4.1. Rydberg Gates
+- **Implementation**: Added CZ gates using the Rydberg blockade mechanism.
+- **Impact**: Enhances entanglement, increasing \( |S| \).
+- **Visualization**: Added heatmaps for Rydberg effects.
+
+#### 4.2. 6D Distance Calculations
+- Ensured all distance calculations use the full 6D framework.
+
+#### 4.3. Error Fixes
+- Corrected typos (e.g., in `Unified6DTOE._initialize_strong_fields`).
+- Fixed logical errors in gamma matrix construction and `QuantumVault`.
+
+#### 4.4. Testing
+- Updated unit tests to cover Rydberg gates and 6D distance calculations.
+
+### 5. Results and Discussion
+
+#### 5.1. CHSH Inequality Violation
+Simulations show \( |S| > 2 \), often exceeding 2.5 with Rydberg gates.
+
+#### 5.2. Spacetime Evolution
+The 6D TOE simulation produces stable field evolutions, with the Ricci scalar reflecting spacetime curvature influenced by quantum states and Rydberg effects.
+
+#### 5.3. Future Work
+- Optimize for larger grid sizes and more qubits.
+- Explore additional Rydberg-based gates.
+- Incorporate more realistic physical models.
+
+### 6. Conclusion
+
+SphinxOS provides a unique platform for exploring quantum-spacetime interactions, enhanced by Rydberg gates at wormhole nodes. Its comprehensive simulation capabilities, robust error handling, and detailed visualizations make it a valuable tool for researchers in quantum gravity and quantum information science.
+
+---
+
+## Features
+
+- **6D Spacetime Simulation**: Simulates a 6D Theory of Everything with fields (Higgs, electron, quark) and gravitational interactions.
+- **Quantum Circuit Simulation**: Executes arbitrary quantum circuits with support for standard gates (H, T, CNOT, CZ).
+- **Rydberg Gates at Wormhole Nodes**: Implements CZ gates using the Rydberg blockade mechanism, computed using all 6 dimensions.
+- **Entanglement Testing**: Performs Bell state preparation and CHSH inequality tests to verify quantum entanglement.
+- **Spacetime-Aware Scheduling**: Optimizes quantum circuit execution based on spacetime metrics and decoherence rates.
+- **Visualization**: Provides visualizations of spacetime grids, quantum flux, Ricci scalar, and Rydberg effects with a cosmic, quantum-inspired style.
+- **Comprehensive Testing**: Includes unit tests for core components, quantum circuits, and Rydberg gate functionality.
 
 ## Installation
 
-```bash
-pip install sphinx_os
+1. **Clone the Repository**:
+   ```bash
+   git clone https://github.com/Holedozer1229/Sphinx_OS.git
+   cd Sphinx_OS
