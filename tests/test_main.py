@@ -18,6 +18,9 @@ class TestSphinxOS(unittest.TestCase):
         self.assertEqual(self.sphinx_os.grid_size, (2, 2, 2, 2, 2, 2))
         self.assertEqual(self.sphinx_os.num_qubits, 64)
         self.assertIsNotNone(self.sphinx_os.anubis_core)
+        state = self.sphinx_os.qubit_fabric.get_state()
+        self.assertEqual(state.shape, (5625,))
+        self.assertAlmostEqual(np.linalg.norm(state), 1.0)
 
     def test_emulate_on_hardware_with_rydberg(self):
         """Test hardware emulation with CHSH test including a Rydberg CZ gate."""
@@ -32,6 +35,10 @@ class TestSphinxOS(unittest.TestCase):
             for j in range(64):
                 if i != j:
                     self.assertEqual(entanglement_map[i, j], 0)
+        initial_state = self.sphinx_os.qubit_fabric.get_state()
+        self.sphinx_os.qubit_fabric.reset()
+        reset_state = self.sphinx_os.qubit_fabric.get_state()
+        self.assertFalse(np.array_equal(initial_state, reset_state))
 
     def test_run(self):
         """Test full simulation run with a simple circuit on a subset of qubits."""
