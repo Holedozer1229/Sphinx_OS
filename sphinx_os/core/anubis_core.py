@@ -78,6 +78,7 @@ class AnubisCore:
             self.spin_network.state
         )
         with self.security.authenticate("user"):
+            self.qubit_fabric.reset()
             wormhole_nodes = self.toe.get_wormhole_nodes()
             qubit_pairs = self.qubit_fabric.apply_rydberg_gates(wormhole_nodes)
             self.error_nexus.apply_rydberg_decoherence(qubit_pairs)
@@ -98,6 +99,8 @@ class AnubisCore:
         entanglement_entropy = compute_entanglement_entropy(self.electron_field, self.grid_size)
         self.entanglement_history.append(entanglement_entropy)
         self._sync_entanglement(q_results, {"entanglement_history": [entanglement_entropy]})
+        state = self.qubit_fabric.get_state()
+        logger.debug("Quantum state norm after execution: %.3f", np.linalg.norm(state))
         from .unified_result import UnifiedResult
         return UnifiedResult(q_results, {"entanglement_history": self.entanglement_history})
 
