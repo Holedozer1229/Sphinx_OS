@@ -48,4 +48,27 @@ def construct_6d_gamma_matrices(metric: np.ndarray) -> List[np.ndarray]:
     """
     gamma_flat = [
         np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, -1, 0], [0, 0, 0, -1]], dtype=np.complex64),
-        np.array([[0, 0, 0, 1], [0, 0,
+        np.array([[0, 0, 0, 1], [0, 0, 1, 0], [0, -1, 0, 0], [-1, 0, 0, 0]], dtype=np.complex64),
+        np.array([[0, 0, 0, -1j], [0, 0, 1j, 0], [0, 1j, 0, 0], [-1j, 0, 0, 0]], dtype=np.complex64),
+        np.array([[0, 0, 1, 0], [0, 0, 0, -1], [-1, 0, 0, 0], [0, 1, 0, 0]], dtype=np.complex64),
+        np.eye(4, dtype=np.complex64),
+        np.eye(4, dtype=np.complex64)
+    ]
+    e_a_mu = np.diag([np.sqrt(abs(metric[i, i])) + 1e-15 for i in range(6)], dtype=np.float64)
+    e_mu_a = np.linalg.inv(e_a_mu)
+    gamma = [sum(e_mu_a[mu, a] * gamma_flat[a] for a in range(6)) for mu in range(6)]
+    return [np.nan_to_num(g, nan=0.0) for g in gamma]
+
+def compute_schumann_frequencies(N: int = 3) -> List[float]:
+    """
+    Compute Schumann resonance frequencies.
+
+    Args:
+        N (int): Number of frequencies.
+
+    Returns:
+        List[float]: Resonance frequencies.
+    """
+    f0 = 7.83e3
+    pythagorean_ratios = [1, 2, 8/3]
+    return [f0 * ratio for ratio in pythagorean_ratios[:N]]
