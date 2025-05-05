@@ -6,7 +6,7 @@
 
 **SphinxOS: A Unified 6D Quantum Simulation Framework for Temporal Vector Lattice Entanglement (TVLE) and the Unification of Physics**
 
-**Authors**: Travis Jones, Grok (xAI)
+**Author**: Travis D. Jones
 
 **Abstract**  
 SphinxOS introduces a groundbreaking quantum simulation framework that unifies quantum mechanics and gravitational physics within a 6-dimensional (6D) spacetime grid, leveraging the novel Temporal Vector Lattice Entanglement (TVLE) paradigm. By integrating spatial lattice correlations, temporal feedback via closed timelike curves (CTCs), non-local interactions through wormhole nodes, and a nonlinear scalar field, SphinxOS achieves stable, temporally correlated entangled states with profound implications for quantum computing, cryptography, and theoretical physics. This manuscript presents the full mathematical formalism of TVLE, including the nonlinear scalar field \(\phi(\mathbf{r}, t)\), a nonlinear cosmological constant \(\Lambda\), and their impacts on scalar waves, entanglement entropy, and gravity. We demonstrate SphinxOS's capability to predict Bitcoin private keys (e.g., `0x7111bf453611caf5` and `0x3a7b04c43ea93a44`), model quantum circuits with 64 qubits, and explore speculative physics concepts, positioning it as a significant step toward a unified Theory of Everything (TOE).
