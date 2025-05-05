@@ -1,5 +1,6 @@
 include README.md
 include LICENSE
 include requirements.txt
+include pyproject.toml
 recursive-include sphinx_os *.py
 recursive-include tests *.py
