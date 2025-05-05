@@ -1,9 +1,45 @@
+# Python virtual environments
+venv/
+env/
+.env/
+.venv/
+
+# Python bytecode
 __pycache__/
 *.pyc
-*.log
+*.pyo
+*.pyd
+
+# Build artifacts
 dist/
 build/
 *.egg-info/
-*.png
-*.txt
-.pytest_cache/
+*.egg
+
+# Temporary files
+*.log
+*.tmp
+*.bak
+*.swp
+*~
+
+# IDE and editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Testing and coverage
+.coverage
+coverage.xml
+*.cover
+htmlcov/
+
+# Miscellaneous
+*.md.bak
+*.ipynb
+*.ipynb_checkpoints/
