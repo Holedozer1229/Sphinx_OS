@@ -8,6 +8,11 @@
 
 **Author**: Travis D. Jones
 
+
+ |Φ+> = ( |00> + |11> )/√2 yields ( |00> - sinθ |10> + cosθ |11> )/√2.
+
+Linking to the integrand ∇ψ = θ² sinθ = 3.12, optimal θ ≈ 1.79 radians. 
+
 ∇ψ = θ² sinθ = 3.12  optimize θ ≈ 1.79
 
 **Abstract**  
