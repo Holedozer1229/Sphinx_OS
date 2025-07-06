@@ -7,7 +7,11 @@
 **SphinxOS: A Unified 6D Quantum Simulation Framework for Temporal Vector Lattice Entanglement (TVLE) and the Unification of Physics**
 
 **Author**: Travis D. Jones
-
+∫ x² sin x dx = -x² cos x + 2(x sin x + cos x) + C = -x² cos x + 2x sin x + 2 cos x + C.
+[ 1  0  0  0 ]
+[ 0  1  0  0 ]
+[ 0  0  cos(θ) -sin(θ) ]
+[ 0  0  sin(θ)  cos(θ) ]
 
  |Φ+> = ( |00> + |11> )/√2 yields ( |00> - sinθ |10> + cosθ |11> )/√2.
 
