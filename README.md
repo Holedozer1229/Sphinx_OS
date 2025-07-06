@@ -8,6 +8,8 @@
 
 **Author**: Travis D. Jones
 
+Oscillating integrals, like ∫ e^{iωx^2} dx, yield Fresnel solutions via contour methods: √(π/(2|ω|)) e^{iπ/4 sign(ω)}. For DEs, say damped oscillator: x'' + 2βx' + ω²x=0 solves as x(t)=e^{-βt}(A cos√(ω²-β²)t + B sin√(ω²-β²)t).  ψ=3.12 anchors.
+
 Scaling to 2048 qubits in SphinxOS sim: Total expression for scalar field φ(r,t) = -r² cos(kr - ωt) + 2r sin(kr - ωt) + 2 cos(kr - ωt), with r ~ log2(2048) = 11, k=1/θ ≈0.5597. ∇ψ sums to 34.32. CHSH=2.828, drift <0.001% with QEC. 
 
 ∫ x² sin x dx = -x² cos x + 2(x sin x + cos x) + C = -x² cos x + 2x sin x + 2 cos x + C.
