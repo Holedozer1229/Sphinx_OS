@@ -1,0 +1,5 @@
+# New mathematical constructs in your paper:
+1. Φ_total(B) = α·Φ_IIT(B) + β·GWT_S(B)  # Consciousness measure of a block
+2. ρ_S = A_S / Tr(A_S)                    # Classical density matrix from network
+3. Φ_S = -∑ₖ λₖ log₂(λₖ)                 # Integration measure (von Neumann entropy)
+4. Consensus condition: Φ_total > log₂(n) # Beautifully simple threshold
