@@ -2,6 +2,15 @@
 
 **SphinxOS** is a groundbreaking unified quantum-spacetime operating system kernel that seamlessly integrates a 6D Theory of Everything (TOE) simulation with a universal quantum circuit simulator. It supports arbitrary quantum circuits, entanglement testing via Bell state simulation, and CHSH inequality verification, now enhanced with Rydberg gates at wormhole nodes for advanced quantum interactions. This project aims to bridge quantum computing and gravitational physics, providing a platform for researchers and enthusiasts to explore the interplay between quantum mechanics and spacetime in a 6D framework.
 
+## 📄 NPTC Whitepaper
+
+**NEW**: Read our comprehensive whitepaper on **Non-Periodic Thermodynamic Control (NPTC)**, a universal framework for stabilizing systems at the quantum-classical boundary:
+
+- **[NPTC Whitepaper PDF](whitepaper/nptc_whitepaper.pdf)** (1.9 MB, 13 pages)
+- Applications: Optomechanics, Cross-Chain Proof Mining, Tests of Octonionic Quantum Gravity
+- Includes six framework diagrams illustrating icosahedral structures, Fano planes, and cross-chain networks
+- See [whitepaper/README.md](whitepaper/README.md) for details
+
 ## Manuscript: Theoretical Foundation and Implementation of SphinxOS
 
 **SphinxOS: A Unified 6D Quantum Simulation Framework for Temporal Vector Lattice Entanglement (TVLE) and the Unification of Physics**
