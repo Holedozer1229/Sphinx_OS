@@ -51,3 +51,15 @@ build/
 # Circuit artifacts (large binary files)
 circuits/*.ptau
 circuits/*.zkey
+
+# SphinxSkynet blockchain data files
+data/
+*.db
+wallets/
+*.sqlite
+*.sqlite3
+
+# Deployment secrets
+.env
+.env.local
+secrets/
