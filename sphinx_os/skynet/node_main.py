@@ -49,7 +49,9 @@ Smearing effect on unitary approximation:
 """
 
 import json
+import os
 import subprocess
+import tempfile
 
 import numpy as np
 from fastapi import FastAPI
@@ -125,8 +127,8 @@ class TraversableAncillaryWormhole:
             L_{ij} = ||full_state_i - full_state_j||_F
         """
         delta_state = self.node_i.full_state - self.node_j.full_state
-        flat = delta_state.reshape(delta_state.shape[0], -1)
-        laplacian = np.linalg.norm(flat, ord='fro')
+        delta_flat = delta_state.reshape(delta_state.shape[0], -1)
+        laplacian = np.linalg.norm(delta_flat, ord='fro')
         return laplacian
 
     def compute_metric(self):
@@ -175,14 +177,19 @@ def generate_recursive_proof(node):
         Proof of depth D=50 compressed to O(log D) ≈ 6 layers.
     Soundness: Pr[accept bad proof] ≤ 2^{-128}
     """
+    inputs_path = None
     try:
-        # Prepare inputs JSON
+        # Prepare inputs JSON in a unique temp file to avoid race conditions
         inputs = {
             "cube": node.hypercube_state.tolist(),
             "ancilla": node.ancilla_state.tolist(),
         }
-        with open("inputs.json", "w") as f:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".json", prefix=f"inputs_node{node.id}_",
+            delete=False,
+        ) as f:
             json.dump(inputs, f)
+            inputs_path = f.name
 
         # Step 1: Compile Circom circuit
         subprocess.run(
@@ -218,7 +225,7 @@ def generate_recursive_proof(node):
             [
                 "snarkjs", "groth16", "prove",
                 "build/shell50_final.zkey",
-                "inputs.json",
+                inputs_path,
                 "build/proof.json",
                 "build/public.json",
             ],
@@ -241,6 +248,13 @@ def generate_recursive_proof(node):
     except Exception as e:
         print(f"Error generating proof for node {node.id}: {e}")
         success = False
+
+    finally:
+        if inputs_path is not None:
+            try:
+                os.unlink(inputs_path)
+            except OSError:
+                pass
 
     return success
 
