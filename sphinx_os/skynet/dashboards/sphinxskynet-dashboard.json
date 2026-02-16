@@ -1,0 +1,119 @@
+{
+  "annotations": { "list": [] },
+  "description": "SphinxSkynet — Δλ Propagation, Φ_total, Recursive Proof Heatmaps",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "title": "Φ_total per Node",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "phi_total",
+          "legendFormat": "{{pod}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2 }
+        }
+      }
+    },
+    {
+      "title": "Δλ Propagation",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "delta_lambda",
+          "legendFormat": "{{pod}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "continuous-GrYlRd" },
+          "custom": { "lineWidth": 2 }
+        }
+      }
+    },
+    {
+      "title": "Recursive Proof Success Rate",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "sum(rate(recursive_proof_success_total[5m]))",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Wormhole Metric",
+      "type": "gauge",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 8 },
+      "targets": [
+        {
+          "expr": "avg(wormhole_metric)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 5 },
+              { "color": "red", "value": 10 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "Recursive Proof Heatmap (per Node)",
+      "type": "heatmap",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        {
+          "expr": "recursive_proof_success_total",
+          "legendFormat": "{{pod}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Δλ Heatmap (Node × Time)",
+      "type": "heatmap",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "targets": [
+        {
+          "expr": "delta_lambda",
+          "legendFormat": "{{pod}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "3D Hypercube Visualization",
+      "type": "text",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 20 },
+      "options": {
+        "mode": "html",
+        "content": "<iframe src='/api/datasources/proxy/sphinxskynet-3d/hypercube-3d.html' style='width:100%;height:100%;border:none;'></iframe>"
+      }
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["sphinxskynet", "zk-hypercube", "megaminx", "quantum"],
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
+  "title": "SphinxSkynet zk-Hypercube Dashboard",
+  "uid": "sphinxskynet-main"
+}

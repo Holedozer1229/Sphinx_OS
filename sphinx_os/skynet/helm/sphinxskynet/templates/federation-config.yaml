@@ -1,0 +1,33 @@
+# ============================================================================
+# federation-config.yaml — Multi-Cloud Federation (AWS ↔ GCP ↔ Bare-metal)
+#
+# Configures kubefed / Admiralty-style federation so SphinxSkynet nodes
+# can span multiple cloud providers, propagating Δλ across cluster boundaries.
+# ============================================================================
+{{- if .Values.federation.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sphinxskynet-federation-config
+  labels:
+    app: sphinxskynet
+    component: federation
+data:
+  federation.yaml: |
+    apiVersion: v1
+    kind: Config
+    clusters:
+      {{- range .Values.federation.clusters }}
+      - cluster:
+          server: {{ .apiServer }}
+        name: {{ .name }}
+      {{- end }}
+    contexts:
+      {{- range .Values.federation.clusters }}
+      - context:
+          cluster: {{ .name }}
+          namespace: sphinxskynet
+        name: {{ .context }}
+      {{- end }}
+    current-context: {{ (index .Values.federation.clusters 0).context }}
+{{- end }}

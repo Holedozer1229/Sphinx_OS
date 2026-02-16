@@ -1,0 +1,22 @@
+# ============================================================================
+# grafana-service.yaml — Grafana Service (LoadBalancer for external access)
+# ============================================================================
+{{- if .Values.grafana.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: sphinxskynet-grafana
+  labels:
+    app: sphinxskynet
+    component: grafana
+spec:
+  type: {{ .Values.grafana.service.type }}
+  ports:
+    - port: {{ .Values.grafana.service.port }}
+      targetPort: 3000
+      protocol: TCP
+      name: http
+  selector:
+    app: sphinxskynet
+    component: grafana
+{{- end }}

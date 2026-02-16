@@ -1,0 +1,24 @@
+# ============================================================================
+# configmap-dashboards.yaml — Grafana Dashboard Provisioning
+# Includes 3D Megaminx/Δλ/entanglement Plotly panels.
+# ============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sphinxskynet-grafana-dashboards
+  labels:
+    app: sphinxskynet
+    component: grafana
+data:
+  dashboards.yaml: |
+    apiVersion: 1
+    providers:
+      - name: SphinxSkynet
+        orgId: 1
+        folder: SphinxSkynet
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards/sphinxskynet
+          foldersFromFilesStructure: false

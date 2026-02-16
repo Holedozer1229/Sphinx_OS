@@ -1,0 +1,63 @@
+# ============================================================================
+# grafana-deployment.yaml — Grafana with SphinxSkynet Dashboards
+# Mounts dashboard JSON and datasource configs.
+# ============================================================================
+{{- if .Values.grafana.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sphinxskynet-grafana
+  labels:
+    app: sphinxskynet
+    component: grafana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sphinxskynet
+      component: grafana
+  template:
+    metadata:
+      labels:
+        app: sphinxskynet
+        component: grafana
+    spec:
+      containers:
+        - name: grafana
+          image: "{{ .Values.grafana.image.repository }}:{{ .Values.grafana.image.tag }}"
+          ports:
+            - containerPort: 3000
+              name: http
+          env:
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              value: "sphinxskynet"
+          volumeMounts:
+            - name: dashboards-provider
+              mountPath: /etc/grafana/provisioning/dashboards
+            - name: datasources
+              mountPath: /etc/grafana/provisioning/datasources
+            - name: dashboard-json
+              mountPath: /var/lib/grafana/dashboards/sphinxskynet
+            - name: dashboard-3d
+              mountPath: /var/lib/grafana/dashboards/sphinxskynet-3d
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+      volumes:
+        - name: dashboards-provider
+          configMap:
+            name: sphinxskynet-grafana-dashboards
+        - name: datasources
+          configMap:
+            name: sphinxskynet-grafana-datasources
+        - name: dashboard-json
+          configMap:
+            name: sphinxskynet-dashboard-json
+        - name: dashboard-3d
+          configMap:
+            name: sphinxskynet-dashboard-3d
+{{- end }}

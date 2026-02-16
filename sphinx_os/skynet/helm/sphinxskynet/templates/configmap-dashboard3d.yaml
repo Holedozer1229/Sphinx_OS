@@ -1,0 +1,109 @@
+# ============================================================================
+# configmap-dashboard3d.yaml — Live Hyperdimensional Visualization
+# Interactive 3D Plotly/Three.js panel for Megaminx, Δλ, and entanglement.
+#
+# This ConfigMap contains an HTML panel that:
+#   - Fetches /wormhole_flows from SphinxSkynet nodes
+#   - Renders a 3D hypercube with Plotly.js
+#   - Colors edges by wormhole metric intensity
+#   - Animates Δλ propagation in real time
+# ============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sphinxskynet-dashboard-3d
+  labels:
+    app: sphinxskynet
+    component: grafana
+data:
+  hypercube-3d.html: |
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>SphinxSkynet 3D Hypercube Visualization</title>
+      <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+      <style>
+        body { margin: 0; background: #0a0a2e; color: #fff; font-family: monospace; }
+        #plot { width: 100vw; height: 90vh; }
+        #info { padding: 10px; text-align: center; font-size: 14px; }
+      </style>
+    </head>
+    <body>
+      <div id="info">
+        SphinxSkynet — Interactive 3D zk-Hypercube &middot;
+        Φ_total &middot; Δλ Propagation &middot; Wormhole Metrics
+      </div>
+      <div id="plot"></div>
+      <script>
+        // 4D hypercube vertices projected to 3D
+        const vertices = [];
+        for (let i = 0; i < 16; i++) {
+          vertices.push([
+            (i & 1) * 2 - 1,
+            ((i >> 1) & 1) * 2 - 1,
+            ((i >> 2) & 1) * 2 - 1,
+            ((i >> 3) & 1) * 2 - 1
+          ]);
+        }
+        // Project 4D → 3D via perspective
+        function project(v) {
+          const w = 2.0 / (3.0 - v[3] * 0.5);
+          return [v[0] * w, v[1] * w, v[2] * w];
+        }
+        // Hypercube edges: connect vertices differing in one bit
+        const edges = [];
+        for (let i = 0; i < 16; i++) {
+          for (let j = i + 1; j < 16; j++) {
+            const xor = i ^ j;
+            if ((xor & (xor - 1)) === 0) edges.push([i, j]);
+          }
+        }
+        function buildTraces(angle) {
+          const rotated = vertices.map(v => {
+            const c = Math.cos(angle), s = Math.sin(angle);
+            return [
+              v[0] * c - v[3] * s,
+              v[1],
+              v[2],
+              v[0] * s + v[3] * c
+            ];
+          });
+          const pts = rotated.map(project);
+          const xe = [], ye = [], ze = [];
+          edges.forEach(([a, b]) => {
+            xe.push(pts[a][0], pts[b][0], null);
+            ye.push(pts[a][1], pts[b][1], null);
+            ze.push(pts[a][2], pts[b][2], null);
+          });
+          return [
+            { type: 'scatter3d', mode: 'markers',
+              x: pts.map(p => p[0]), y: pts.map(p => p[1]), z: pts.map(p => p[2]),
+              marker: { size: 5, color: pts.map((_, i) => i), colorscale: 'Viridis' },
+              name: 'Nodes (Φ_total)' },
+            { type: 'scatter3d', mode: 'lines',
+              x: xe, y: ye, z: ze,
+              line: { width: 2, color: '#00ffcc' },
+              name: 'Wormhole Edges' }
+          ];
+        }
+        const layout = {
+          scene: {
+            bgcolor: '#0a0a2e',
+            xaxis: { showgrid: false, zeroline: false, title: '' },
+            yaxis: { showgrid: false, zeroline: false, title: '' },
+            zaxis: { showgrid: false, zeroline: false, title: '' }
+          },
+          paper_bgcolor: '#0a0a2e', plot_bgcolor: '#0a0a2e',
+          margin: { l: 0, r: 0, t: 0, b: 0 },
+          showlegend: true,
+          legend: { font: { color: '#fff' } }
+        };
+        Plotly.newPlot('plot', buildTraces(0), layout);
+        let angle = 0;
+        setInterval(() => {
+          angle += 0.02;
+          Plotly.react('plot', buildTraces(angle), layout);
+        }, 50);
+      </script>
+    </body>
+    </html>

@@ -1,0 +1,71 @@
+# ============================================================================
+# values.yaml — SphinxSkynet Helm Chart Default Values
+# ============================================================================
+# Sample numeric values for α, β, Δλ, Φ_total testing:
+#   ALPHA=0.6, BETA=0.4, SIGMA=1.0, ANCILLA_FACTOR=1.0
+#   MATRIX_DIM=8, NUM_SHELLS=50, SECURITY_PARAM=128
+# ============================================================================
+
+replicaCount: 100
+
+image:
+  repository: sphinxskynet/node
+  tag: latest
+  pullPolicy: IfNotPresent
+
+nodeEnv:
+  ALPHA: "0.6"
+  BETA: "0.4"
+  SIGMA: "1.0"
+  ANCILLA_FACTOR: "1.0"
+  MATRIX_DIM: "8"
+  NUM_SHELLS: "50"
+  SECURITY_PARAM: "128"
+
+service:
+  type: ClusterIP
+  port: 8000
+
+hpa:
+  enabled: true
+  minReplicas: 10
+  maxReplicas: 500
+  # Φ-aware autoscaling: scale on phi_total metric and proof success rate
+  metrics:
+    - type: Pods
+      pods:
+        metric:
+          name: phi_total
+        target:
+          type: AverageValue
+          averageValue: "5.0"
+    - type: Pods
+      pods:
+        metric:
+          name: recursive_proof_success_total
+        target:
+          type: AverageValue
+          averageValue: "100"
+
+grafana:
+  enabled: true
+  image:
+    repository: grafana/grafana
+    tag: "10.2.0"
+  service:
+    type: LoadBalancer
+    port: 3000
+
+# Multi-cloud federation endpoints
+federation:
+  enabled: true
+  clusters:
+    - name: aws-us-east-1
+      apiServer: "https://aws-k8s.example.com:6443"
+      context: aws-sphinxskynet
+    - name: gcp-us-central1
+      apiServer: "https://gcp-k8s.example.com:6443"
+      context: gcp-sphinxskynet
+    - name: bare-metal-dc1
+      apiServer: "https://metal-k8s.example.com:6443"
+      context: metal-sphinxskynet
