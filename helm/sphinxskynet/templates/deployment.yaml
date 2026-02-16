@@ -1,0 +1,78 @@
+# ============================================================================
+# deployment.yaml — SphinxSkynet Node Deployment
+# Full Hyper zk-EVM + 50-layer Megaminx recursive proof integration.
+# Each pod mounts circuits via ConfigMap and runs the rarity API + node
+# orchestrator with Prometheus metrics.
+# ============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sphinxskynet-node
+  labels:
+    app: sphinxskynet
+    component: node
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: sphinxskynet
+      component: node
+  template:
+    metadata:
+      labels:
+        app: sphinxskynet
+        component: node
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics"
+        prometheus.io/port: "8000"
+    spec:
+      containers:
+        - name: sphinxskynet-node
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 8000
+              name: http
+            - containerPort: 8001
+              name: prometheus
+          env:
+            - name: NODE_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: ALPHA
+              value: {{ .Values.nodeEnv.ALPHA | quote }}
+            - name: BETA
+              value: {{ .Values.nodeEnv.BETA | quote }}
+            - name: NUM_SHELLS
+              value: {{ .Values.nodeEnv.NUM_SHELLS | quote }}
+            - name: SECURITY_PARAM
+              value: {{ .Values.nodeEnv.SECURITY_PARAM | quote }}
+          volumeMounts:
+            - name: circuits
+              mountPath: /app/circuits
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "1"
+              memory: "1Gi"
+      volumes:
+        - name: circuits
+          configMap:
+            name: sphinxskynet-zkeys

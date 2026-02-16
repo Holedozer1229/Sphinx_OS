@@ -47,3 +47,7 @@ htmlcov/
 # SphinxSkynet build artifacts
 inputs.json
 build/
+
+# Circuit artifacts (large binary files)
+circuits/*.ptau
+circuits/*.zkey

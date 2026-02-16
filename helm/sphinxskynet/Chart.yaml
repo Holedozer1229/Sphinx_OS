@@ -1,0 +1,10 @@
+apiVersion: v2
+name: sphinxskynet
+description: >-
+  Turnkey predictive zk-hypercube SphinxSkynet Helm chart.
+  Deploys nodes computing Φ_total via MagicMatrix/HyperMatrix,
+  Δλ propagation through TraversableAncillaryWormholes, recursive zk-proofs
+  for 50-layer Megaminx shells, Prometheus metrics, and live dashboard.
+type: application
+version: 0.1.0
+appVersion: "1.0"
