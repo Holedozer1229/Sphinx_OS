@@ -1,5 +1,7 @@
 # SphinxSkynet Gasless Blockchain
 
+> ⚠️ **IMPORTANT NOTICE:** This is an educational/demonstration implementation of a gasless blockchain system. While functional, it uses simplified cryptographic implementations for demonstration purposes. **DO NOT use this system with real monetary value without implementing production-grade cryptography** (proper ECDSA key generation, BIP39 mnemonics, secure signatures, etc.). See the Security Notes section for required improvements before production use.
+
 ## 🚀 100% Free, Standalone Blockchain with NO Gas Fees!
 
 SphinxSkynet is a completely gasless blockchain system with built-in wallet, free mining, and monetization features. Start earning TODAY with $0 investment!
@@ -346,16 +348,75 @@ Sphinx_OS/
 
 ## 🔒 Security Notes
 
-⚠️ **Important:** This is a demonstration implementation. For production use:
+⚠️ **CRITICAL:** This implementation uses simplified cryptography for educational purposes. For production use with real value, you MUST implement:
 
-1. Implement proper ECDSA key generation and signing
-2. Add authentication and authorization to admin endpoints
-3. Use proper encryption for private keys (AES-256)
-4. Implement rate limiting to prevent abuse
-5. Add input validation and sanitization
-6. Use environment variables for sensitive configuration
-7. Implement proper Stripe payment processing
-8. Add SSL/TLS for all communications
+### **Required Security Improvements:**
+
+1. **Cryptographic Key Generation:**
+   - Replace simple random key generation with proper ECDSA (secp256k1 or secp256r1)
+   - Use libraries like `ecdsa`, `cryptography`, or `coincurve`
+   - Implement proper public key derivation from private keys
+
+2. **BIP39 Mnemonic Generation:**
+   - Use the official BIP39 wordlist (2048 words)
+   - Implement proper entropy generation (128-256 bits)
+   - Use PBKDF2 for mnemonic-to-seed derivation
+   - Libraries: `mnemonic`, `bip32utils`
+
+3. **Digital Signatures:**
+   - Replace SHA-256 hashing with ECDSA or Ed25519 signatures
+   - Implement proper signature verification
+   - Add replay attack protection (nonces, timestamps)
+   - Use deterministic signatures (RFC 6979)
+
+4. **Key Storage:**
+   - Encrypt private keys before saving to disk
+   - Use AES-256-GCM with password-based key derivation (PBKDF2/scrypt/argon2)
+   - Implement proper keystore format (Web3 Secret Storage or similar)
+   - Never transmit private keys over the network
+
+5. **API Security:**
+   - Add authentication (JWT, OAuth2, or API keys)
+   - Implement rate limiting to prevent abuse
+   - Add input validation and sanitization
+   - Use HTTPS/TLS for all communications
+   - Implement CORS properly (specific origins only)
+   - Add admin endpoint authentication and RBAC
+
+6. **Database Security:**
+   - Implement connection pooling for SQLite
+   - Add proper transaction isolation
+   - Use prepared statements (already done)
+   - Consider PostgreSQL for production (better concurrency)
+
+7. **Additional Security Measures:**
+   - Implement proper CSRF protection
+   - Add request signing for critical operations
+   - Implement audit logging
+   - Add security headers (HSTS, CSP, etc.)
+   - Regular security audits and penetration testing
+
+### **Recommended Libraries:**
+```python
+# Cryptography
+pip install ecdsa coincurve cryptography
+pip install mnemonic bip32utils
+
+# API Security
+pip install python-jose[cryptography]  # JWT
+pip install passlib[argon2]  # Password hashing
+pip install slowapi  # Rate limiting
+
+# Database
+pip install psycopg2-binary  # PostgreSQL
+pip install sqlalchemy  # ORM with connection pooling
+```
+
+### **Development vs Production:**
+- **This codebase:** Educational/development use
+- **Production:** Requires the security improvements listed above
+- **Testing:** Use testnet/demo tokens only
+- **Auditing:** Get security audit before handling real value
 
 ---
 
