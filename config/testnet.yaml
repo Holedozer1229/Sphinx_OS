@@ -1,0 +1,73 @@
+environment: testnet
+network:
+  ethereum:
+    rpc_url: "https://goerli.infura.io/v3/YOUR_KEY"
+    chain_id: 5
+    explorer: "https://goerli.etherscan.io"
+  polygon:
+    rpc_url: "https://rpc-mumbai.maticvigil.com"
+    chain_id: 80001
+    explorer: "https://mumbai.polygonscan.com"
+  arbitrum:
+    rpc_url: "https://goerli-rollup.arbitrum.io/rpc"
+    chain_id: 421613
+    explorer: "https://goerli.arbiscan.io"
+  
+contracts:
+  yield_aggregator: "0x0000000000000000000000000000000000000000"
+  nft_contract: "0x0000000000000000000000000000000000000000"
+  
+api:
+  host: "0.0.0.0"
+  port: 8000
+  metrics_port: 8001
+  workers: 2
+  max_requests: 500
+  rate_limit: 200  # requests per minute (more lenient for testing)
+  timeout: 60
+  
+security:
+  jwt_secret: "${JWT_SECRET}"
+  api_keys_required: false  # Disabled for testing
+  cors_origins:
+    - "http://localhost:3000"
+    - "http://localhost:8080"
+    - "https://test.sphinxos.io"
+  max_content_length: 2097152  # 2MB
+  
+monitoring:
+  prometheus: true
+  grafana_url: "http://localhost:3001"
+  sentry_dsn: ""  # Disabled for testing
+  log_level: "DEBUG"
+  metrics_enabled: true
+  
+blockchain:
+  confirmations_required: 3
+  gas_limit: 1000000
+  max_gas_price: 100  # gwei
+  transaction_timeout: 180
+  retry_attempts: 5
+  
+database:
+  postgres_url: "${DATABASE_URL}"
+  redis_url: "${REDIS_URL}"
+  connection_pool_size: 5
+  max_overflow: 5
+  pool_timeout: 10
+  
+hypercube:
+  num_nodes: 5  # Smaller for testing
+  num_faces: 12
+  num_layers: 20
+  ancilla_dimensions: 3
+  proof_depth: 4
+  sigma: 0.5
+  alpha: 0.7
+  beta: 0.3
+
+zkp:
+  circuit_path: "./circuits"
+  trusted_setup: false  # Use test setup
+  proof_cache_enabled: true
+  proof_cache_ttl: 600

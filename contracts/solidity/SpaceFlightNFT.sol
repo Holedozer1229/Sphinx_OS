@@ -4,8 +4,11 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 
 /**
  * @title SpaceFlightNFT
@@ -16,8 +19,14 @@ import "@openzeppelin/contracts/utils/Counters.sol";
  *  - Automatic OpenSea listing for Legendary tier
  *  - Referral rewards (5% of mint fees)
  */
-contract SpaceFlightNFT is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
+contract SpaceFlightNFT is ERC721, ERC721URIStorage, Ownable, AccessControl, ReentrancyGuard, Pausable {
     using Counters for Counters.Counter;
+    using Address for address;
+    
+    // ========== ROLES ==========
+    
+    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     
     // ========== STATE VARIABLES ==========
     
@@ -94,6 +103,9 @@ contract SpaceFlightNFT is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
         uint256 amount
     );
     
+    event ContractPaused(address indexed admin);
+    event ContractUnpaused(address indexed admin);
+    
     // ========== CONSTRUCTOR ==========
     
     constructor(
@@ -101,9 +113,17 @@ contract SpaceFlightNFT is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
         address _treasury,
         address _openSeaProxy
     ) ERC721("SphinxOS Space Flight", "SPACE") {
+        require(_sphinxToken.isContract(), "Invalid SPX token");
+        require(_treasury != address(0), "Invalid treasury");
+        
         sphinxToken = _sphinxToken;
         treasury = _treasury;
         openSeaProxy = _openSeaProxy;
+        
+        // Setup roles
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(ADMIN_ROLE, msg.sender);
+        _grantRole(MINTER_ROLE, msg.sender);
     }
     
     // ========== MINTING FUNCTIONS ==========
@@ -124,7 +144,8 @@ contract SpaceFlightNFT is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
         string memory rocketType,
         uint256 phiScore,
         address referrer
-    ) external nonReentrant returns (uint256) {
+    ) external nonReentrant whenNotPaused returns (uint256) {
+        require(phiScore >= 200 && phiScore <= 1000, "Invalid phi score");
         // Calculate mint fee
         uint256 fee = getMintFee(rarity);
         
@@ -204,7 +225,7 @@ contract SpaceFlightNFT is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
         string memory missionName,
         string memory rocketType,
         uint256 phiScore
-    ) external onlyOwner returns (uint256) {
+    ) external onlyRole(MINTER_ROLE) returns (uint256) {
         // Automatically determine rarity based on phi score
         Rarity rarity = _determineRarity(phiScore);
         
@@ -387,15 +408,26 @@ contract SpaceFlightNFT is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
     
     // ========== ADMIN FUNCTIONS ==========
     
-    function setLegendaryStartPrice(uint256 newPrice) external onlyOwner {
+    function pause() external onlyRole(ADMIN_ROLE) {
+        _pause();
+        emit ContractPaused(msg.sender);
+    }
+    
+    function unpause() external onlyRole(ADMIN_ROLE) {
+        _unpause();
+        emit ContractUnpaused(msg.sender);
+    }
+    
+    function setLegendaryStartPrice(uint256 newPrice) external onlyRole(ADMIN_ROLE) {
         legendaryStartPrice = newPrice;
     }
     
-    function setTreasury(address newTreasury) external onlyOwner {
+    function setTreasury(address newTreasury) external onlyRole(ADMIN_ROLE) {
+        require(newTreasury != address(0), "Invalid treasury");
         treasury = newTreasury;
     }
     
-    function setOpenSeaProxy(address newProxy) external onlyOwner {
+    function setOpenSeaProxy(address newProxy) external onlyRole(ADMIN_ROLE) {
         openSeaProxy = newProxy;
     }
     
@@ -432,7 +464,7 @@ contract SpaceFlightNFT is ERC721, ERC721URIStorage, Ownable, ReentrancyGuard {
     function supportsInterface(bytes4 interfaceId)
         public
         view
-        override(ERC721, ERC721URIStorage)
+        override(ERC721, ERC721URIStorage, AccessControl)
         returns (bool)
     {
         return super.supportsInterface(interfaceId);
