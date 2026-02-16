@@ -313,10 +313,10 @@ from pathlib import Path
 # Add current directory to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from sphinxos.core import SphinxOSBlockchain, SphinxOSConfig
-from sphinxos.api import SphinxOSAPI
-from sphinxos.p2p import QuantumP2P
-from sphinxos.monitoring import MetricsCollector
+from sphinx_os.blockcahin.core import SphinxOSBlockchain, SphinxOSConfig
+from sphinx_os.blockcahin.api import SphinxOSAPI
+from sphinx_os.blockcahin.p2p import QuantumP2P
+from sphinx_os.blockcahin.monitoring import MetricsCollector
 
 # Configure logging
 logging.basicConfig(
