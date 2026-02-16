@@ -1,0 +1,73 @@
+environment: local
+network:
+  ethereum:
+    rpc_url: "http://localhost:8545"
+    chain_id: 1337
+    explorer: ""
+  polygon:
+    rpc_url: "http://localhost:8546"
+    chain_id: 1338
+    explorer: ""
+  arbitrum:
+    rpc_url: "http://localhost:8547"
+    chain_id: 1339
+    explorer: ""
+  
+contracts:
+  yield_aggregator: "0x0000000000000000000000000000000000000000"
+  nft_contract: "0x0000000000000000000000000000000000000000"
+  
+api:
+  host: "127.0.0.1"
+  port: 8000
+  metrics_port: 8001
+  workers: 1
+  max_requests: 100
+  rate_limit: 1000  # Very high for local development
+  timeout: 120
+  
+security:
+  jwt_secret: "local_development_secret_CHANGE_IN_PRODUCTION"
+  api_keys_required: false
+  cors_origins:
+    - "http://localhost:3000"
+    - "http://localhost:8080"
+    - "http://127.0.0.1:3000"
+  max_content_length: 10485760  # 10MB
+  
+monitoring:
+  prometheus: true
+  grafana_url: ""
+  sentry_dsn: ""
+  log_level: "DEBUG"
+  metrics_enabled: true
+  
+blockchain:
+  confirmations_required: 1
+  gas_limit: 10000000
+  max_gas_price: 1000  # gwei
+  transaction_timeout: 60
+  retry_attempts: 3
+  
+database:
+  postgres_url: "postgresql://localhost:5432/sphinxos_dev"
+  redis_url: "redis://localhost:6379/0"
+  connection_pool_size: 2
+  max_overflow: 2
+  pool_timeout: 5
+  
+hypercube:
+  num_nodes: 3  # Small for quick testing
+  num_faces: 12
+  num_layers: 10
+  ancilla_dimensions: 2
+  proof_depth: 2
+  sigma: 0.5
+  alpha: 0.7
+  beta: 0.3
+
+zkp:
+  circuit_path: "./circuits"
+  trusted_setup: false
+  proof_cache_enabled: false  # Disable caching in dev
+  proof_cache_ttl: 60

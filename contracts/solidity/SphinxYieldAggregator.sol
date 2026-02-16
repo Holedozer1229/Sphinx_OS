@@ -17,8 +17,10 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 
 interface IZKVerifier {
     function verifyProof(
@@ -29,8 +31,9 @@ interface IZKVerifier {
     ) external view returns (bool);
 }
 
-contract SphinxYieldAggregator is Ownable, ReentrancyGuard, Pausable {
+contract SphinxYieldAggregator is Ownable, AccessControl, ReentrancyGuard, Pausable {
     using SafeERC20 for IERC20;
+    using Address for address;
     
     // ========== STRUCTS ==========
     
@@ -59,7 +62,19 @@ contract SphinxYieldAggregator is Ownable, ReentrancyGuard, Pausable {
         uint256 timestamp;
     }
     
+    // ========== ROLES ==========
+    
+    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+    bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
+    
     // ========== STATE VARIABLES ==========
+    
+    // Emergency controls
+    bool public emergencyShutdown;
+    
+    // Rate limiting
+    mapping(address => uint256) public lastActionTime;
+    uint256 public constant ACTION_COOLDOWN = 1 minutes;
     
     // Token management
     mapping(address => bool) public supportedTokens;
@@ -119,6 +134,9 @@ contract SphinxYieldAggregator is Ownable, ReentrancyGuard, Pausable {
         address indexed user
     );
     
+    event EmergencyShutdownActivated(address indexed admin);
+    event EmergencyShutdownDeactivated(address indexed admin);
+    
     // ========== CONSTRUCTOR ==========
     
     constructor(
@@ -128,6 +146,27 @@ contract SphinxYieldAggregator is Ownable, ReentrancyGuard, Pausable {
         require(_treasury != address(0), "Invalid treasury");
         treasury = _treasury;
         zkVerifier = IZKVerifier(_zkVerifier);
+        
+        // Setup roles
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(ADMIN_ROLE, msg.sender);
+        _grantRole(OPERATOR_ROLE, msg.sender);
+    }
+    
+    // ========== MODIFIERS ==========
+    
+    modifier notShutdown() {
+        require(!emergencyShutdown, "Emergency shutdown active");
+        _;
+    }
+    
+    modifier rateLimit() {
+        require(
+            block.timestamp >= lastActionTime[msg.sender] + ACTION_COOLDOWN,
+            "Rate limit exceeded"
+        );
+        lastActionTime[msg.sender] = block.timestamp;
+        _;
     }
     
     // ========== EXTERNAL FUNCTIONS ==========
@@ -142,7 +181,7 @@ contract SphinxYieldAggregator is Ownable, ReentrancyGuard, Pausable {
         address token,
         uint256 amount,
         uint256 phiScore
-    ) external nonReentrant whenNotPaused {
+    ) external nonReentrant whenNotPaused notShutdown rateLimit {
         require(supportedTokens[token], "Token not supported");
         require(amount > 0, "Amount must be > 0");
         require(phiScore >= PHI_MIN && phiScore <= PHI_MAX, "Invalid Φ score");
@@ -173,7 +212,7 @@ contract SphinxYieldAggregator is Ownable, ReentrancyGuard, Pausable {
     function withdraw(
         address token,
         uint256 amount
-    ) external nonReentrant {
+    ) external nonReentrant notShutdown rateLimit {
         UserPosition storage position = userPositions[msg.sender][token];
         require(position.depositedAmount > 0, "No deposit");
         
@@ -207,7 +246,7 @@ contract SphinxYieldAggregator is Ownable, ReentrancyGuard, Pausable {
      * @notice Claim accumulated yield
      * @param token Token address
      */
-    function claimYield(address token) external nonReentrant {
+    function claimYield(address token) external nonReentrant notShutdown rateLimit {
         UserPosition storage position = userPositions[msg.sender][token];
         require(position.depositedAmount > 0, "No deposit");
         
@@ -363,7 +402,21 @@ contract SphinxYieldAggregator is Ownable, ReentrancyGuard, Pausable {
     
     // ========== ADMIN FUNCTIONS ==========
     
-    function addToken(address token) external onlyOwner {
+    function activateEmergencyShutdown() external onlyRole(ADMIN_ROLE) {
+        require(!emergencyShutdown, "Already shutdown");
+        emergencyShutdown = true;
+        _pause();
+        emit EmergencyShutdownActivated(msg.sender);
+    }
+    
+    function deactivateEmergencyShutdown() external onlyRole(ADMIN_ROLE) {
+        require(emergencyShutdown, "Not in shutdown");
+        emergencyShutdown = false;
+        _unpause();
+        emit EmergencyShutdownDeactivated(msg.sender);
+    }
+    
+    function addToken(address token) external onlyRole(ADMIN_ROLE) {
         require(!supportedTokens[token], "Token already supported");
         supportedTokens[token] = true;
         tokenList.push(token);
@@ -374,7 +427,8 @@ contract SphinxYieldAggregator is Ownable, ReentrancyGuard, Pausable {
         address strategyContract,
         uint256 apr,
         uint256 riskScore
-    ) external onlyOwner {
+    ) external onlyRole(ADMIN_ROLE) {
+        require(strategyContract.isContract(), "Invalid strategy contract");
         strategies.push(YieldStrategy({
             name: name,
             strategyContract: strategyContract,
@@ -390,16 +444,16 @@ contract SphinxYieldAggregator is Ownable, ReentrancyGuard, Pausable {
         emit StrategyAdded(strategyId, name, strategyContract);
     }
     
-    function setTreasury(address _treasury) external onlyOwner {
+    function setTreasury(address _treasury) external onlyRole(ADMIN_ROLE) {
         require(_treasury != address(0), "Invalid treasury");
         treasury = _treasury;
     }
     
-    function pause() external onlyOwner {
+    function pause() external onlyRole(ADMIN_ROLE) {
         _pause();
     }
     
-    function unpause() external onlyOwner {
+    function unpause() external onlyRole(ADMIN_ROLE) {
         _unpause();
     }
     
