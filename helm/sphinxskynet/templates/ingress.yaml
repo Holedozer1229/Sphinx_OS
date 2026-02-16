@@ -1,0 +1,27 @@
+# ============================================================================
+# ingress.yaml — SphinxSkynet Ingress
+# ============================================================================
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sphinxskynet-ingress
+  labels:
+    app: sphinxskynet
+spec:
+  rules:
+    {{- range .Values.ingress.hosts }}
+    - host: {{ .host }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ . }}
+            pathType: Prefix
+            backend:
+              service:
+                name: sphinxskynet-node
+                port:
+                  number: 8000
+          {{- end }}
+    {{- end }}
+{{- end }}

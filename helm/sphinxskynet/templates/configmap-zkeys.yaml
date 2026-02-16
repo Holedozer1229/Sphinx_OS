@@ -1,0 +1,16 @@
+# ============================================================================
+# configmap-zkeys.yaml — Mount circuit files into pods
+# ============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sphinxskynet-zkeys
+  labels:
+    app: sphinxskynet
+data:
+  shell50.circom: |
+    pragma circom 2.0.0;
+    // 50-Layer Megaminx Legal Move Constraint Circuit
+    // See circuits/shell50.circom for full source
+  shell50_final.vkey.json: |
+    {}

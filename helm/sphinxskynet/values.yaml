@@ -1,0 +1,26 @@
+# ============================================================================
+# values.yaml — SphinxSkynet Helm Chart Default Values
+# ============================================================================
+
+replicaCount: 5
+
+image:
+  repository: sphinxskynet
+  tag: latest
+  pullPolicy: IfNotPresent
+
+nodeEnv:
+  ALPHA: "0.5"
+  BETA: "0.5"
+  NUM_SHELLS: "50"
+  SECURITY_PARAM: "128"
+
+service:
+  type: ClusterIP
+  port: 8000
+
+ingress:
+  enabled: true
+  hosts:
+    - host: sphinxskynet.example.com
+      paths: ["/"]

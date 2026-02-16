@@ -1,0 +1,20 @@
+# ============================================================================
+# service.yaml — SphinxSkynet Node Service
+# ============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: sphinxskynet-node
+  labels:
+    app: sphinxskynet
+    component: node
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: 8000
+      protocol: TCP
+      name: http
+  selector:
+    app: sphinxskynet
+    component: node
