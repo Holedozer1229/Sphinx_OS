@@ -113,7 +113,7 @@ class FeeCollector:
         fee_amount = self.FEE_STRUCTURE["transaction_fee"]
         timestamp = time.time()
         
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10.0)
         cursor = conn.cursor()
         
         cursor.execute(
@@ -121,11 +121,11 @@ class FeeCollector:
             (tx_hash, fee_amount, timestamp)
         )
         
-        # Update daily summary
-        self._update_daily_summary('transaction_fees', fee_amount)
-        
         conn.commit()
         conn.close()
+        
+        # Update daily summary in a separate connection
+        self._update_daily_summary('transaction_fees', fee_amount)
     
     def collect_withdrawal_fee(self, address: str):
         """
@@ -137,7 +137,7 @@ class FeeCollector:
         fee_amount = self.FEE_STRUCTURE["withdrawal_fee"]
         timestamp = time.time()
         
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10.0)
         cursor = conn.cursor()
         
         cursor.execute(
@@ -145,11 +145,11 @@ class FeeCollector:
             (address, fee_amount, timestamp)
         )
         
-        # Update daily summary
-        self._update_daily_summary('withdrawal_fees', fee_amount)
-        
         conn.commit()
         conn.close()
+        
+        # Update daily summary in a separate connection
+        self._update_daily_summary('withdrawal_fees', fee_amount)
     
     def collect_subscription_payment(
         self,
@@ -170,7 +170,7 @@ class FeeCollector:
         amount = self.FEE_STRUCTURE["premium_mining"]
         timestamp = time.time()
         
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10.0)
         cursor = conn.cursor()
         
         cursor.execute('''
@@ -179,11 +179,11 @@ class FeeCollector:
             VALUES (?, ?, ?, ?, ?, ?)
         ''', (user_id, tier, amount, timestamp, period_start, period_end))
         
-        # Update daily summary
-        self._update_daily_summary('subscription_revenue', amount)
-        
         conn.commit()
         conn.close()
+        
+        # Update daily summary in a separate connection
+        self._update_daily_summary('subscription_revenue', amount)
     
     def collect_hosting_payment(
         self,
@@ -202,7 +202,7 @@ class FeeCollector:
         amount = self.FEE_STRUCTURE["node_hosting"]
         timestamp = time.time()
         
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10.0)
         cursor = conn.cursor()
         
         cursor.execute('''
@@ -211,28 +211,57 @@ class FeeCollector:
             VALUES (?, ?, ?, ?, ?)
         ''', (user_id, amount, timestamp, period_start, period_end))
         
-        # Update daily summary
-        self._update_daily_summary('hosting_revenue', amount)
-        
         conn.commit()
         conn.close()
+        
+        # Update daily summary in a separate connection
+        self._update_daily_summary('hosting_revenue', amount)
     
     def _update_daily_summary(self, category: str, amount: float):
         """Update daily revenue summary"""
         from datetime import date
         today = str(date.today())
         
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=10.0)
         cursor = conn.cursor()
         
-        # Insert or update today's summary
-        cursor.execute(f'''
-            INSERT INTO revenue_summary (date, {category}, total_revenue)
-            VALUES (?, ?, ?)
-            ON CONFLICT(date) DO UPDATE SET
-                {category} = {category} + ?,
-                total_revenue = total_revenue + ?
-        ''', (today, amount, amount, amount, amount))
+        # Use proper SQL parameter substitution to avoid injection
+        cursor.execute('''
+            INSERT INTO revenue_summary (date, transaction_fees, withdrawal_fees, 
+                                        subscription_revenue, hosting_revenue, total_revenue)
+            VALUES (?, 0, 0, 0, 0, 0)
+            ON CONFLICT(date) DO NOTHING
+        ''', (today,))
+        
+        # Update the specific category
+        if category == 'transaction_fees':
+            cursor.execute('''
+                UPDATE revenue_summary
+                SET transaction_fees = transaction_fees + ?,
+                    total_revenue = total_revenue + ?
+                WHERE date = ?
+            ''', (amount, amount, today))
+        elif category == 'withdrawal_fees':
+            cursor.execute('''
+                UPDATE revenue_summary
+                SET withdrawal_fees = withdrawal_fees + ?,
+                    total_revenue = total_revenue + ?
+                WHERE date = ?
+            ''', (amount, amount, today))
+        elif category == 'subscription_revenue':
+            cursor.execute('''
+                UPDATE revenue_summary
+                SET subscription_revenue = subscription_revenue + ?,
+                    total_revenue = total_revenue + ?
+                WHERE date = ?
+            ''', (amount, amount, today))
+        elif category == 'hosting_revenue':
+            cursor.execute('''
+                UPDATE revenue_summary
+                SET hosting_revenue = hosting_revenue + ?,
+                    total_revenue = total_revenue + ?
+                WHERE date = ?
+            ''', (amount, amount, today))
         
         conn.commit()
         conn.close()

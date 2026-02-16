@@ -9,7 +9,9 @@ matplotlib>=3.4.0  # Visualization of simulation results and quantum circuit out
 fastapi>=0.115.0          # Web framework for node API endpoints
 uvicorn>=0.30.0           # ASGI server for FastAPI
 prometheus_client>=0.20.0 # Prometheus metrics exposition
+pydantic>=2.0.0           # Data validation
 
 # Optional dependencies for testing
 pytest>=7.0.0     # Unit testing framework
 pytest-cov>=3.0.0 # Code coverage reporting for tests
+httpx>=0.24.0     # HTTP client for testing FastAPI

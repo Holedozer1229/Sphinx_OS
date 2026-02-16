@@ -60,7 +60,7 @@ class StandaloneSphinxBlockchain:
         # Create blocks table
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS blocks (
-                index INTEGER PRIMARY KEY,
+                block_index INTEGER PRIMARY KEY,
                 data TEXT NOT NULL,
                 timestamp REAL NOT NULL,
                 hash TEXT NOT NULL
@@ -106,7 +106,7 @@ class StandaloneSphinxBlockchain:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
-        cursor.execute('SELECT data FROM blocks ORDER BY index')
+        cursor.execute('SELECT data FROM blocks ORDER BY block_index')
         rows = cursor.fetchall()
         
         for row in rows:
@@ -123,7 +123,7 @@ class StandaloneSphinxBlockchain:
         
         block_data = json.dumps(block.to_dict())
         cursor.execute(
-            'INSERT INTO blocks (index, data, timestamp, hash) VALUES (?, ?, ?, ?)',
+            'INSERT INTO blocks (block_index, data, timestamp, hash) VALUES (?, ?, ?, ?)',
             (block.index, block_data, block.timestamp, block.hash)
         )
         
