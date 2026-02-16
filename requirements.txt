@@ -25,6 +25,11 @@ eth-account>=0.10.0       # Ethereum account management and signing
 sentry-sdk>=1.39.0        # Error tracking and monitoring
 python-json-logger>=2.0.0 # Structured JSON logging
 
+# Treasury and Bridge dependencies (optional)
+pyyaml>=6.0       # Configuration file parsing
+web3>=6.0.0       # Ethereum/blockchain interaction (optional for bridge deployment)
+py-solc-x>=1.1.1  # Solidity compiler (optional for bridge deployment)
+
 # Optional dependencies for testing
 pytest>=7.0.0     # Unit testing framework
 pytest-cov>=3.0.0 # Code coverage reporting for tests
