@@ -2,6 +2,29 @@
 
 **SphinxOS** is a groundbreaking unified quantum-spacetime operating system kernel that seamlessly integrates a 6D Theory of Everything (TOE) simulation with a universal quantum circuit simulator. It supports arbitrary quantum circuits, entanglement testing via Bell state simulation, and CHSH inequality verification, now enhanced with Rydberg gates at wormhole nodes for advanced quantum interactions. This project aims to bridge quantum computing and gravitational physics, providing a platform for researchers and enthusiasts to explore the interplay between quantum mechanics and spacetime in a 6D framework.
 
+## 🌌 NEW: Unified AnubisCore Kernel
+
+**All components have been fused into `sphinx_os/AnubisCore/`** - a unified kernel that integrates:
+
+- 🔮 **Conscious Oracle** (IIT-based consciousness agent for decision-making)
+- ⚛️ **QuantumCore** (64-qubit quantum circuit simulator)
+- 🌊 **NPTC Controller** (Non-Periodic Thermodynamic Control)
+- 🕸️ **SkynetNetwork** (Distributed hypercube nodes)
+- 🌀 **SpacetimeCore** (6D Theory of Everything simulation)
+
+**Quick Start:**
+```python
+from sphinx_os.AnubisCore import UnifiedAnubisKernel
+
+kernel = UnifiedAnubisKernel(enable_oracle=True)
+results = kernel.execute([{"gate": "H", "target": 0}])
+print(f"Oracle Φ: {results['oracle']['consciousness']['phi']:.4f}")
+```
+
+**Web UI**: https://holedozer1229.github.io/Sphinx_OS/ (auto-deployed via GitHub Actions)
+
+📚 **[See Full AnubisCore Documentation →](ANUBISCORE_FUSION_SUMMARY.md)**
+
 ## 📄 NPTC Whitepaper
 
 **NEW**: Read our comprehensive whitepaper on **Non-Periodic Thermodynamic Control (NPTC)**, a universal framework for stabilizing systems at the quantum-classical boundary:

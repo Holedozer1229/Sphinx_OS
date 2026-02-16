@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SphinxOS Wallet</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/wallet.css') }}">
+</head>
+<body>
+    <div class="wallet-app">
+        <!-- Header -->
+        <header class="wallet-header">
+            <div class="header-left">
+                <div class="logo-small">🌌</div>
+                <h2>SphinxOS Wallet</h2>
+            </div>
+            <div class="header-right">
+                <div class="network-indicator">
+                    <span class="network-dot"></span>
+                    <span id="network-name">Stacks Mainnet</span>
+                </div>
+                <button class="account-menu" onclick="toggleAccountMenu()">
+                    <span id="account-address">0x...0000</span>
+                    <span class="menu-icon">▼</span>
+                </button>
+                <div id="account-dropdown" class="dropdown-menu hidden">
+                    <div class="dropdown-item" onclick="showSettings()">⚙️ Settings</div>
+                    <div class="dropdown-item" onclick="logout()">🚪 Logout</div>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Main Content -->
+        <div class="wallet-content">
+            <!-- Balance Card -->
+            <div class="balance-card">
+                <div class="balance-header">
+                    <h3 id="wallet-name">Main Wallet</h3>
+                    <button class="icon-btn" onclick="refreshBalance()">🔄</button>
+                </div>
+                
+                <div class="balance-amount">
+                    <span class="balance-value" id="balance-value">0.00</span>
+                    <span class="balance-currency" id="balance-currency">STX</span>
+                </div>
+                
+                <div class="balance-usd">
+                    ≈ $<span id="balance-usd">0.00</span> USD
+                </div>
+                
+                <div class="balance-actions">
+                    <button class="action-btn" onclick="showSend()">
+                        <span class="btn-icon">↑</span>
+                        <span>Send</span>
+                    </button>
+                    <button class="action-btn" onclick="showReceive()">
+                        <span class="btn-icon">↓</span>
+                        <span>Receive</span>
+                    </button>
+                    <button class="action-btn" onclick="showSwap()">
+                        <span class="btn-icon">⇄</span>
+                        <span>Swap</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Assets Tab -->
+            <div class="assets-section">
+                <div class="section-tabs">
+                    <button class="tab-btn active" onclick="showTab('assets')">Assets</button>
+                    <button class="tab-btn" onclick="showTab('activity')">Activity</button>
+                </div>
+                
+                <div id="assets-tab" class="tab-pane active">
+                    <div class="asset-list">
+                        <div class="asset-item">
+                            <div class="asset-icon">STX</div>
+                            <div class="asset-info">
+                                <div class="asset-name">Stacks</div>
+                                <div class="asset-amount">1,250.50 STX</div>
+                            </div>
+                            <div class="asset-value">$625.25</div>
+                        </div>
+                        
+                        <div class="asset-item">
+                            <div class="asset-icon">BTC</div>
+                            <div class="asset-info">
+                                <div class="asset-name">Bitcoin</div>
+                                <div class="asset-amount">0.0125 BTC</div>
+                            </div>
+                            <div class="asset-value">$562.50</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="activity-tab" class="tab-pane">
+                    <div id="transaction-list" class="transaction-list">
+                        <div class="empty-state">
+                            <p>No transactions yet</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Send Modal -->
+    <div id="send-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Send Assets</h3>
+                <button class="close-btn" onclick="closeModal('send-modal')">×</button>
+            </div>
+            <form id="send-form" onsubmit="handleSend(event)">
+                <div class="form-group">
+                    <label>Asset</label>
+                    <select id="send-asset" class="form-control">
+                        <option value="STX">STX - Stacks</option>
+                        <option value="BTC">BTC - Bitcoin</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>To Address</label>
+                    <input type="text" id="send-to" class="form-control" required 
+                           placeholder="ST1PQHQKV0RJ...">
+                </div>
+                
+                <div class="form-group">
+                    <label>Amount</label>
+                    <input type="number" id="send-amount" class="form-control" required 
+                           step="0.000001" min="0" placeholder="0.00">
+                    <small>Available: <span id="available-balance">0.00</span> STX</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Gas Fee</label>
+                    <div class="gas-selector">
+                        <button type="button" class="gas-option active" onclick="selectGas(this, 'slow')">
+                            <div>Slow</div>
+                            <div class="gas-price">0.001 STX</div>
+                        </button>
+                        <button type="button" class="gas-option" onclick="selectGas(this, 'medium')">
+                            <div>Medium</div>
+                            <div class="gas-price">0.002 STX</div>
+                        </button>
+                        <button type="button" class="gas-option" onclick="selectGas(this, 'fast')">
+                            <div>Fast</div>
+                            <div class="gas-price">0.005 STX</div>
+                        </button>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn-primary btn-block">Send</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Receive Modal -->
+    <div id="receive-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Receive Assets</h3>
+                <button class="close-btn" onclick="closeModal('receive-modal')">×</button>
+            </div>
+            <div class="receive-content">
+                <div class="qr-code">
+                    <div class="qr-placeholder">📱 QR Code</div>
+                </div>
+                <div class="address-display">
+                    <label>Your Address</label>
+                    <div class="address-box">
+                        <span id="receive-address">ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM</span>
+                        <button class="copy-btn" onclick="copyAddress()">📋</button>
+                    </div>
+                </div>
+                <p class="receive-note">Share this address to receive STX, BTC, or other assets</p>
+            </div>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/wallet.js') }}"></script>
+</body>
+</html>

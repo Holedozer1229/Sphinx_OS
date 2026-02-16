@@ -15,9 +15,15 @@ import logging
 logging.getLogger("SphinxOS").addHandler(logging.NullHandler())
 
 # Import main components to expose at the package level
-from .main import SphinxOS
-from .core.anubis_core import AnubisCore
-from .core.unified_result import UnifiedResult
+try:
+    from .main import SphinxOS
+    from .core.anubis_core import AnubisCore
+    from .core.unified_results import UnifiedResult
+except ImportError:
+    # Handle missing dependencies gracefully
+    SphinxOS = None
+    AnubisCore = None
+    UnifiedResult = None
 
 # Package metadata
 __version__ = "0.2.1"  # Updated to reflect latest enhancements
