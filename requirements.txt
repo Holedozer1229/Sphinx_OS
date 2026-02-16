@@ -10,6 +10,11 @@ fastapi>=0.115.0          # Web framework for node API endpoints
 uvicorn>=0.30.0           # ASGI server for FastAPI
 prometheus_client>=0.20.0 # Prometheus metrics exposition
 
+# Treasury and Bridge dependencies (optional)
+pyyaml>=6.0       # Configuration file parsing
+web3>=6.0.0       # Ethereum/blockchain interaction (optional for bridge deployment)
+py-solc-x>=1.1.1  # Solidity compiler (optional for bridge deployment)
+
 # Optional dependencies for testing
 pytest>=7.0.0     # Unit testing framework
 pytest-cov>=3.0.0 # Code coverage reporting for tests

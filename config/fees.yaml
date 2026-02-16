@@ -1,0 +1,28 @@
+fees:
+  nft_mint:
+    amount: 0.1  # SPHINX
+    allocation:
+      treasury: 70%    # Self-funding for bridge deployment
+      operator: 20%    # Your profit
+      rewards: 10%     # User rewards pool
+  
+  rarity_proof:
+    amount: 0.05  # SPHINX
+    allocation:
+      treasury: 80%    # Bridge operations fund
+      operator: 15%    # Your profit
+      miners: 5%       # Miner rewards
+  
+  transaction:
+    amount: 0.001  # SPHINX
+    allocation:
+      treasury: 50%    # Future expansion
+      operator: 50%    # Your profit
+
+deployment_thresholds:
+  polygon: 50      # $50 USD to deploy
+  avalanche: 30    # $30 USD to deploy
+  bnb: 50          # $50 USD to deploy
+  ethereum: 500    # $500 USD to deploy
+
+auto_deploy: true  # Automatically deploy when threshold reached
