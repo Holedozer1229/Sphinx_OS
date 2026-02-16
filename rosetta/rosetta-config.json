@@ -1,0 +1,24 @@
+{
+  "network_identifier": {
+    "blockchain": "sphinxos",
+    "network": "mainnet"
+  },
+  "genesis_block_identifier": {
+    "index": 0,
+    "hash": "0x0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "node_version": "1.0.0",
+  "middleware_version": "1.4.13",
+  "metadata": {
+    "operating_system": "linux",
+    "architecture": "x86_64",
+    "node_implementation": "sphinxos-core",
+    "supported_chains": [
+      "ethereum",
+      "polygon",
+      "arbitrum",
+      "optimism",
+      "stacks"
+    ]
+  }
+}
