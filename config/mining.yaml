@@ -1,0 +1,46 @@
+mining:
+  enabled: true
+  
+  # Mining algorithms
+  algorithms:
+    - spectral  # Φ-boosted quantum-resistant
+    - sha256    # Bitcoin-compatible
+    - ethash    # Ethereum-compatible
+    - keccak256 # ETC-compatible
+  
+  # Default algorithm (auto-selected if not specified)
+  default_algorithm: spectral
+  
+  # Mining threads
+  threads: 8
+  
+  # GPU support
+  gpu_enabled: false
+  gpu_devices: []
+  
+  # Merge mining configuration
+  merge_mining:
+    enabled: false
+    chains:
+      - btc  # Bitcoin
+      - eth  # Ethereum
+      - etc  # Ethereum Classic
+  
+  # Payout configuration
+  payout_address: "YOUR_SPHINX_ADDRESS_HERE"
+  
+  # Auto-start mining on node launch
+  auto_start: true
+  
+  # Mining pool (optional - leave empty for solo mining)
+  pool:
+    enabled: false
+    url: ""
+    username: ""
+    password: ""
+  
+  # Performance tuning
+  performance:
+    batch_size: 1000
+    max_attempts_per_block: 1000000
+    status_update_interval: 10  # seconds
