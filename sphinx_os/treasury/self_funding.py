@@ -12,6 +12,9 @@ class SelfFundingTreasury:
     Automatically deploy bridge contracts when thresholds met
     """
     
+    # Conversion rate (placeholder until real price feeds integrated)
+    SPHINX_TO_USD_RATE = 1.0
+    
     def __init__(self):
         self.treasury_balance = 0
         self.deployment_targets = {
@@ -68,8 +71,8 @@ class SelfFundingTreasury:
         """
         for chain, config in self.deployment_targets.items():
             if not config["deployed"]:
-                # Convert SPHINX to USD (assume $1 = 1 SPHINX for now)
-                treasury_usd = self.treasury_balance
+                # Convert SPHINX to USD using conversion rate
+                treasury_usd = self.treasury_balance * self.SPHINX_TO_USD_RATE
                 
                 if treasury_usd >= config["threshold"]:
                     self.trigger_deployment(chain, config["threshold"])
@@ -126,13 +129,13 @@ class SelfFundingTreasury:
         """
         return {
             "balance_sphinx": self.treasury_balance,
-            "balance_usd": self.treasury_balance,  # Assume 1:1 for now
+            "balance_usd": self.treasury_balance * self.SPHINX_TO_USD_RATE,
             "deployments": {
                 chain: {
-                    "ready": self.treasury_balance >= config["threshold"],
+                    "ready": self.treasury_balance * self.SPHINX_TO_USD_RATE >= config["threshold"],
                     "deployed": config["deployed"],
                     "threshold": config["threshold"],
-                    "progress": min(100, (self.treasury_balance / config["threshold"]) * 100)
+                    "progress": min(100, (self.treasury_balance * self.SPHINX_TO_USD_RATE / config["threshold"]) * 100)
                 }
                 for chain, config in self.deployment_targets.items()
             }

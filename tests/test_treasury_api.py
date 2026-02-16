@@ -107,7 +107,7 @@ def test_treasury_accumulation_via_api():
     response = client.get("/api/treasury/stats")
     initial_balance = response.json()["balance_sphinx"]
     
-    # Collect some fees
+    # Collect some fees (just 2 calls to test accumulation)
     client.post("/api/treasury/collect/nft_mint?amount=0.1")
     client.post("/api/treasury/collect/nft_mint?amount=0.1")
     
@@ -116,13 +116,14 @@ def test_treasury_accumulation_via_api():
     new_balance = response.json()["balance_sphinx"]
     
     # Should have increased by 2 * 0.1 * 0.7 = 0.14
-    assert new_balance >= initial_balance + 0.14
+    assert new_balance == pytest.approx(initial_balance + 0.14)
 
 
 def test_deployment_readiness_check():
     """Test deployment readiness is reflected in stats"""
     # Collect enough fees for avalanche (threshold: 30)
-    for _ in range(500):  # 500 * 0.1 * 0.7 = 35
+    # 430 * 0.1 * 0.7 = 30.1 SPHINX
+    for _ in range(430):
         client.post("/api/treasury/collect/nft_mint?amount=0.1")
     
     response = client.get("/api/treasury/stats")

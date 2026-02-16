@@ -38,7 +38,7 @@ def deploy_bridge(chain: str, gas_token_amount: float):
             "gas_price_gwei": 5
         },
         "ethereum": {
-            "rpc": f"https://eth-mainnet.g.alchemy.com/v2/{os.getenv('ALCHEMY_KEY', 'demo')}",
+            "rpc": f"https://eth-mainnet.g.alchemy.com/v2/{os.getenv('ALCHEMY_KEY')}",
             "chain_id": 1,
             "gas_price_gwei": 30
         }
@@ -60,7 +60,9 @@ def deploy_bridge(chain: str, gas_token_amount: float):
         # Load deployer account (generated from treasury)
         deployer_key = os.getenv("TREASURY_DEPLOYER_KEY")
         if not deployer_key:
-            print(f"⚠️  No TREASURY_DEPLOYER_KEY found, simulating deployment for {chain}")
+            print(f"⚠️  No TREASURY_DEPLOYER_KEY environment variable set")
+            print(f"    For production deployment, please set this variable")
+            print(f"    Falling back to simulated deployment for {chain}")
             # Simulate successful deployment
             return _simulate_deployment(chain)
         
@@ -130,7 +132,7 @@ def _simulate_deployment(chain: str):
         bool: Always True (simulated success)
     """
     import hashlib
-    # Generate a mock contract address
+    # Generate a mock contract address (40 hex chars = 20 bytes for Ethereum address format)
     mock_address = "0x" + hashlib.sha256(f"{chain}:{time.time()}".encode()).hexdigest()[:40]
     mock_tx_hash = "0x" + hashlib.sha256(f"tx:{chain}:{time.time()}".encode()).hexdigest()
     

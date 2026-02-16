@@ -49,7 +49,9 @@ def main():
     print("Simulating 100 NFT mints at 0.1 SPHINX each...")
     
     for i in range(100):
-        user_address = f"0x{''.join(['0123456789abcdef'[i % 16] for _ in range(40)])}"
+        # Generate unique addresses using hash of index
+        import hashlib
+        user_address = "0x" + hashlib.sha256(f"user_{i}".encode()).hexdigest()[:40]
         metadata = {
             "name": f"Sphinx NFT #{i+1}",
             "rarity": ["common", "uncommon", "rare", "epic", "legendary"][i % 5],
@@ -74,7 +76,9 @@ def main():
     
     for i in range(200):
         nft_id = 1000 + i
-        user_address = f"0x{''.join(['0123456789abcdef'[i % 16] for _ in range(40)])}"
+        # Generate unique addresses using hash of index
+        import hashlib
+        user_address = "0x" + hashlib.sha256(f"user_{i}".encode()).hexdigest()[:40]
         
         try:
             result = rarity_system.generate_rarity_proof(nft_id, user_address, balance=10.0)
