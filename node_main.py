@@ -52,7 +52,7 @@ from prometheus_client import start_http_server, Gauge
 ALPHA = 0.5
 BETA = 0.5
 NUM_NODES = 10
-LAMBDA_HYPERCUBE = 0.33333333326
+LAMBDA_HYPERCUBE = 0.33333333326  # ≈ 1/3, hypercube Laplacian coupling
 ANCILLA_DIM = 5  # number of ancilla higher-dimensional projections
 
 

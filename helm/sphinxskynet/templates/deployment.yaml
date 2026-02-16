@@ -25,7 +25,7 @@ spec:
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/path: "/metrics"
-        prometheus.io/port: "8000"
+        prometheus.io/port: "8001"
     spec:
       containers:
         - name: sphinxskynet-node

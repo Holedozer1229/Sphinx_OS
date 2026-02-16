@@ -74,7 +74,9 @@ def fetch_circuits():
         src = f"s3://{S3_BUCKET}/circuits/{artifact}"
         dst = os.path.join(CIRCUITS_DIR, artifact)
         if not os.path.exists(dst):
-            run(["aws", "s3", "cp", src, dst], check=False)
+            result = run(["aws", "s3", "cp", src, dst], check=False)
+            if result.returncode != 0:
+                print(f"    ⚠ Failed to fetch {artifact} from S3")
         else:
             print(f"    ✓ {artifact} already present")
 
