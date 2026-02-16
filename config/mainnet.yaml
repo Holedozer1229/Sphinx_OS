@@ -1,0 +1,72 @@
+environment: mainnet
+network:
+  ethereum:
+    rpc_url: "https://mainnet.infura.io/v3/YOUR_KEY"
+    chain_id: 1
+    explorer: "https://etherscan.io"
+  polygon:
+    rpc_url: "https://polygon-rpc.com"
+    chain_id: 137
+    explorer: "https://polygonscan.com"
+  arbitrum:
+    rpc_url: "https://arb1.arbitrum.io/rpc"
+    chain_id: 42161
+    explorer: "https://arbiscan.io"
+  
+contracts:
+  yield_aggregator: "0x0000000000000000000000000000000000000000"  # Deploy and update
+  nft_contract: "0x0000000000000000000000000000000000000000"      # Deploy and update
+  
+api:
+  host: "0.0.0.0"
+  port: 8000
+  metrics_port: 8001
+  workers: 4
+  max_requests: 1000
+  rate_limit: 100  # requests per minute
+  timeout: 30  # seconds
+  
+security:
+  jwt_secret: "${JWT_SECRET}"  # From env var
+  api_keys_required: true
+  cors_origins:
+    - "https://sphinxos.io"
+    - "https://app.sphinxos.io"
+  max_content_length: 1048576  # 1MB
+  
+monitoring:
+  prometheus: true
+  grafana_url: "https://grafana.sphinxos.io"
+  sentry_dsn: "${SENTRY_DSN}"
+  log_level: "INFO"
+  metrics_enabled: true
+  
+blockchain:
+  confirmations_required: 12
+  gas_limit: 500000
+  max_gas_price: 300  # gwei
+  transaction_timeout: 300  # seconds
+  retry_attempts: 3
+  
+database:
+  postgres_url: "${DATABASE_URL}"
+  redis_url: "${REDIS_URL}"
+  connection_pool_size: 20
+  max_overflow: 10
+  pool_timeout: 30
+  
+hypercube:
+  num_nodes: 10
+  num_faces: 12
+  num_layers: 50
+  ancilla_dimensions: 5
+  proof_depth: 8
+  sigma: 0.5
+  alpha: 0.7
+  beta: 0.3
+
+zkp:
+  circuit_path: "./circuits"
+  trusted_setup: true
+  proof_cache_enabled: true
+  proof_cache_ttl: 3600  # seconds

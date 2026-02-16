@@ -15,10 +15,14 @@ import logging
 logging.getLogger("SphinxOS").addHandler(logging.NullHandler())
 
 # Import main components to expose at the package level
+# Note: Temporarily skip main.py imports to allow blockchain module to work independently
 try:
-    from .main import SphinxOS
-    from .core.anubis_core import AnubisCore
-    from .core.unified_results import UnifiedResult
+    # from .main import SphinxOS
+    # from .core.anubis_core import AnubisCore
+    # from .core.unified_results import UnifiedResult
+    SphinxOS = None
+    AnubisCore = None
+    UnifiedResult = None
 except ImportError:
     # Handle missing dependencies gracefully
     SphinxOS = None

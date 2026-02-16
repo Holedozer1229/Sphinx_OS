@@ -1,0 +1,42 @@
+{
+  "genesis_block": {
+    "index": 0,
+    "timestamp": 1704067200,
+    "transactions": [
+      {
+        "txid": "genesis_coinbase",
+        "inputs": [],
+        "outputs": [
+          {
+            "address": "GENESIS_ADDRESS",
+            "amount": 50.0
+          }
+        ],
+        "fee": 0.0,
+        "phi_boost": 1.0
+      }
+    ],
+    "previous_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "nonce": 0,
+    "merkle_root": "genesis_merkle",
+    "difficulty": 1000000,
+    "miner": "GENESIS",
+    "phi_score": 1000.0,
+    "pow_algorithm": "spectral",
+    "merge_mining_headers": {}
+  },
+  "chain_params": {
+    "block_time_target": 10,
+    "max_block_size": 2097152,
+    "max_supply": 21000000,
+    "initial_reward": 50.0,
+    "halving_interval": 210000,
+    "difficulty_adjustment_interval": 2016
+  },
+  "supported_algorithms": [
+    "spectral",
+    "sha256",
+    "ethash",
+    "keccak256"
+  ]
+}

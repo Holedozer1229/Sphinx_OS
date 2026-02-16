@@ -1,0 +1,217 @@
+groups:
+- name: sphinxos_critical
+  interval: 30s
+  rules:
+  - alert: NodeDown
+    expr: up{job="sphinxos"} == 0
+    for: 1m
+    labels:
+      severity: critical
+      component: node
+    annotations:
+      summary: "Sphinx_OS node down"
+      description: "Node {{ $labels.instance }} has been down for 1 minute"
+      runbook_url: "https://docs.sphinxos.io/runbooks/node-down"
+  
+  - alert: HighErrorRate
+    expr: rate(sphinxos_errors_total[5m]) > 0.1
+    for: 5m
+    labels:
+      severity: warning
+      component: api
+    annotations:
+      summary: "High error rate detected"
+      description: "Error rate is {{ $value | humanize }} errors/sec for {{ $labels.endpoint }}"
+      runbook_url: "https://docs.sphinxos.io/runbooks/high-error-rate"
+  
+  - alert: ProofGenerationFailing
+    expr: sphinxos_proof_success_rate < 0.95
+    for: 10m
+    labels:
+      severity: critical
+      component: zkp
+    annotations:
+      summary: "ZK proof generation failing"
+      description: "Proof success rate is {{ $value | humanizePercentage }} (threshold: 95%)"
+      runbook_url: "https://docs.sphinxos.io/runbooks/proof-failure"
+  
+  - alert: HighAPILatency
+    expr: histogram_quantile(0.99, rate(sphinxos_api_latency_seconds_bucket[5m])) > 2
+    for: 5m
+    labels:
+      severity: warning
+      component: api
+    annotations:
+      summary: "API latency is high"
+      description: "P99 latency is {{ $value | humanizeDuration }} for {{ $labels.endpoint }}"
+      runbook_url: "https://docs.sphinxos.io/runbooks/high-latency"
+
+- name: sphinxos_blockchain
+  interval: 1m
+  rules:
+  - alert: BlockchainConnectionLost
+    expr: sphinxos_blockchain_connected == 0
+    for: 2m
+    labels:
+      severity: critical
+      component: blockchain
+    annotations:
+      summary: "Blockchain connection lost"
+      description: "Lost connection to {{ $labels.network }} blockchain"
+      runbook_url: "https://docs.sphinxos.io/runbooks/blockchain-connection"
+  
+  - alert: HighGasPrice
+    expr: sphinxos_gas_price_gwei > 300
+    for: 10m
+    labels:
+      severity: warning
+      component: blockchain
+    annotations:
+      summary: "Gas price is very high"
+      description: "Gas price is {{ $value }} gwei on {{ $labels.network }}"
+  
+  - alert: PendingTransactions
+    expr: sphinxos_pending_transactions > 10
+    for: 15m
+    labels:
+      severity: warning
+      component: blockchain
+    annotations:
+      summary: "Many transactions pending"
+      description: "{{ $value }} transactions have been pending for >15 minutes"
+
+- name: sphinxos_security
+  interval: 1m
+  rules:
+  - alert: RateLimitExceeded
+    expr: rate(sphinxos_rate_limit_exceeded_total[5m]) > 1
+    for: 5m
+    labels:
+      severity: warning
+      component: security
+    annotations:
+      summary: "Rate limit frequently exceeded"
+      description: "Rate limit exceeded {{ $value | humanize }} times/sec by {{ $labels.user }}"
+  
+  - alert: AuthenticationFailures
+    expr: rate(sphinxos_auth_failures_total[5m]) > 0.5
+    for: 5m
+    labels:
+      severity: warning
+      component: security
+    annotations:
+      summary: "High authentication failure rate"
+      description: "{{ $value | humanize }} failed auth attempts/sec"
+      runbook_url: "https://docs.sphinxos.io/runbooks/auth-failures"
+  
+  - alert: SuspiciousActivity
+    expr: sphinxos_suspicious_requests_total > 10
+    for: 1m
+    labels:
+      severity: critical
+      component: security
+    annotations:
+      summary: "Suspicious activity detected"
+      description: "{{ $value }} suspicious requests detected from {{ $labels.source }}"
+      runbook_url: "https://docs.sphinxos.io/runbooks/security-incident"
+
+- name: sphinxos_performance
+  interval: 1m
+  rules:
+  - alert: HighMemoryUsage
+    expr: process_resident_memory_bytes / 1024 / 1024 / 1024 > 1.5
+    for: 5m
+    labels:
+      severity: warning
+      component: node
+    annotations:
+      summary: "High memory usage"
+      description: "Node {{ $labels.instance }} using {{ $value | humanize }}GB memory"
+  
+  - alert: HighCPUUsage
+    expr: rate(process_cpu_seconds_total[5m]) * 100 > 80
+    for: 10m
+    labels:
+      severity: warning
+      component: node
+    annotations:
+      summary: "High CPU usage"
+      description: "Node {{ $labels.instance }} using {{ $value | humanizePercentage }} CPU"
+  
+  - alert: TooManyGoroutines
+    expr: go_goroutines > 1000
+    for: 10m
+    labels:
+      severity: warning
+      component: node
+    annotations:
+      summary: "Too many goroutines"
+      description: "Node {{ $labels.instance }} has {{ $value }} goroutines"
+
+- name: sphinxos_database
+  interval: 1m
+  rules:
+  - alert: DatabaseConnectionPoolExhausted
+    expr: sphinxos_db_connections_used / sphinxos_db_connections_max > 0.9
+    for: 5m
+    labels:
+      severity: critical
+      component: database
+    annotations:
+      summary: "Database connection pool exhausted"
+      description: "Using {{ $value | humanizePercentage }} of connection pool"
+  
+  - alert: SlowDatabaseQueries
+    expr: histogram_quantile(0.95, rate(sphinxos_db_query_duration_seconds_bucket[5m])) > 1
+    for: 5m
+    labels:
+      severity: warning
+      component: database
+    annotations:
+      summary: "Database queries are slow"
+      description: "P95 query time is {{ $value | humanizeDuration }}"
+  
+  - alert: RedisConnectionFailed
+    expr: sphinxos_redis_connected == 0
+    for: 2m
+    labels:
+      severity: critical
+      component: cache
+    annotations:
+      summary: "Redis connection failed"
+      description: "Cannot connect to Redis cache"
+      runbook_url: "https://docs.sphinxos.io/runbooks/redis-failure"
+
+- name: sphinxos_business
+  interval: 5m
+  rules:
+  - alert: TransactionVolumeDropped
+    expr: rate(sphinxos_transactions_total[30m]) < rate(sphinxos_transactions_total[6h] offset 30m) * 0.5
+    for: 30m
+    labels:
+      severity: warning
+      component: business
+    annotations:
+      summary: "Transaction volume dropped significantly"
+      description: "Transaction rate is 50% below normal"
+  
+  - alert: YieldAggregatorPaused
+    expr: sphinxos_contract_paused{contract="YieldAggregator"} == 1
+    for: 1m
+    labels:
+      severity: critical
+      component: blockchain
+    annotations:
+      summary: "Yield Aggregator contract is paused"
+      description: "The Yield Aggregator contract on {{ $labels.network }} is paused"
+      runbook_url: "https://docs.sphinxos.io/runbooks/contract-paused"
+  
+  - alert: LowYieldGeneration
+    expr: rate(sphinxos_yield_generated_total[1h]) < 100
+    for: 2h
+    labels:
+      severity: warning
+      component: business
+    annotations:
+      summary: "Low yield generation"
+      description: "Yield generation rate is {{ $value | humanize }} per hour"

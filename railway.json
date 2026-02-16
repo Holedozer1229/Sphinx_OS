@@ -1,0 +1,22 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "NIXPACKS",
+    "buildCommand": "pip install -r requirements.txt"
+  },
+  "deploy": {
+    "startCommand": "uvicorn sphinx_os.api.main:app --host 0.0.0.0 --port $PORT",
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 10,
+    "healthcheckPath": "/health",
+    "healthcheckTimeout": 100
+  },
+  "environments": {
+    "production": {
+      "variables": {
+        "OPERATOR_ADDRESS": "0xSPHINXOPERATOR",
+        "PYTHON_VERSION": "3.11"
+      }
+    }
+  }
+}

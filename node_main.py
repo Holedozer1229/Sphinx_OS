@@ -41,19 +41,46 @@ import json
 import os
 import subprocess
 import tempfile
+import time
 
 import numpy as np
-from fastapi import FastAPI
-from prometheus_client import start_http_server, Gauge
+from fastapi import FastAPI, Request, Depends
+from fastapi.middleware.cors import CORSMiddleware
+from prometheus_client import start_http_server, Gauge, Counter, Histogram, Info
+
+# Import security modules
+try:
+    from sphinx_os.security import RateLimiter, InputValidator
+    from sphinx_os.config_manager import get_config
+    SECURITY_ENABLED = True
+except ImportError:
+    SECURITY_ENABLED = False
+    print("Warning: Security modules not available. Running in development mode.")
 
 # ---------------------------------------------------------------------------
-# Parameters
+# Configuration
 # ---------------------------------------------------------------------------
-ALPHA = 0.5
-BETA = 0.5
-NUM_NODES = 10
+if SECURITY_ENABLED:
+    try:
+        config = get_config()
+        hypercube_config = config.get_hypercube_config()
+        ALPHA = hypercube_config.get("alpha", 0.5)
+        BETA = hypercube_config.get("beta", 0.5)
+        NUM_NODES = hypercube_config.get("num_nodes", 10)
+        ANCILLA_DIM = hypercube_config.get("ancilla_dimensions", 5)
+    except Exception as e:
+        print(f"Warning: Could not load config: {e}. Using defaults.")
+        ALPHA = 0.5
+        BETA = 0.5
+        NUM_NODES = 10
+        ANCILLA_DIM = 5
+else:
+    ALPHA = 0.5
+    BETA = 0.5
+    NUM_NODES = 10
+    ANCILLA_DIM = 5
+
 LAMBDA_HYPERCUBE = 0.33333333326  # ≈ 1/3, hypercube Laplacian coupling
-ANCILLA_DIM = 5  # number of ancilla higher-dimensional projections
 
 
 # ---------------------------------------------------------------------------
@@ -279,8 +306,9 @@ def generate_hyperzk_proof(node):
 
 
 # ---------------------------------------------------------------------------
-# Prometheus Metrics
+# Enhanced Prometheus Metrics
 # ---------------------------------------------------------------------------
+# Existing metrics
 phi_gauge = Gauge('phi_total', 'Φ_total per node', ['node'])
 delta_gauge = Gauge('delta_lambda', 'Δλ per node', ['node'])
 proof_gauge = Gauge(
@@ -294,25 +322,199 @@ wormhole_gauge = Gauge(
     ['source', 'target'],
 )
 
+# Business metrics
+tx_counter = Counter(
+    'sphinxos_transactions_total',
+    'Total transactions processed',
+    ['type', 'status']
+)
+tx_value = Histogram(
+    'sphinxos_transaction_value',
+    'Transaction value distribution',
+    ['token']
+)
+active_users = Gauge(
+    'sphinxos_active_users',
+    'Number of active users'
+)
+node_health = Gauge(
+    'sphinxos_node_health',
+    'Node health score (0-100)',
+    ['node_id']
+)
+
+# System metrics
+api_latency = Histogram(
+    'sphinxos_api_latency_seconds',
+    'API endpoint latency',
+    ['endpoint', 'method']
+)
+error_counter = Counter(
+    'sphinxos_errors_total',
+    'Total errors by type and severity',
+    ['type', 'severity']
+)
+request_counter = Counter(
+    'sphinxos_requests_total',
+    'Total API requests',
+    ['endpoint', 'method', 'status']
+)
+
+# ZK metrics
+proof_generation_time = Histogram(
+    'sphinxos_proof_generation_seconds',
+    'Time to generate ZK proof'
+)
+proof_success_rate = Gauge(
+    'sphinxos_proof_success_rate',
+    'Proof generation success rate (0-1)'
+)
+proof_verification_time = Histogram(
+    'sphinxos_proof_verification_seconds',
+    'Time to verify ZK proof'
+)
+
+# Blockchain metrics
+blockchain_connected = Gauge(
+    'sphinxos_blockchain_connected',
+    'Blockchain connection status',
+    ['network']
+)
+gas_price_gwei = Gauge(
+    'sphinxos_gas_price_gwei',
+    'Current gas price',
+    ['network']
+)
+pending_transactions = Gauge(
+    'sphinxos_pending_transactions',
+    'Number of pending transactions'
+)
+
+# Security metrics
+rate_limit_exceeded = Counter(
+    'sphinxos_rate_limit_exceeded_total',
+    'Rate limit violations',
+    ['user', 'endpoint']
+)
+auth_failures = Counter(
+    'sphinxos_auth_failures_total',
+    'Authentication failures',
+    ['reason']
+)
+suspicious_requests = Counter(
+    'sphinxos_suspicious_requests_total',
+    'Suspicious request attempts',
+    ['source', 'type']
+)
+
+# System info
+system_info = Info('sphinxos_system', 'System information')
+system_info.info({
+    'version': '1.0.0',
+    'environment': os.getenv('SPHINXOS_ENV', 'local'),
+    'num_nodes': str(NUM_NODES)
+})
+
 start_http_server(8001)
 
 
 # ---------------------------------------------------------------------------
-# FastAPI App
+# FastAPI App with Security Middleware
 # ---------------------------------------------------------------------------
-app = FastAPI(title="SphinxSkynet Node", version="1.0.0")
+app = FastAPI(
+    title="SphinxSkynet Node",
+    version="1.0.0",
+    description="Hypercube + Ancilla Higher-Dimensional Projections with ZK Proofs"
+)
+
+# Configure CORS
+if SECURITY_ENABLED:
+    try:
+        security_config = config.get_security_config()
+        cors_origins = security_config.get("cors_origins", ["http://localhost:3000"])
+    except:
+        cors_origins = ["http://localhost:3000"]
+else:
+    cors_origins = ["*"]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=cors_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
+)
+
+# Rate limiter
+if SECURITY_ENABLED:
+    try:
+        api_config = config.get_api_config()
+        rate_limiter = RateLimiter(requests_per_minute=api_config.get("rate_limit", 100))
+    except:
+        rate_limiter = None
+else:
+    rate_limiter = None
+
+
+# Middleware for request timing and logging
+@app.middleware("http")
+async def monitor_requests(request: Request, call_next):
+    start_time = time.time()
+    
+    # Process request
+    try:
+        response = await call_next(request)
+        status = response.status_code
+        
+        # Record metrics
+        duration = time.time() - start_time
+        api_latency.labels(
+            endpoint=request.url.path,
+            method=request.method
+        ).observe(duration)
+        
+        request_counter.labels(
+            endpoint=request.url.path,
+            method=request.method,
+            status=status
+        ).inc()
+        
+        return response
+        
+    except Exception as e:
+        # Record error
+        error_counter.labels(
+            type=type(e).__name__,
+            severity="error"
+        ).inc()
+        raise
 
 
 @app.get("/metrics")
-def metrics():
+async def metrics():
     """Prometheus metrics endpoint."""
     for node in all_nodes:
         phi_gauge.labels(node=node.id).set(node.phi_total)
         delta_gauge.labels(node=node.id).set(node.delta_lambda)
-        proof_gauge.labels(node=node.id).set(
-            1 if generate_hyperzk_proof(node) else 0
-        )
-    return {"status": "ok"}
+        
+        # Track proof success
+        start_time = time.time()
+        proof_ok = generate_hyperzk_proof(node)
+        proof_time = time.time() - start_time
+        
+        proof_gauge.labels(node=node.id).set(1 if proof_ok else 0)
+        proof_generation_time.observe(proof_time)
+        
+        # Calculate node health
+        health_score = min(100, node.phi_total * 10)
+        node_health.labels(node_id=node.id).set(health_score)
+    
+    # Calculate overall proof success rate
+    successful_proofs = sum(1 for n in all_nodes if generate_hyperzk_proof(n))
+    success_rate = successful_proofs / len(all_nodes) if all_nodes else 0
+    proof_success_rate.set(success_rate)
+    
+    return {"status": "ok", "metrics_updated": True}
 
 
 @app.get("/wormhole_flows")
@@ -334,9 +536,42 @@ def wormhole_flows():
 
 
 @app.get("/health")
-def health():
-    """Health check endpoint for Kubernetes probes."""
-    return {"status": "ok"}
+async def health():
+    """
+    Health check endpoint for Kubernetes probes.
+    Returns detailed health status including node states and system metrics.
+    """
+    try:
+        # Check node states
+        avg_phi = sum(n.phi_total for n in all_nodes) / len(all_nodes)
+        avg_delta = sum(abs(n.delta_lambda) for n in all_nodes) / len(all_nodes)
+        
+        # Check proof generation
+        proof_check = generate_hyperzk_proof(all_nodes[0]) if all_nodes else False
+        
+        health_status = {
+            "status": "ok",
+            "timestamp": time.time(),
+            "nodes": {
+                "total": len(all_nodes),
+                "avg_phi": float(avg_phi),
+                "avg_delta_lambda": float(avg_delta),
+            },
+            "zkp": {
+                "proof_generation": "ok" if proof_check else "degraded"
+            },
+            "environment": os.getenv("SPHINXOS_ENV", "unknown")
+        }
+        
+        return health_status
+        
+    except Exception as e:
+        error_counter.labels(type="health_check", severity="warning").inc()
+        return {
+            "status": "degraded",
+            "error": str(e),
+            "timestamp": time.time()
+        }
 
 
 # ---------------------------------------------------------------------------
