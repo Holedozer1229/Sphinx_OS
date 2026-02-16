@@ -1,0 +1,23 @@
+# ============================================================================
+# hpa.yaml — Φ-aware Horizontal Pod Autoscaler
+# Scales pods based on Φ_total metrics and recursive proof success rate.
+# λ-stability bounds: |λ(t) - λ*| ≤ C * exp(-γ * t) for convergence rate γ.
+# ============================================================================
+{{- if .Values.hpa.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: sphinxskynet-node-hpa
+  labels:
+    app: sphinxskynet
+    component: node
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: sphinxskynet-node
+  minReplicas: {{ .Values.hpa.minReplicas }}
+  maxReplicas: {{ .Values.hpa.maxReplicas }}
+  metrics:
+    {{- toYaml .Values.hpa.metrics | nindent 4 }}
+{{- end }}

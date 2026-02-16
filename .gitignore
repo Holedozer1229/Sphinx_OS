@@ -43,3 +43,7 @@ htmlcov/
 *.md.bak
 *.ipynb
 *.ipynb_checkpoints/
+
+# SphinxSkynet build artifacts
+inputs.json
+build/

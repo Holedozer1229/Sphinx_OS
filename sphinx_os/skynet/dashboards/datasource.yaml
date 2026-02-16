@@ -1,0 +1,11 @@
+# ============================================================================
+# datasource.yaml — Prometheus Datasource for SphinxSkynet Dashboards
+# ============================================================================
+apiVersion: 1
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus-server:9090
+    isDefault: true
+    editable: true
