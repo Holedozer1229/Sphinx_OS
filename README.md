@@ -277,6 +277,209 @@ SphinxOS, through the TVLE framework, unifies quantum mechanics and gravity in a
 - **Visualization**: Provides visualizations of spacetime grids, quantum flux, Ricci scalar, and Rydberg effects with a cosmic, quantum-inspired style.
 - **Comprehensive Testing**: Includes unit tests for core components, quantum circuits, and Rydberg gate functionality.
 
+---
+
+## 💰 Tokenomics
+
+SphinxOS introduces the **SPHINX token (SPX)**, a dual-chain utility token that powers the entire ecosystem. SPX enables staking, governance, yield optimization, and access to exclusive NFT collections.
+
+### 🪙 Token Overview
+
+- **Token Name**: SPHINX
+- **Ticker**: SPX
+- **Type**: ERC-20 (Ethereum) + SIP-010 (Stacks)
+- **Total Supply**: 1,000,000,000 SPX (1 billion, fixed)
+- **Initial Circulation**: 100,000,000 SPX (10%)
+- **Blockchain**: Dual-chain (Ethereum + Stacks with bridge)
+
+### 📊 Token Distribution
+
+| Category | Allocation | Amount (SPX) | Vesting |
+|----------|-----------|--------------|---------|
+| **Public Sale** | 20% | 200,000,000 | No vesting |
+| **Team & Advisors** | 15% | 150,000,000 | 4-year linear (12-month cliff) |
+| **Treasury** | 25% | 250,000,000 | Governance-controlled |
+| **Ecosystem Rewards** | 20% | 200,000,000 | 5-year emission |
+| **Liquidity Pools** | 10% | 100,000,000 | Immediate |
+| **Strategic Partners** | 5% | 50,000,000 | 2-year linear (6-month cliff) |
+| **Community Airdrop** | 5% | 50,000,000 | Event-based |
+
+**Emission Schedule**: Decreasing over 5 years, tapering to 0% inflation after Year 5.
+
+### 🎯 Token Utility
+
+#### 1. **Staking**
+- Stake SPX to earn **Φ score boosts** (up to 1.25x)
+- Staking rewards: **8-15% APR** (dynamic, based on lock period)
+- Minimum stake: 1,000 SPX
+
+**Staking Tiers:**
+
+| Tier | Stake Amount | Φ Boost | APR | Benefits |
+|------|--------------|---------|-----|----------|
+| **Bronze** | 1K-10K SPX | 1.05x | 8% | Basic access |
+| **Silver** | 10K-50K SPX | 1.10x | 10% | Priority support |
+| **Gold** | 50K-100K SPX | 1.15x | 12% | Gas subsidies |
+| **Platinum** | 100K-500K SPX | 1.20x | 14% | Early NFT access |
+| **Diamond** | 500K+ SPX | 1.25x | 15% | Governance priority |
+
+#### 2. **Yield Optimization**
+Enhanced yields across **10 blockchain networks** and **25+ tokens**:
+
+```
+Effective Yield = Base_Yield × SPX_Boost × Φ_Boost
+
+Where:
+- Base_Yield: Token-specific APR (3.5%-35.5%)
+- SPX_Boost: 1.0 + (staked_SPX / 100,000) × 0.25
+- Φ_Boost: 1.0 + (Φ - 500) / 2000
+```
+
+**Example**: With 50K SPX staked, Φ score of 800, and 12.3% base yield:
+- SPX_Boost: 1.125x
+- Φ_Boost: 1.15x
+- **Effective Yield: 15.91% APR**
+
+#### 3. **Governance**
+- **1 SPX = 1 Vote** in DAO proposals
+- Proposal threshold: 1M SPX
+- Voting period: 7 days
+- Execution delay: 2 days
+- Quadratic voting available for critical proposals
+
+#### 4. **NFT Minting**
+- **Space Flight Commemorative NFTs**: 100 SPX per mint
+- **Rarity Boost NFTs**: 500 SPX (adds permanent Φ score increase)
+- **Legendary NFTs**: 5,000 SPX (limited edition)
+
+Themed collections include Stranger Things, Warhammer 40K, and Star Wars designs.
+
+#### 5. **Oracle Access**
+- Query Sphinx Oracle: 10 SPX per query
+- Rarity proof generation: 50 SPX
+- Φ score verification: 25 SPX
+
+#### 6. **Fee Discounts**
+- Trading fees: **50% discount** for SPX holders
+- Transaction fees: **30% discount**
+- Gas subsidies: Available for large stakers (>50K SPX)
+
+### 💎 NFT Integration
+
+**Rarity Boost NFTs** provide permanent Φ score increases:
+
+| Boost | Φ Increase | Cost |
+|-------|------------|------|
+| Bronze | +50 Φ | 500 SPX |
+| Silver | +100 Φ | 2,000 SPX |
+| Gold | +200 Φ | 10,000 SPX |
+| Legendary | +500 Φ | 50,000 SPX (limited to 100) |
+
+**Space Flight NFTs** are auto-minted at rocket launch events (T-0) with mission parameters embedded.
+
+### 🏦 Treasury Management
+
+**Initial Treasury**: 250,000,000 SPX (25% of total supply)
+
+**Revenue Sources:**
+1. Yield Optimization: 5-30% of user yields (based on Φ score)
+2. NFT Sales: 100% of primary sales
+3. NFT Royalties: 5% of secondary market sales
+4. Oracle Fees: Per-query charges
+5. Transaction Fees: 0.1% of all transactions
+6. Staking Penalties: Early withdrawal fees
+
+**Treasury Formula:**
+```
+Treasury_Rate = min(0.30, 0.05 + Φ/2000)
+```
+
+**Annual Revenue Projections:**
+
+| Scenario | Users | Treasury Revenue | User Yield |
+|----------|-------|------------------|------------|
+| Conservative | 5K | $420K | $2.8M |
+| Moderate | 15K | $1.45M | $9.8M |
+| Aggressive | 50K | $5.6M | $37M |
+| Maximum | 100K | $13.2M | $87M |
+
+**Spending Priorities:**
+- Development: 40%
+- Marketing: 20%
+- Security: 15%
+- Liquidity: 15%
+- Operations: 10%
+
+### 🔐 Economic Security
+
+**Anti-Whale Mechanisms:**
+- Max transaction: 1M SPX per transaction
+- Max wallet: 5M SPX (0.5% of supply) for first 6 months
+- Cooldown period: 24 hours between large transactions
+
+**Price Stability:**
+- Dedicated liquidity pools: 100M SPX
+- Treasury buy-back program during market dips
+- Burn mechanism: 1% of transaction fees permanently burned
+
+**Security Measures:**
+- Multi-sig treasury: 5-of-9 multisig wallet
+- Timelocks: 48-hour delay on treasury withdrawals
+- Circuit breakers: Auto-pause on >20% price drop
+- Quarterly smart contract audits
+
+### 📈 Value Accrual
+
+SPX value increases through:
+1. **Staking Demand**: Users stake for Φ boosts and enhanced yields
+2. **Yield Enhancement**: Required for optimal cross-chain yields
+3. **NFT Minting**: Primary currency for Space Flight and Rarity NFTs
+4. **Governance Power**: Voting rights in DAO decisions
+5. **Fee Discounts**: Reduced trading and transaction costs
+6. **Burn Mechanism**: Deflationary supply reduction over time
+
+### 🚀 Roadmap
+
+#### Phase 1: Launch (Q1 2026)
+- ✅ Token deployment (Ethereum + Stacks)
+- ✅ Initial staking contracts
+- ✅ Basic yield optimization
+- 🔄 Public sale (100M SPX)
+- 🔄 DEX listing (Uniswap, PancakeSwap)
+
+#### Phase 2: NFT Integration (Q2 2026)
+- 🔄 Space Flight NFT system launch
+- 🔄 Rarity Boost NFTs
+- 🔄 NFT marketplace
+- 🔄 First commemorative mints
+
+#### Phase 3: Governance (Q3 2026)
+- 🔄 DAO launch
+- 🔄 Voting system activation
+- 🔄 Treasury management transfer
+- 🔄 Community proposals
+
+#### Phase 4: Expansion (Q4 2026)
+- 🔄 CEX listings (Coinbase, Binance)
+- 🔄 Cross-chain bridges (10+ chains)
+- 🔄 Mobile app launch
+- 🔄 Advanced yield strategies
+
+#### Phase 5: Scale (2027)
+- 🔄 100K+ users
+- 🔄 $2B+ TVL
+- 🔄 AI-powered yield optimization
+- 🔄 Layer 2 deployment
+
+### 📚 Additional Resources
+
+- **Full Tokenomics Whitepaper**: [whitepaper/TOKENOMICS_WHITEPAPER.md](whitepaper/TOKENOMICS_WHITEPAPER.md)
+- **Economic System Guide**: [ECONOMICS.md](ECONOMICS.md)
+- **Multi-Token Integration**: [MULTI_TOKEN_IMPLEMENTATION_SUMMARY.md](MULTI_TOKEN_IMPLEMENTATION_SUMMARY.md)
+- **Economic Implementation**: [ECONOMIC_SYSTEM_IMPLEMENTATION.md](ECONOMIC_SYSTEM_IMPLEMENTATION.md)
+
+---
+
 ## Installation
 
 1. **Clone the Repository**:

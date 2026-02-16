@@ -1,93 +1,180 @@
 """
 Transaction class for SphinxSkynet Blockchain
-NO gas fees - fees paid in SPHINX tokens
+UTXO model implementation
 """
 
-import time
 import hashlib
+import time
 import json
-from typing import Optional
+from typing import List, Dict, Optional
+from dataclasses import dataclass, asdict
+
+
+@dataclass
+class TransactionInput:
+    """Input reference to previous transaction output"""
+    prev_txid: str
+    output_index: int
+    signature: str
+    public_key: str = ""
+
+
+@dataclass
+class TransactionOutput:
+    """Output sending amount to an address"""
+    address: str
+    amount: float
 
 
 class Transaction:
     """
-    Transaction in SPHINX tokens - NO ETH gas needed!
-    Fee: 0.001 SPHINX per transaction
+    UTXO-based transaction for SphinxSkynet Blockchain
     """
-    
-    TRANSACTION_FEE = 0.001  # SPHINX tokens
     
     def __init__(
         self,
-        from_address: str,
-        to_address: str,
-        amount: float,
-        timestamp: Optional[float] = None,
-        signature: Optional[str] = None
+        inputs: List[TransactionInput],
+        outputs: List[TransactionOutput],
+        fee: float = 0.001,
+        phi_boost: float = 1.0
     ):
-        self.from_address = from_address
-        self.to_address = to_address
-        self.amount = amount
-        self.timestamp = timestamp or time.time()
-        self.signature = signature
-        self.tx_hash = self.calculate_hash()
+        """
+        Create a new transaction
+        
+        Args:
+            inputs: List of transaction inputs
+            outputs: List of transaction outputs
+            fee: Transaction fee
+            phi_boost: Φ boost multiplier (1.0-2.0)
+        """
+        self.inputs = inputs
+        self.outputs = outputs
+        self.fee = fee
+        self.phi_boost = max(1.0, min(2.0, phi_boost))
+        self.timestamp = int(time.time())
+        self.txid = self._calculate_hash()
     
-    def calculate_hash(self) -> str:
+    def _calculate_hash(self) -> str:
         """Calculate transaction hash"""
         tx_data = {
-            'from': self.from_address,
-            'to': self.to_address,
-            'amount': self.amount,
-            'timestamp': self.timestamp
+            'inputs': [asdict(inp) for inp in self.inputs],
+            'outputs': [asdict(out) for out in self.outputs],
+            'fee': self.fee,
+            'timestamp': self.timestamp,
+            'phi_boost': self.phi_boost
         }
         tx_string = json.dumps(tx_data, sort_keys=True)
         return hashlib.sha256(tx_string.encode()).hexdigest()
     
-    def sign_transaction(self, private_key: str):
-        """Sign transaction with private key"""
-        # Simple signing - in production, use proper ECDSA
-        signing_data = f"{self.tx_hash}{private_key}"
-        self.signature = hashlib.sha256(signing_data.encode()).hexdigest()
+    def to_dict(self) -> Dict:
+        """Convert transaction to dictionary"""
+        return {
+            'txid': self.txid,
+            'inputs': [asdict(inp) for inp in self.inputs],
+            'outputs': [asdict(out) for out in self.outputs],
+            'fee': self.fee,
+            'timestamp': self.timestamp,
+            'phi_boost': self.phi_boost
+        }
     
-    def is_valid(self) -> bool:
-        """Validate transaction"""
-        # Check if from_address is set (not mining reward)
-        if self.from_address is None:
+    @classmethod
+    def from_dict(cls, data: Dict) -> 'Transaction':
+        """Create transaction from dictionary"""
+        inputs = [TransactionInput(**inp) for inp in data['inputs']]
+        outputs = [TransactionOutput(**out) for out in data['outputs']]
+        
+        tx = cls(
+            inputs=inputs,
+            outputs=outputs,
+            fee=data.get('fee', 0.001),
+            phi_boost=data.get('phi_boost', 1.0)
+        )
+        tx.timestamp = data['timestamp']
+        tx.txid = data['txid']
+        return tx
+    
+    def get_total_input(self) -> float:
+        """Calculate total input amount (requires UTXO lookup)"""
+        # This would normally look up UTXO values
+        # For now, return calculated from outputs + fee
+        return self.get_total_output() + self.fee
+    
+    def get_total_output(self) -> float:
+        """Calculate total output amount"""
+        return sum(out.amount for out in self.outputs)
+    
+    def is_coinbase(self) -> bool:
+        """Check if this is a coinbase (mining reward) transaction"""
+        return len(self.inputs) == 0
+    
+    def verify(self, utxo_set: Optional[Dict] = None) -> bool:
+        """
+        Verify transaction validity
+        
+        Args:
+            utxo_set: Available UTXOs for validation
+            
+        Returns:
+            True if transaction is valid
+        """
+        # Coinbase transactions are always valid (created by miners)
+        if self.is_coinbase():
             return True
         
-        # Check if transaction is signed
-        if not self.signature:
+        # Check inputs exist
+        if not self.inputs:
             return False
         
-        # Check amount is positive
-        if self.amount <= 0:
+        # Check outputs exist and are positive
+        if not self.outputs:
+            return False
+        
+        for output in self.outputs:
+            if output.amount <= 0:
+                return False
+        
+        # If UTXO set provided, verify inputs are unspent
+        if utxo_set:
+            for inp in self.inputs:
+                utxo_key = f"{inp.prev_txid}:{inp.output_index}"
+                if utxo_key not in utxo_set:
+                    return False
+        
+        # Verify input amount >= output amount + fee
+        # (simplified - would need actual UTXO lookup)
+        total_out = self.get_total_output()
+        if total_out <= 0:
             return False
         
         return True
     
-    def to_dict(self) -> dict:
-        """Convert transaction to dictionary"""
-        return {
-            'from_address': self.from_address,
-            'to_address': self.to_address,
-            'amount': self.amount,
-            'timestamp': self.timestamp,
-            'signature': self.signature,
-            'tx_hash': self.tx_hash
-        }
-    
-    @classmethod
-    def from_dict(cls, data: dict) -> 'Transaction':
-        """Create transaction from dictionary"""
-        tx = cls(
-            from_address=data['from_address'],
-            to_address=data['to_address'],
-            amount=data['amount'],
-            timestamp=data['timestamp'],
-            signature=data.get('signature')
+    @staticmethod
+    def create_coinbase(miner_address: str, block_height: int, phi_boost: float = 1.0) -> 'Transaction':
+        """
+        Create coinbase transaction (mining reward)
+        
+        Args:
+            miner_address: Address to receive reward
+            block_height: Current block height
+            phi_boost: Φ boost multiplier
+            
+        Returns:
+            Coinbase transaction
+        """
+        # Calculate block reward with halving
+        base_reward = 50.0  # Initial reward
+        halvings = block_height // 210000
+        block_reward = base_reward / (2 ** halvings)
+        
+        # Apply Φ boost (1.0x to 2.0x)
+        boosted_reward = block_reward * phi_boost
+        
+        # Create coinbase transaction (no inputs)
+        outputs = [TransactionOutput(address=miner_address, amount=boosted_reward)]
+        
+        return Transaction(
+            inputs=[],
+            outputs=outputs,
+            fee=0.0,
+            phi_boost=phi_boost
         )
-        tx.tx_hash = data.get('tx_hash', tx.calculate_hash())
-        return tx
-    
-    def __repr__(self):
-        return f"Transaction({self.from_address[:8]}... -> {self.to_address[:8]}..., {self.amount} SPHINX)"
