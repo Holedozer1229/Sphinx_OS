@@ -1,0 +1,130 @@
+bridge:
+  # Supported chains
+  supported_chains:
+    - name: "Bitcoin"
+      chain_id: "btc"
+      contract: null
+      fee: 0.001
+      min_amount: 0.01
+      max_amount: 100.0
+      confirmations_required: 6
+    
+    - name: "Ethereum"
+      chain_id: "eth"
+      chain_id_number: 1
+      contract: "0x0000000000000000000000000000000000000000"  # Deploy actual contract
+      fee: 0.001
+      min_amount: 0.1
+      max_amount: 1000.0
+      confirmations_required: 12
+    
+    - name: "Ethereum Classic"
+      chain_id: "etc"
+      chain_id_number: 61
+      contract: "0x0000000000000000000000000000000000000000"
+      fee: 0.001
+      min_amount: 0.1
+      max_amount: 1000.0
+      confirmations_required: 12
+    
+    - name: "Polygon"
+      chain_id: "matic"
+      chain_id_number: 137
+      contract: "0x0000000000000000000000000000000000000000"
+      fee: 0.0005
+      min_amount: 1.0
+      max_amount: 10000.0
+      confirmations_required: 20
+    
+    - name: "Avalanche"
+      chain_id: "avax"
+      chain_id_number: 43114
+      contract: "0x0000000000000000000000000000000000000000"
+      fee: 0.0005
+      min_amount: 0.5
+      max_amount: 5000.0
+      confirmations_required: 10
+    
+    - name: "BNB Chain"
+      chain_id: "bnb"
+      chain_id_number: 56
+      contract: "0x0000000000000000000000000000000000000000"
+      fee: 0.0005
+      min_amount: 0.1
+      max_amount: 5000.0
+      confirmations_required: 15
+    
+    - name: "Stacks"
+      chain_id: "stx"
+      contract: "ST000000000000000000000000000000000.bridge"
+      fee: 0.001
+      min_amount: 10.0
+      max_amount: 100000.0
+      confirmations_required: 6
+  
+  # Multi-signature guardians
+  guardians:
+    - address: "GUARDIAN_1_ADDRESS"
+      public_key: "GUARDIAN_1_PUBKEY"
+      name: "Guardian 1"
+    
+    - address: "GUARDIAN_2_ADDRESS"
+      public_key: "GUARDIAN_2_PUBKEY"
+      name: "Guardian 2"
+    
+    - address: "GUARDIAN_3_ADDRESS"
+      public_key: "GUARDIAN_3_PUBKEY"
+      name: "Guardian 3"
+    
+    - address: "GUARDIAN_4_ADDRESS"
+      public_key: "GUARDIAN_4_PUBKEY"
+      name: "Guardian 4"
+    
+    - address: "GUARDIAN_5_ADDRESS"
+      public_key: "GUARDIAN_5_PUBKEY"
+      name: "Guardian 5"
+    
+    - address: "GUARDIAN_6_ADDRESS"
+      public_key: "GUARDIAN_6_PUBKEY"
+      name: "Guardian 6"
+    
+    - address: "GUARDIAN_7_ADDRESS"
+      public_key: "GUARDIAN_7_PUBKEY"
+      name: "Guardian 7"
+    
+    - address: "GUARDIAN_8_ADDRESS"
+      public_key: "GUARDIAN_8_PUBKEY"
+      name: "Guardian 8"
+    
+    - address: "GUARDIAN_9_ADDRESS"
+      public_key: "GUARDIAN_9_PUBKEY"
+      name: "Guardian 9"
+  
+  # Multi-sig threshold (5-of-9)
+  threshold: 5
+  
+  # Bridge fees
+  default_fee_percent: 0.1  # 0.1%
+  
+  # Time locks for large transfers
+  time_locks:
+    enabled: true
+    threshold_amount: 1000.0  # Amounts above this require time lock
+    lock_duration: 3600  # seconds (1 hour)
+  
+  # Emergency controls
+  emergency:
+    pause_enabled: true
+    pause_guardians: 3  # Minimum guardians to pause bridge
+  
+  # Relayer configuration
+  relayer:
+    enabled: true
+    poll_interval: 10  # seconds
+    batch_size: 10
+    max_retries: 3
+  
+  # ZK-proof verification
+  zk_proofs:
+    enabled: true
+    proof_system: "groth16"  # or "plonk"
