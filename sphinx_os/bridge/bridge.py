@@ -226,10 +226,10 @@ class CrossChainBridge:
         
         # Validate sender has enough wrapped tokens
         if sender not in self.minted_tokens:
-            return False
+            return None
         
         if self.minted_tokens[sender] < amount:
-            return False
+            return None
         
         # Calculate fee
         fee = amount * self.BRIDGE_FEE
