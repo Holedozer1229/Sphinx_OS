@@ -1,5 +1,8 @@
 # SphinxOS Digital Ocean Deployment Guide
 
+> **Important:** This guide uses `159.89.139.241` as an example IP address. 
+> Replace it with your actual Digital Ocean droplet IP address throughout.
+
 ## Quick Start - One Command Deployment
 
 ### Option 1: Direct Droplet Setup (Recommended)

@@ -1,5 +1,8 @@
 {
-  "_comment": "IMPORTANT: Update the IP addresses below to match YOUR droplet!",
+  "_comment": "==============================================================",
+  "_comment2": "IMPORTANT: This config is pre-filled for droplet 159.89.139.241",
+  "_comment3": "If this is NOT your droplet, update the IP addresses below!",
+  "_comment4": "==============================================================",
   "droplet": {
     "name": "ubuntu-s-1vcpu-512mb-10gb-sfo2-01",
     "ipv4": "159.89.139.241",

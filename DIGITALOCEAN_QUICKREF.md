@@ -1,5 +1,7 @@
 # SphinxOS Digital Ocean Quick Reference
 
+> **Note:** Commands below use `159.89.139.241` as an example. Replace with YOUR droplet IP address.
+
 ## Quick Deploy Commands
 
 ### 1. One-Line Bootstrap (Recommended)

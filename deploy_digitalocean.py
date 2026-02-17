@@ -198,7 +198,7 @@ class DigitalOceanDeployer:
         pip_path = f"{venv_path}/bin/pip"
         requirements_file = f"{install_dir}/Sphinx_OS/requirements.txt"
         
-        if os.path.exists("requirements.txt"):
+        if os.path.exists(requirements_file):
             self.run_command([
                 "sudo", "-u", user, pip_path, "install", "--upgrade", "pip"
             ])
