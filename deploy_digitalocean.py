@@ -46,20 +46,21 @@ class DigitalOceanDeployer:
         default_config = {
             "droplet": {
                 "name": "ubuntu-s-1vcpu-512mb-10gb-sfo2-01",
-                "ipv4": "159.89.139.241",
+                "ipv4": "YOUR_DROPLET_IP",
                 "ipv6": None,
-                "private_ip": "10.120.0.2",
+                "private_ip": "YOUR_PRIVATE_IP",
                 "region": "sfo2",
                 "size": "512mb",
                 "memory": "512 MB",
                 "disk": "10 GB"
             },
             "deployment": {
-                "user": "root",
+                "user": "sphinxos",
                 "port": 22,
                 "install_dir": "/opt/sphinxos",
                 "service_name": "sphinxos",
-                "auto_start": True
+                "auto_start": True,
+                "create_user": True
             },
             "application": {
                 "node_port": 8000,
@@ -172,10 +173,11 @@ class DigitalOceanDeployer:
         
         # Copy repository files
         print("  Copying SphinxOS files...")
+        # Copy contents to avoid nested directories
         self.run_command([
             "sudo", "cp", "-r",
-            str(self.repo_dir),
-            install_dir
+            str(self.repo_dir) + "/.",
+            f"{install_dir}/Sphinx_OS/"
         ])
         
         # Set ownership

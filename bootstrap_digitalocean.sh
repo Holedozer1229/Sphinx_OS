@@ -26,7 +26,7 @@ REPO_URL="https://github.com/Holedozer1229/Sphinx_OS.git"
 INSTALL_DIR="/opt/sphinxos"
 BRANCH="main"
 
-echo -e "${BLUE}[1/6] Checking system requirements...${NC}"
+echo -e "${BLUE}[1/7] Checking system requirements...${NC}"
 echo ""
 
 # Check if we're on Ubuntu
@@ -53,7 +53,7 @@ else
 fi
 echo ""
 
-echo -e "${BLUE}[2/6] Installing system dependencies...${NC}"
+echo -e "${BLUE}[2/7] Installing system dependencies...${NC}"
 echo ""
 
 # Update package lists
@@ -78,7 +78,7 @@ $SUDO apt-get install -y -qq \
 echo -e "${GREEN}✓ System dependencies installed${NC}"
 echo ""
 
-echo -e "${BLUE}[3/6] Cloning SphinxOS repository...${NC}"
+echo -e "${BLUE}[3/7] Cloning SphinxOS repository...${NC}"
 echo ""
 
 # Create installation directory
