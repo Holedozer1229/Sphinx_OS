@@ -74,8 +74,8 @@ def test_uniform_contraction_operator():
     
     from sphinx_os.AnubisCore.unified_kernel import UniformContractionOperator
     
-    lambda_1 = 1.08333
-    operator = UniformContractionOperator(lambda_1=lambda_1)
+    mass_gap_m = 0.057
+    operator = UniformContractionOperator(mass_gap_m=mass_gap_m)
     
     # Test contraction at various distances
     operator_norm = 1.0

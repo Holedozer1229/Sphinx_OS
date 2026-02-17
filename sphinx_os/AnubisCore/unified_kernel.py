@@ -44,16 +44,16 @@ class UniformContractionOperator:
     λ₁(L₁₃) ≈ 1.08333 of the icosahedral Laplacian on Au₁₃ quasicrystal.
     """
     
-    def __init__(self, lambda_1: float = 0.05700):
+    def __init__(self, mass_gap_m: float = 0.057):
         """
         Initialize Uniform Contraction Operator.
         
         Args:
-            lambda_1: Mass gap parameter (m = ln(κ) from BdG simulations ≈ 0.057)
+            mass_gap_m: Mass gap parameter m = ln(κ) from BdG simulations (≈ 0.057)
         """
-        self.lambda_1 = lambda_1
-        self.kappa = np.exp(lambda_1)  # κ = e^m ≈ 1.059 (from BdG simulations)
-        self.mass_gap = lambda_1  # m = ln(κ) ≈ 0.057
+        self.mass_gap_m = mass_gap_m
+        self.kappa = np.exp(mass_gap_m)  # κ = e^m ≈ 1.059 (from BdG simulations)
+        self.mass_gap = mass_gap_m  # m = ln(κ) ≈ 0.057
         
         logger.info(f"Uniform Contraction Operator: κ={self.kappa:.4f}, m={self.mass_gap:.4f}")
     
@@ -522,7 +522,7 @@ class UnifiedAnubisKernel:
         logger.info("Initializing Sovereign Framework v2.3...")
         
         # 1. Uniform Contraction Operator (central theorem)
-        self.contraction_operator = UniformContractionOperator(lambda_1=mass_gap_m)
+        self.contraction_operator = UniformContractionOperator(mass_gap_m=mass_gap_m)
         
         # 2. Triality Rotator (E₈ structure)
         self.triality_rotator = TrialityRotator()
