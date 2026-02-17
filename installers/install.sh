@@ -164,8 +164,33 @@ install_from_source() {
     mkdir -p "$BIN_DIR"
     cat > "$BIN_DIR/sphinxos" << 'EOF'
 #!/bin/bash
-cd "$HOME/.sphinxos/Sphinx_OS"
-python3 -m sphinx_os.main "$@"
+# SphinxOS launcher script
+SPHINXOS_DIR="$HOME/.sphinxos/Sphinx_OS"
+
+if [ ! -d "$SPHINXOS_DIR" ]; then
+    echo "Error: SphinxOS installation not found at $SPHINXOS_DIR"
+    exit 1
+fi
+
+cd "$SPHINXOS_DIR"
+
+# Default to economic simulator if no arguments
+if [ $# -eq 0 ]; then
+    python3 -m sphinx_os.economics.simulator
+else
+    # Pass through commands
+    case "$1" in
+        simulator)
+            python3 -m sphinx_os.economics.simulator "${@:2}"
+            ;;
+        node)
+            python3 node_main.py "${@:2}"
+            ;;
+        *)
+            python3 -m sphinx_os.economics.simulator "$@"
+            ;;
+    esac
+fi
 EOF
     
     chmod +x "$BIN_DIR/sphinxos"
@@ -183,14 +208,28 @@ initialize_keys() {
     if [ ! -f "$KEYS_DIR/wallet.json" ]; then
         log_info "Generating new wallet..."
         cd "$INSTALL_DIR/Sphinx_OS"
-        python3 -c "
+        
+        # Try wallet creation with error capture
+        WALLET_OUTPUT=$(python3 -c "
 from sphinx_os.wallet.wallet_manager import WalletManager
 import json
 
-wm = WalletManager()
-wallet_data = wm.create_wallet()
-print('Wallet created successfully')
-" 2>/dev/null || log_warning "Wallet creation skipped (will initialize on first run)"
+try:
+    wm = WalletManager()
+    wallet_data = wm.create_wallet()
+    print('Wallet created successfully')
+except Exception as e:
+    print(f'Error: {e}')
+" 2>&1)
+        
+        if echo "$WALLET_OUTPUT" | grep -q "successfully"; then
+            log_success "Wallet created successfully"
+        else
+            log_warning "Wallet creation skipped (will initialize on first run)"
+            if [ ! -z "$WALLET_OUTPUT" ]; then
+                log_info "Details: $WALLET_OUTPUT"
+            fi
+        fi
     else
         log_info "Existing keys found"
     fi

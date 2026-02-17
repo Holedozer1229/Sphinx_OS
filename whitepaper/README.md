@@ -105,12 +105,13 @@ The yield distribution follows mathematical formulas ensuring fairness and proto
 
 #### Base Reward Formula
 ```
-R = α · (S / ΣSᵢ) · R_total
+R_user = α · (S / ΣSᵢ) · R_total
 ```
 
 Where:
 - **S**: STX delegated by user
-- **R**: BTC reward per cycle
+- **R_user**: BTC reward for this user
+- **R_total**: Total BTC rewards for the cycle
 - **Φ**: Spectral integration score (200-1000)
 - **α**: Pool efficiency (0.92-0.98)
 
@@ -163,11 +164,13 @@ See [../docs/security/formal_proofs.md](../docs/security/formal_proofs.md) for c
 Install SphinxOS with a single command:
 
 ```bash
-# Via GitHub (recommended)
-curl -sSL https://raw.githubusercontent.com/Holedozer1229/Sphinx_OS/main/installers/install.sh | bash
+# Recommended: Download and inspect first
+curl -sSL https://raw.githubusercontent.com/Holedozer1229/Sphinx_OS/main/installers/install.sh -o install.sh
+less install.sh  # Inspect the script
+bash install.sh
 
-# Or with custom domain (when available)
-# curl -sSL https://install.sphinxos.ai | bash
+# Or direct execution (less secure)
+curl -sSL https://raw.githubusercontent.com/Holedozer1229/Sphinx_OS/main/installers/install.sh | bash
 ```
 
 Or build from source:

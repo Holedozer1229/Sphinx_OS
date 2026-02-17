@@ -15,11 +15,13 @@
 
 **Quick Economic Simulation:**
 ```bash
-# Install SphinxOS (via GitHub)
-curl -sSL https://raw.githubusercontent.com/Holedozer1229/Sphinx_OS/main/installers/install.sh | bash
+# Recommended: Download and inspect first
+curl -sSL https://raw.githubusercontent.com/Holedozer1229/Sphinx_OS/main/installers/install.sh -o install.sh
+less install.sh  # Inspect the script
+bash install.sh
 
-# Or with custom domain (when available)
-# curl -sSL https://install.sphinxos.ai | bash
+# Or direct execution (less secure)
+curl -sSL https://raw.githubusercontent.com/Holedozer1229/Sphinx_OS/main/installers/install.sh | bash
 
 # Run economic simulator
 python3 -m sphinx_os.economics.simulator
@@ -42,11 +44,13 @@ python3 -m sphinx_os.economics.simulator
 ### One-Click Installation
 
 ```bash
-# Install SphinxOS with one command (via GitHub)
-curl -sSL https://raw.githubusercontent.com/Holedozer1229/Sphinx_OS/main/installers/install.sh | bash
+# Recommended: Download and inspect first
+curl -sSL https://raw.githubusercontent.com/Holedozer1229/Sphinx_OS/main/installers/install.sh -o install.sh
+less install.sh  # Inspect the script
+bash install.sh
 
-# Or with custom domain (when available)
-# curl -sSL https://install.sphinxos.ai | bash
+# Or direct execution (less secure)
+curl -sSL https://raw.githubusercontent.com/Holedozer1229/Sphinx_OS/main/installers/install.sh | bash
 ```
 
 Or from source:
