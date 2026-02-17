@@ -9,7 +9,9 @@ from ..utils.constants import CONFIG, G, c, hbar, e, epsilon_0, m_n, v_higgs, l_
 from ..utils.helpers import compute_entanglement_entropy
 from .quantum_volume import QuantumVolume
 import logging
-import ecdsa
+from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.backends import default_backend
 import hashlib
 import base58
 from scipy.integrate import solve_ivp
@@ -157,6 +159,8 @@ class KeyExtractor:
     def validate_key(key_int: int, target_address: str) -> Tuple[bool, Optional[str]]:
         """
         Validate if the private key corresponds to the target Bitcoin address.
+        
+        Uses cryptography library instead of ecdsa to avoid Minerva timing attack vulnerability.
 
         Args:
             key_int (int): Integer representation of the private key
@@ -167,9 +171,24 @@ class KeyExtractor:
         """
         try:
             key_bytes = key_int.to_bytes(32, byteorder='big')
-            sk = ecdsa.SigningKey.from_string(key_bytes, curve=ecdsa.SECP256k1)
-            vk = sk.get_verifying_key()
-            public_key = b'\04' + vk.to_string()
+            
+            # Use cryptography library (resistant to side-channel attacks)
+            private_key = ec.derive_private_key(
+                int.from_bytes(key_bytes, byteorder='big'),
+                ec.SECP256K1(),
+                default_backend()
+            )
+            
+            # Get public key
+            public_key_obj = private_key.public_key()
+            public_numbers = public_key_obj.public_numbers()
+            
+            # Convert to uncompressed format (0x04 + x + y)
+            x_bytes = public_numbers.x.to_bytes(32, byteorder='big')
+            y_bytes = public_numbers.y.to_bytes(32, byteorder='big')
+            public_key = b'\x04' + x_bytes + y_bytes
+            
+            # Generate Bitcoin address
             sha256_hash = hashlib.sha256(public_key).digest()
             ripemd160_hash = hashlib.new('ripemd160')
             ripemd160_hash.update(sha256_hash)

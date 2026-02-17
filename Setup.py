@@ -21,7 +21,7 @@ setup(
         "scipy>=1.7.0",
         "matplotlib>=3.4.0",
         "scikit-learn>=0.24.0",
-        "ecdsa>=0.17.0",
+        "cryptography>=41.0.0",  # Replaced ecdsa due to Minerva timing attack vulnerability
         "base58>=2.1.0",
     ],
     classifiers=[
