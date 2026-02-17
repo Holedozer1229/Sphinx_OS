@@ -13,10 +13,14 @@ from typing import Dict, Optional
 try:
     from web3 import Web3
     from eth_account import Account
+    from dotenv import load_dotenv
 except ImportError:
     print("Error: Required packages not installed")
-    print("Install with: pip install web3 eth-account")
+    print("Install with: pip install web3 eth-account python-dotenv")
     sys.exit(1)
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 class MainnetDeployer:
@@ -255,23 +259,33 @@ class MainnetDeployer:
         Args:
             networks: List of network names (None = all networks)
         """
+        # Load constructor arguments from environment
         contracts = [
             {
                 "name": "SphinxYieldAggregator",
                 "args": [
-                    "0x0000000000000000000000000000000000000001",  # treasury
-                    "0x0000000000000000000000000000000000000002"   # zkVerifier
+                    os.getenv("TREASURY_ADDRESS"),
+                    os.getenv("ZK_VERIFIER_ADDRESS")
                 ]
             },
             {
                 "name": "SpaceFlightNFT",
                 "args": [
-                    "0x0000000000000000000000000000000000000003",  # sphinxToken
-                    "0x0000000000000000000000000000000000000001",  # treasury
-                    "0x0000000000000000000000000000000000000004"   # openSeaProxy
+                    os.getenv("SPHINX_TOKEN_ADDRESS"),
+                    os.getenv("TREASURY_ADDRESS"),
+                    os.getenv("OPENSEA_PROXY_ADDRESS")
                 ]
             }
         ]
+        
+        # Validate all addresses are set
+        for contract_info in contracts:
+            for arg in contract_info["args"]:
+                if not arg or arg.startswith("0x0000000000000000000000000000000000000"):
+                    raise ValueError(
+                        f"Constructor argument not set for {contract_info['name']}. "
+                        f"Check .env file and ensure all addresses are configured."
+                    )
         
         if networks is None:
             networks = ["ethereum", "polygon", "arbitrum"]

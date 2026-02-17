@@ -19,6 +19,68 @@ This document provides step-by-step procedures for deploying Sphinx_OS to mainne
 
 ---
 
+## Step 0: Environment Setup and Validation
+
+### 1. Configure Environment
+
+```bash
+# Copy template
+cp .env.example .env
+
+# Edit .env with your values
+nano .env
+```
+
+**Important:** Fill in all required values in `.env`:
+- Replace `DEPLOYER_PRIVATE_KEY` with your funded wallet private key
+- Set RPC URLs for each network (Infura, Alchemy, or public endpoints)
+- Configure block explorer API keys for contract verification
+- Set constructor arguments (treasury, verifier, token addresses)
+- Generate JWT secret: `openssl rand -hex 32`
+
+### 2. Install Dependencies
+
+```bash
+make install
+```
+
+This will:
+- Install Python dependencies from `requirements.txt`
+- Install Node.js dependencies in `contracts/` directory
+
+### 3. Compile Contracts
+
+```bash
+make compile
+```
+
+This compiles all smart contracts and generates artifacts in `contracts/artifacts/`.
+
+### 4. Validate Deployment Readiness
+
+```bash
+make validate
+```
+
+This validation script checks:
+- ✅ All environment variables are set
+- ✅ Constructor addresses are valid (not placeholder addresses)
+- ✅ Deployer wallet has sufficient balance on all networks (minimum 0.5 ETH)
+- ✅ RPC endpoints are accessible
+- ✅ Contract artifacts exist and are compiled
+
+**Note:** The validation must pass before proceeding with deployment.
+
+### 5. Deploy to Testnet First
+
+```bash
+make deploy-testnet
+```
+
+Always test on testnet (Polygon Mumbai, Arbitrum Goerli, etc.) before mainnet deployment!
+
+---
+
 ## Prerequisites
 
 ### Required Tools
@@ -96,29 +158,17 @@ pg_dump $DATABASE_URL > backup-$(date +%Y%m%d-%H%M%S).sql
 
 ## Smart Contract Deployment
 
-### Step 1: Prepare Constructor Arguments
+### Step 1: Environment Variables Configuration
 
-Edit `scripts/deploy_mainnet.py` and update constructor arguments:
+Constructor arguments are now loaded from environment variables (`.env` file).
 
-```python
-contracts = [
-    {
-        "name": "SphinxYieldAggregator",
-        "args": [
-            "0x...",  # Treasury address (multi-sig)
-            "0x..."   # ZK Verifier address
-        ]
-    },
-    {
-        "name": "SpaceFlightNFT",
-        "args": [
-            "0x...",  # Sphinx Token address
-            "0x...",  # Treasury address (multi-sig)
-            "0x..."   # OpenSea Proxy address
-        ]
-    }
-]
-```
+Ensure these are set in your `.env` file:
+- `TREASURY_ADDRESS` - Multi-sig treasury wallet address
+- `ZK_VERIFIER_ADDRESS` - ZK proof verifier contract address
+- `SPHINX_TOKEN_ADDRESS` - Sphinx token contract address
+- `OPENSEA_PROXY_ADDRESS` - OpenSea proxy registry address
+
+**Note:** Do not use placeholder addresses (0x0000...). The validation script will reject them.
 
 ### Step 2: Deploy to Ethereum
 
@@ -128,6 +178,9 @@ export ENVIRONMENT="mainnet"
 
 # Deploy to Ethereum mainnet
 python scripts/deploy_mainnet.py --network ethereum
+
+# Or use Make command
+# make deploy-mainnet (requires confirmation)
 
 # Verify deployment
 # Check deployments/mainnet.json for addresses

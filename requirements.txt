@@ -25,6 +25,9 @@ eth-account>=0.10.0       # Ethereum account management and signing
 sentry-sdk>=1.39.0        # Error tracking and monitoring
 python-json-logger>=2.0.0 # Structured JSON logging
 
+# Environment configuration
+python-dotenv>=1.0.0      # Load environment variables from .env file
+
 # Treasury and Bridge dependencies (optional)
 pyyaml>=6.0       # Configuration file parsing
 web3>=6.0.0       # Ethereum/blockchain interaction (optional for bridge deployment)
