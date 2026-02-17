@@ -163,7 +163,11 @@ See [../docs/security/formal_proofs.md](../docs/security/formal_proofs.md) for c
 Install SphinxOS with a single command:
 
 ```bash
-curl -sSL https://install.sphinxos.ai | bash
+# Via GitHub (recommended)
+curl -sSL https://raw.githubusercontent.com/Holedozer1229/Sphinx_OS/main/installers/install.sh | bash
+
+# Or with custom domain (when available)
+# curl -sSL https://install.sphinxos.ai | bash
 ```
 
 Or build from source:

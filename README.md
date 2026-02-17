@@ -15,8 +15,11 @@
 
 **Quick Economic Simulation:**
 ```bash
-# Install SphinxOS
-curl -sSL https://install.sphinxos.ai | bash
+# Install SphinxOS (via GitHub)
+curl -sSL https://raw.githubusercontent.com/Holedozer1229/Sphinx_OS/main/installers/install.sh | bash
+
+# Or with custom domain (when available)
+# curl -sSL https://install.sphinxos.ai | bash
 
 # Run economic simulator
 python3 -m sphinx_os.economics.simulator
@@ -39,8 +42,11 @@ python3 -m sphinx_os.economics.simulator
 ### One-Click Installation
 
 ```bash
-# Install SphinxOS with one command
-curl -sSL https://install.sphinxos.ai | bash
+# Install SphinxOS with one command (via GitHub)
+curl -sSL https://raw.githubusercontent.com/Holedozer1229/Sphinx_OS/main/installers/install.sh | bash
+
+# Or with custom domain (when available)
+# curl -sSL https://install.sphinxos.ai | bash
 ```
 
 Or from source:

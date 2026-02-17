@@ -42,6 +42,10 @@ log_warning() {
     echo -e "${YELLOW}[WARNING]${NC} $1"
 }
 
+log_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
 detect_platform() {
     case "$(uname -s)" in
         Linux*)     PLATFORM="linux";;
@@ -90,10 +94,6 @@ check_dependencies() {
             exit 1
         }
     fi
-}
-
-log_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
 }
 
 install_binary() {
