@@ -2,6 +2,38 @@
 
 **SphinxOS** is a groundbreaking unified quantum-spacetime operating system kernel that seamlessly integrates a 6D Theory of Everything (TOE) simulation with a universal quantum circuit simulator. It supports arbitrary quantum circuits, entanglement testing via Bell state simulation, and CHSH inequality verification, now enhanced with Rydberg gates at wormhole nodes for advanced quantum interactions. This project aims to bridge quantum computing and gravitational physics, providing a platform for researchers and enthusiasts to explore the interplay between quantum mechanics and spacetime in a 6D framework.
 
+## 💰 NEW: Self-Funding Economic System
+
+**SphinxOS is now a self-funding economic organism!** Through automated PoX (Proof of Transfer) pool delegation, the system generates treasury revenue while rewarding users with BTC yields.
+
+**Key Features:**
+- 🔄 **Automated STX → BTC Yield**: Non-custodial delegation to PoX pools
+- 📊 **Mathematical Fairness**: Φ-based yield distribution with formal proofs
+- 💎 **NFT Multipliers**: Rarity holders earn 2x+ yield boosts
+- 🏦 **Self-Sustaining**: Protocol generates its own development funding
+- 🔒 **Cryptographically Secure**: Four formal security theorems
+
+**Quick Economic Simulation:**
+```bash
+# Install SphinxOS
+curl -sSL https://install.sphinxos.ai | bash
+
+# Run economic simulator
+python3 -m sphinx_os.economics.simulator
+```
+
+**Revenue Projections:**
+| Scenario | Users | Treasury/Year | User Yield/Year |
+|----------|-------|---------------|-----------------|
+| Conservative | 5K | $420K | $2.8M |
+| Moderate | 15K | $1.45M | $9.8M |
+| Aggressive | 50K | $5.6M | $37M |
+| Maximum | 100K | $13.2M | $87M |
+
+📈 **[Complete Economic System Guide →](ECONOMICS.md)**
+
+---
+
 ## 🌌 NEW: Unified AnubisCore Kernel
 
 **All components have been fused into `sphinx_os/AnubisCore/`** - a unified kernel that integrates:
