@@ -89,6 +89,19 @@ python3 -m sphinx_os.economics.simulator
 
 ## 🚀 Quick Start Guide
 
+### 🌊 Digital Ocean Deployment (New!)
+
+**Deploy SphinxOS to your Digital Ocean droplet with one command:**
+
+```bash
+# SSH into your droplet and run:
+curl -fsSL https://raw.githubusercontent.com/Holedozer1229/Sphinx_OS/main/bootstrap_digitalocean.sh | sudo bash
+```
+
+Perfect for Ubuntu 24.04 LTS droplets (512MB+). Auto-installs, configures systemd service, and starts the node.
+
+**📖 [Complete Digital Ocean Deployment Guide →](DIGITALOCEAN_DEPLOYMENT.md)**
+
 ### One-Click Installation
 
 ```bash

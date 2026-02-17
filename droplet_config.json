@@ -1,0 +1,32 @@
+{
+  "_comment": "==============================================================",
+  "_comment2": "IMPORTANT: This config is pre-filled for droplet 159.89.139.241",
+  "_comment3": "If this is NOT your droplet, update the IP addresses below!",
+  "_comment4": "==============================================================",
+  "droplet": {
+    "name": "ubuntu-s-1vcpu-512mb-10gb-sfo2-01",
+    "ipv4": "159.89.139.241",
+    "ipv6": null,
+    "private_ip": "10.120.0.2",
+    "region": "sfo2",
+    "size": "512mb",
+    "memory": "512 MB",
+    "disk": "10 GB",
+    "os": "Ubuntu 24.04 (LTS) x64"
+  },
+  "deployment": {
+    "user": "sphinxos",
+    "port": 22,
+    "install_dir": "/opt/sphinxos",
+    "service_name": "sphinxos",
+    "auto_start": true,
+    "create_user": true
+  },
+  "application": {
+    "node_port": 8000,
+    "metrics_port": 9090,
+    "enable_prometheus": true,
+    "python_version": "3.12",
+    "enable_web_ui": false
+  }
+}
