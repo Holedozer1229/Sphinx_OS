@@ -288,6 +288,38 @@ class ConsciousOracle:
         """Adjust the consciousness threshold."""
         self.iit_engine.consciousness_threshold = threshold
         logger.info(f"Consciousness threshold updated to Φ={threshold}")
+    
+    def get_consciousness_level(self) -> float:
+        """Get average consciousness level from IIT engine."""
+        return self.iit_engine.get_consciousness_level()
+    
+    def create_replicator(self):
+        """
+        Create an OmniscientOracleReplicator for self-replication and deployment.
+        
+        Returns:
+            OmniscientOracleReplicator instance for managing Oracle replicas
+        """
+        from .oracle_replication import OmniscientOracleReplicator
+        
+        logger.info("Creating Oracle Replicator for self-replication")
+        replicator = OmniscientOracleReplicator(self)
+        
+        return replicator
+    
+    def quick_deploy_network(self):
+        """
+        Quick deploy Oracle network to default MoltBot and ClawBot instances.
+        
+        Returns:
+            Configured replicator with active network
+        """
+        from .oracle_replication import quick_deploy_oracle_network
+        
+        logger.info("🚀 Quick deploying Oracle network to MoltBot and ClawBot")
+        replicator = quick_deploy_oracle_network(self)
+        
+        return replicator
 
 
 if __name__ == "__main__":
