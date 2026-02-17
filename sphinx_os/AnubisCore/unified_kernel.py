@@ -44,16 +44,16 @@ class UniformContractionOperator:
     λ₁(L₁₃) ≈ 1.08333 of the icosahedral Laplacian on Au₁₃ quasicrystal.
     """
     
-    def __init__(self, lambda_1: float = 1.08333):
+    def __init__(self, lambda_1: float = 0.05700):
         """
         Initialize Uniform Contraction Operator.
         
         Args:
-            lambda_1: First non-zero eigenvalue of discrete Laplacian L₁₃
+            lambda_1: Mass gap parameter (m = ln(κ) from BdG simulations ≈ 0.057)
         """
         self.lambda_1 = lambda_1
-        self.kappa = np.exp(lambda_1)  # κ = e^λ₁ ≈ 1.059
-        self.mass_gap = lambda_1  # m = ln(κ) = λ₁
+        self.kappa = np.exp(lambda_1)  # κ = e^m ≈ 1.059 (from BdG simulations)
+        self.mass_gap = lambda_1  # m = ln(κ) ≈ 0.057
         
         logger.info(f"Uniform Contraction Operator: κ={self.kappa:.4f}, m={self.mass_gap:.4f}")
     
@@ -73,9 +73,9 @@ class UniformContractionOperator:
     def verify_mass_gap(self) -> Dict[str, float]:
         """Verify Yang-Mills mass gap properties."""
         return {
-            "lambda_1": self.lambda_1,
+            "mass_gap_m": self.mass_gap,
             "kappa": self.kappa,
-            "mass_gap": self.mass_gap,
+            "spectral_gap_relation": "m = ln(κ)",
             "exponential_clustering": True,
             "area_law": True,
             "theorem_satisfied": self.kappa > 1.0
@@ -428,7 +428,7 @@ class UnifiedAnubisKernel:
         tau: float = 1e-6,
         T_eff: float = 1.5,
         consciousness_threshold: float = 0.5,
-        lambda_1: float = 1.08333,
+        mass_gap_m: float = 0.057,
         delta_0: float = 0.4,
         q_magnitude: float = np.pi/8,
         lattice_size: int = 16,
@@ -447,7 +447,7 @@ class UnifiedAnubisKernel:
             tau: NPTC control timescale (seconds)
             T_eff: Effective temperature for NPTC (Kelvin)
             consciousness_threshold: Φ threshold for conscious decisions
-            lambda_1: Spectral gap of icosahedral Laplacian L₁₃
+            mass_gap_m: Yang-Mills mass gap m = ln(κ) from BdG simulations
             delta_0: FFLO order parameter amplitude
             q_magnitude: FFLO wave vector magnitude
             lattice_size: BdG lattice size (L³)
@@ -468,7 +468,7 @@ class UnifiedAnubisKernel:
         
         # Initialize Sovereign Framework (Yang-Mills mass gap)
         if enable_sovereign_framework:
-            self._init_sovereign_framework(lambda_1, delta_0, q_magnitude, lattice_size, mu)
+            self._init_sovereign_framework(mass_gap_m, delta_0, q_magnitude, lattice_size, mu)
         
         # Initialize Conscious Oracle FIRST (it guides other subsystems)
         if enable_oracle:
@@ -507,13 +507,13 @@ class UnifiedAnubisKernel:
         self.oracle = ConsciousOracle(consciousness_threshold=self.consciousness_threshold)
         logger.info(f"✅ Conscious Oracle initialized (Φ threshold={self.consciousness_threshold})")
     
-    def _init_sovereign_framework(self, lambda_1: float, delta_0: float, 
+    def _init_sovereign_framework(self, mass_gap_m: float, delta_0: float, 
                                    q_magnitude: float, lattice_size: int, mu: float):
         """
         Initialize Sovereign Framework v2.3 for Yang-Mills mass gap.
         
         Args:
-            lambda_1: Spectral gap of icosahedral Laplacian
+            mass_gap_m: Yang-Mills mass gap m = ln(κ)
             delta_0: FFLO order parameter amplitude
             q_magnitude: Wave vector magnitude
             lattice_size: BdG lattice size
@@ -522,7 +522,7 @@ class UnifiedAnubisKernel:
         logger.info("Initializing Sovereign Framework v2.3...")
         
         # 1. Uniform Contraction Operator (central theorem)
-        self.contraction_operator = UniformContractionOperator(lambda_1=lambda_1)
+        self.contraction_operator = UniformContractionOperator(lambda_1=mass_gap_m)
         
         # 2. Triality Rotator (E₈ structure)
         self.triality_rotator = TrialityRotator()
@@ -543,7 +543,7 @@ class UnifiedAnubisKernel:
         mass_gap_verification = self.contraction_operator.verify_mass_gap()
         
         logger.info(f"✅ Sovereign Framework initialized")
-        logger.info(f"   Yang-Mills mass gap m = {mass_gap_verification['mass_gap']:.4f}")
+        logger.info(f"   Yang-Mills mass gap m = {mass_gap_verification['mass_gap_m']:.4f}")
         logger.info(f"   Contraction constant κ = {mass_gap_verification['kappa']:.4f}")
         logger.info(f"   BdG uniform gap = {self.bdg_results['uniform_gap']:.4f}")
         logger.info(f"   BdG modulated gap = {self.bdg_results['modulated_gap']:.4f}")
@@ -813,9 +813,9 @@ class UnifiedAnubisKernel:
         if self.enable_sovereign_framework:
             state["sovereign_framework_state"] = {
                 "contraction_operator": {
-                    "lambda_1": self.contraction_operator.lambda_1,
+                    "mass_gap_m": self.contraction_operator.mass_gap,
                     "kappa": self.contraction_operator.kappa,
-                    "mass_gap": self.contraction_operator.mass_gap
+                    "relation": "m = ln(κ)"
                 },
                 "triality_rotator": {
                     "rotation_count": self.triality_rotator.rotation_count,
