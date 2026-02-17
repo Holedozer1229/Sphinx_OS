@@ -42,6 +42,17 @@ HELM_NAMESPACE = os.environ.get("HELM_NAMESPACE", "default")
 S3_BUCKET = os.environ.get("S3_BUCKET", "")
 CIRCUITS_DIR = os.path.join(os.path.dirname(__file__), "circuits")
 
+# Timeout constants (in seconds)
+COMMAND_CHECK_TIMEOUT = 5
+CLUSTER_CHECK_TIMEOUT = 10
+S3_DOWNLOAD_TIMEOUT = 60
+DOCKER_BUILD_TIMEOUT = 1800  # 30 minutes
+DOCKER_PUSH_TIMEOUT = 600    # 10 minutes
+HELM_DEPLOY_TIMEOUT = 600    # 10 minutes
+KUBECTL_ROLLOUT_TIMEOUT = 600  # 10 minutes
+# Add buffer for subprocess wrapper
+SUBPROCESS_TIMEOUT_BUFFER = 60
+
 
 def run(cmd, check=True, capture=False, timeout=None):
     """Run a shell command with logging and improved error handling."""
@@ -86,7 +97,7 @@ def validate_prerequisites():
     
     for cmd in required_commands:
         try:
-            result = run([cmd, "--version"], check=False, capture=True, timeout=5)
+            result = run([cmd, "--version"], check=False, capture=True, timeout=COMMAND_CHECK_TIMEOUT)
             if result.returncode != 0:
                 missing.append(cmd)
             else:
@@ -109,7 +120,7 @@ def validate_prerequisites():
     
     # Validate kubectl cluster access
     try:
-        result = run(["kubectl", "cluster-info"], check=False, capture=True, timeout=10)
+        result = run(["kubectl", "cluster-info"], check=False, capture=True, timeout=CLUSTER_CHECK_TIMEOUT)
         if result.returncode != 0:
             raise RuntimeError(
                 "Cannot access Kubernetes cluster. "
@@ -156,7 +167,7 @@ def fetch_circuits():
             max_retries = 3
             for attempt in range(max_retries):
                 try:
-                    result = run(["aws", "s3", "cp", src, dst], check=False, timeout=60)
+                    result = run(["aws", "s3", "cp", src, dst], check=False, timeout=S3_DOWNLOAD_TIMEOUT)
                     if result.returncode == 0:
                         print(f"    ✓ Downloaded {artifact}")
                         break
@@ -201,7 +212,7 @@ def build_docker():
     
     try:
         # Build with timeout for large builds (30 minutes)
-        run(["docker", "build", "-t", image, "."], timeout=1800)
+        run(["docker", "build", "-t", image, "."], timeout=DOCKER_BUILD_TIMEOUT)
         
         # Verify image was created
         result = run(["docker", "images", "-q", image], capture=True, check=False)
@@ -221,13 +232,21 @@ def push_docker(image):
     """Push Docker image to registry."""
     print(f"[3/5] Pushing Docker image {image} ...")
     
-    # Check if we're using a remote registry
-    if DOCKER_REGISTRY in ["sphinxskynet", "localhost", "127.0.0.1"]:
+    # Check if we're using a local registry
+    # Check if registry starts with localhost or 127.0.0.1, or is the default local name
+    registry_lower = DOCKER_REGISTRY.lower()
+    is_local = (
+        registry_lower in ["sphinxskynet", "localhost"] or
+        registry_lower.startswith("localhost:") or
+        registry_lower.startswith("127.0.0.1")
+    )
+    
+    if is_local:
         print("    ℹ Using local registry — skipping push")
         return
     
     # Attempt push with timeout
-    result = run(["docker", "push", image], check=False, timeout=600)
+    result = run(["docker", "push", image], check=False, timeout=DOCKER_PUSH_TIMEOUT)
     if result.returncode != 0:
         print("    ⚠ Push failed — using local image (minikube/kind)")
         print("    ℹ This is expected for local development environments")
@@ -257,8 +276,8 @@ def deploy_helm(image):
             "--set", f"image.repository={DOCKER_REGISTRY}",
             "--set", f"image.tag={DOCKER_TAG}",
             "--wait",
-            "--timeout", "600s",
-        ], timeout=660)
+            "--timeout", f"{HELM_DEPLOY_TIMEOUT}s",
+        ], timeout=HELM_DEPLOY_TIMEOUT + SUBPROCESS_TIMEOUT_BUFFER)
         
         print(f"    ✓ Helm release '{HELM_RELEASE}' deployed successfully")
     except Exception as e:
@@ -283,8 +302,8 @@ def wait_and_report():
             "kubectl", "rollout", "status",
             "deployment/sphinxskynet-node",
             "--namespace", HELM_NAMESPACE,
-            "--timeout=600s",
-        ], timeout=660)
+            f"--timeout={KUBECTL_ROLLOUT_TIMEOUT}s",
+        ], timeout=KUBECTL_ROLLOUT_TIMEOUT + SUBPROCESS_TIMEOUT_BUFFER)
         
         print(f"    ✓ Deployment rolled out successfully")
     except Exception as e:
