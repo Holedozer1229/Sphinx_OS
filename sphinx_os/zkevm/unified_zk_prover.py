@@ -12,6 +12,8 @@ import json
 import subprocess
 import tempfile
 import os
+import shutil
+import warnings
 from pathlib import Path
 from dataclasses import dataclass
 from typing import List, Dict, Tuple
@@ -50,14 +52,26 @@ class UnifiedZKProver:
         for k in range(1, n_bins + 1):
             zero = zetazero(k)
             imag_part = float(zero.imag)
+            # Scale to 1e12 for sufficient precision in integer representation
             scaled = imag_part * 1e12
+            # Quantize to 32-bit values for circuit compatibility
             quantized = int(scaled) % (1 << 32)
             bins.append(quantized)
         return bins
 
     def poseidon_hash(self, inputs: List[int]) -> int:
-        """Poseidon hash placeholder"""
+        """
+        Poseidon hash placeholder
+        
+        WARNING: This is a placeholder implementation using SHA256.
+        For production use, replace with a proper Poseidon hash implementation.
+        """
         import hashlib
+        warnings.warn(
+            "Using SHA256 placeholder for Poseidon hash. "
+            "Replace with proper Poseidon implementation for production use.",
+            UserWarning
+        )
         data = b''.join(i.to_bytes(32, 'big') for i in inputs)
         return int.from_bytes(hashlib.sha256(data).digest(), 'big')
 
@@ -96,7 +110,8 @@ class UnifiedZKProver:
             "projectedNorm": projected_norm,
             "distance": distance,
             "tetrarootEntropy": tetraroot_entropy,
-            "stxCommitment": tetraroot_entropy + 1,  # placeholder
+            # TODO: Replace with proper STX commitment calculation
+            "stxCommitment": tetraroot_entropy + 1,  # placeholder for STX commitment
             "nftRarity": nft_rarity
         }
 
@@ -104,34 +119,47 @@ class UnifiedZKProver:
         """Generate Groth16 proof"""
         witness_data = self.generate_witness(request_id, **kwargs)
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
-            json.dump(witness_data, f)
-            input_path = f.name
+        # Create temporary directory for proof generation files
+        temp_dir = tempfile.mkdtemp(prefix="zkproof_")
+        input_path = os.path.join(temp_dir, "input.json")
+        witness_path = os.path.join(temp_dir, "witness.wtns")
+        proof_path = os.path.join(temp_dir, "proof.json")
+        public_path = os.path.join(temp_dir, "public.json")
 
         try:
+            # Write input data
+            with open(input_path, 'w') as f:
+                json.dump(witness_data, f)
+
             # Generate witness
             witness_cmd = [
                 "node", str(self.wasm_path.parent / "generate_witness.js"),
                 str(self.wasm_path),
                 input_path,
-                "witness.json"
+                witness_path
             ]
-            subprocess.run(witness_cmd, check=True, capture_output=True)
+            try:
+                subprocess.run(witness_cmd, check=True, capture_output=True, text=True)
+            except subprocess.CalledProcessError as e:
+                raise RuntimeError(f"Witness generation failed: {e.stderr}") from e
 
             # Generate proof
             proof_cmd = [
                 "snarkjs", "groth16", "prove",
                 str(self.zkey_path),
-                "witness.json",
-                "proof.json",
-                "public.json"
+                witness_path,
+                proof_path,
+                public_path
             ]
-            subprocess.run(proof_cmd, check=True, capture_output=True)
+            try:
+                subprocess.run(proof_cmd, check=True, capture_output=True, text=True)
+            except subprocess.CalledProcessError as e:
+                raise RuntimeError(f"Proof generation failed: {e.stderr}") from e
 
             # Load proof & public inputs
-            with open("proof.json", "r") as f:
+            with open(proof_path, "r") as f:
                 proof = json.load(f)
-            with open("public.json", "r") as f:
+            with open(public_path, "r") as f:
                 public_inputs = json.load(f)
 
             return UnifiedProof(
@@ -146,6 +174,6 @@ class UnifiedZKProver:
                 public_inputs=public_inputs
             )
         finally:
-            for f in [input_path, "witness.json", "proof.json", "public.json"]:
-                if os.path.exists(f):
-                    os.remove(f)
+            # Clean up temporary directory
+            if os.path.exists(temp_dir):
+                shutil.rmtree(temp_dir)
