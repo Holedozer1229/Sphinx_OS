@@ -34,6 +34,124 @@ python3 -m sphinx_os.economics.simulator
 
 ---
 
+## 🚀 Quick Start Guide
+
+### One-Click Installation
+
+```bash
+# Install SphinxOS with one command
+curl -sSL https://install.sphinxos.ai | bash
+```
+
+Or from source:
+
+```bash
+git clone https://github.com/Holedozer1229/Sphinx_OS.git
+cd Sphinx_OS
+pip install -r requirements.txt
+```
+
+### Economic System Examples
+
+#### Calculate BTC Yields
+
+```python
+from sphinx_os.economics.yield_calculator import YieldCalculator
+
+# Initialize calculator
+calc = YieldCalculator(pool_efficiency=0.95)
+
+# Calculate user yield
+result = calc.calculate_yield(
+    stx_delegated=10000,      # User has 10,000 STX
+    total_stx_pool=50000,     # Pool has 50,000 STX total
+    total_btc_reward=1.0,     # 1 BTC reward this cycle
+    phi_score=650,            # User's spectral score
+    has_nft=True              # User holds rarity NFT
+)
+
+print(f"Base Reward:       {result.total_reward:.8f} BTC")
+print(f"Treasury Share:    {result.treasury_share:.8f} BTC")
+print(f"User Payout:       {result.user_payout:.8f} BTC")
+print(f"NFT Multiplier:    {result.nft_multiplier:.4f}x")
+print(f"Effective Payout:  {result.effective_payout:.8f} BTC")
+```
+
+**Output:**
+```
+Base Reward:       0.19000000 BTC
+Treasury Share:    0.04993500 BTC
+User Payout:       0.14006500 BTC
+NFT Multiplier:    2.0909x
+Effective Payout:  0.29281730 BTC
+```
+
+#### Run Revenue Simulations
+
+```python
+from sphinx_os.economics.simulator import EconomicSimulator, SimulationScenario
+
+simulator = EconomicSimulator()
+
+# Define custom scenario
+scenario = SimulationScenario(
+    name="My Scenario",
+    num_users=10000,
+    avg_stx_per_user=15000,
+    phi_mean=700,
+    phi_stddev=100,
+    btc_price_usd=50000
+)
+
+# Run simulation
+result = simulator.simulate_scenario(scenario, verbose=True)
+
+print(f"\nAnnual Treasury: ${result.annual_treasury_usd:,.2f}")
+print(f"Annual User Yield: ${result.annual_user_yield_usd:,.2f}")
+print(f"Average ROI: {result.roi_percentage:.2f}%")
+```
+
+#### Deploy PoX Automation Contract
+
+```bash
+# Using Clarinet (Stacks development tool)
+clarinet deploy contracts/pox-automation.clar --testnet
+
+# Or using Stacks CLI
+stx deploy_contract pox-automation contracts/pox-automation.clar --testnet
+```
+
+**Interact with contract:**
+```clarity
+;; Delegate 10,000 STX to pool
+(contract-call? .pox-automation delegate u10000000000)
+
+;; Check delegation stats
+(contract-call? .pox-automation get-stats)
+
+;; Revoke delegation anytime
+(contract-call? .pox-automation revoke-delegation)
+```
+
+### Build Standalone Binaries
+
+```bash
+# Build for current platform
+./scripts/build_binaries.sh
+
+# Build for specific platform
+./scripts/build_binaries.sh macos
+./scripts/build_binaries.sh linux
+./scripts/build_binaries.sh windows
+
+# Outputs to dist/
+# - dist/sphinxos-macos-x64.app.tar.gz
+# - dist/sphinxos-linux-x64
+# - dist/sphinxos-windows-x64.exe
+```
+
+---
+
 ## 🌌 NEW: Unified AnubisCore Kernel
 
 **All components have been fused into `sphinx_os/AnubisCore/`** - a unified kernel that integrates:
