@@ -53,6 +53,9 @@ KUBECTL_ROLLOUT_TIMEOUT = 600  # 10 minutes
 # Add buffer for subprocess wrapper
 SUBPROCESS_TIMEOUT_BUFFER = 60
 
+# Retry configuration
+MAX_S3_RETRIES = 3
+
 
 def run(cmd, check=True, capture=False, timeout=None):
     """Run a shell command with logging and improved error handling."""
@@ -83,6 +86,11 @@ def run(cmd, check=True, capture=False, timeout=None):
         if check:
             raise RuntimeError(f"Command failed: {' '.join(cmd)}") from e
         return subprocess.CompletedProcess(cmd, 1, "", str(e))
+
+
+def with_timeout_buffer(base_timeout):
+    """Calculate subprocess timeout with buffer for the underlying command timeout."""
+    return base_timeout + SUBPROCESS_TIMEOUT_BUFFER
 
 
 # ---------------------------------------------------------------------------
@@ -164,23 +172,22 @@ def fetch_circuits():
         dst = os.path.join(CIRCUITS_DIR, artifact)
         if not os.path.exists(dst):
             # Add retry logic with exponential backoff
-            max_retries = 3
-            for attempt in range(max_retries):
+            for attempt in range(MAX_S3_RETRIES):
                 try:
                     result = run(["aws", "s3", "cp", src, dst], check=False, timeout=S3_DOWNLOAD_TIMEOUT)
                     if result.returncode == 0:
                         print(f"    ✓ Downloaded {artifact}")
                         break
                     else:
-                        if attempt < max_retries - 1:
+                        if attempt < MAX_S3_RETRIES - 1:
                             wait_time = 2 ** attempt
-                            print(f"    ⚠ Retry {attempt + 1}/{max_retries} for {artifact} in {wait_time}s...")
+                            print(f"    ⚠ Retry {attempt + 1}/{MAX_S3_RETRIES} for {artifact} in {wait_time}s...")
                             time.sleep(wait_time)
                         else:
-                            print(f"    ✗ Failed to fetch {artifact} after {max_retries} attempts")
+                            print(f"    ✗ Failed to fetch {artifact} after {MAX_S3_RETRIES} attempts")
                             failed.append(artifact)
                 except Exception as e:
-                    if attempt < max_retries - 1:
+                    if attempt < MAX_S3_RETRIES - 1:
                         wait_time = 2 ** attempt
                         print(f"    ⚠ Error fetching {artifact}, retrying in {wait_time}s: {e}")
                         time.sleep(wait_time)
@@ -233,12 +240,13 @@ def push_docker(image):
     print(f"[3/5] Pushing Docker image {image} ...")
     
     # Check if we're using a local registry
-    # Check if registry starts with localhost or 127.0.0.1, or is the default local name
+    # Check common local registry patterns including IPv6
     registry_lower = DOCKER_REGISTRY.lower()
     is_local = (
-        registry_lower in ["sphinxskynet", "localhost"] or
+        registry_lower in ["sphinxskynet", "localhost", "::1"] or
         registry_lower.startswith("localhost:") or
-        registry_lower.startswith("127.0.0.1")
+        registry_lower.startswith("127.0.0.1") or
+        registry_lower.startswith("[::1]")
     )
     
     if is_local:
@@ -277,7 +285,7 @@ def deploy_helm(image):
             "--set", f"image.tag={DOCKER_TAG}",
             "--wait",
             "--timeout", f"{HELM_DEPLOY_TIMEOUT}s",
-        ], timeout=HELM_DEPLOY_TIMEOUT + SUBPROCESS_TIMEOUT_BUFFER)
+        ], timeout=with_timeout_buffer(HELM_DEPLOY_TIMEOUT))
         
         print(f"    ✓ Helm release '{HELM_RELEASE}' deployed successfully")
     except Exception as e:
@@ -303,7 +311,7 @@ def wait_and_report():
             "deployment/sphinxskynet-node",
             "--namespace", HELM_NAMESPACE,
             f"--timeout={KUBECTL_ROLLOUT_TIMEOUT}s",
-        ], timeout=KUBECTL_ROLLOUT_TIMEOUT + SUBPROCESS_TIMEOUT_BUFFER)
+        ], timeout=with_timeout_buffer(KUBECTL_ROLLOUT_TIMEOUT))
         
         print(f"    ✓ Deployment rolled out successfully")
     except Exception as e:
