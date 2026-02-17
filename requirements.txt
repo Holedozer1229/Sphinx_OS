@@ -4,6 +4,7 @@ numpy>=1.21.0  # Numerical computations and array operations
 scipy>=1.7.0   # Scientific computing, including integration and sparse matrices
 sympy>=1.9     # Symbolic mathematics for metric tensor calculations
 matplotlib>=3.4.0  # Visualization of simulation results and quantum circuit outcomes
+mpmath>=1.3.0  # High-precision arithmetic for Riemann zeta zeros
 
 # SphinxSkynet Node dependencies
 fastapi>=0.115.0          # Web framework for node API endpoints
