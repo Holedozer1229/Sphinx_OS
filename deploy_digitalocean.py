@@ -104,7 +104,7 @@ class DigitalOceanDeployer:
     
     def install_dependencies_local(self):
         """Install dependencies on local system (Ubuntu 24.04)"""
-        print("\n[1/5] Installing system dependencies...")
+        print("\n[1/6] Installing system dependencies...")
         
         # Update package lists
         print("  Updating apt package lists...")
@@ -130,11 +130,41 @@ class DigitalOceanDeployer:
         
         print("    ✓ System dependencies installed")
     
+    def create_service_user(self):
+        """Create dedicated service user for better security"""
+        print("\n[2/6] Creating service user...")
+        
+        user = self.config["deployment"]["user"]
+        
+        # Check if user already exists
+        result = self.run_command(
+            ["id", "-u", user],
+            check=False,
+            capture=True
+        )
+        
+        if result.returncode == 0:
+            print(f"    ✓ User '{user}' already exists")
+            return
+        
+        # Create system user
+        print(f"  Creating system user: {user}")
+        self.run_command([
+            "sudo", "useradd",
+            "--system",
+            "--no-create-home",
+            "--shell", "/bin/false",
+            user
+        ])
+        
+        print(f"    ✓ Service user '{user}' created")
+    
     def setup_python_environment(self):
         """Set up Python virtual environment and install requirements"""
-        print("\n[2/5] Setting up Python environment...")
+        print("\n[3/6] Setting up Python environment...")
         
         install_dir = self.config["deployment"]["install_dir"]
+        user = self.config["deployment"]["user"]
         
         # Create installation directory
         print(f"  Creating installation directory: {install_dir}")
@@ -148,11 +178,17 @@ class DigitalOceanDeployer:
             install_dir
         ])
         
+        # Set ownership
+        print(f"  Setting ownership to {user}...")
+        self.run_command([
+            "sudo", "chown", "-R", f"{user}:{user}", install_dir
+        ])
+        
         # Create virtual environment
         venv_path = f"{install_dir}/Sphinx_OS/venv"
         print(f"  Creating virtual environment at {venv_path}")
         self.run_command([
-            "sudo", "python3", "-m", "venv", venv_path
+            "sudo", "-u", user, "python3", "-m", "venv", venv_path
         ])
         
         # Install Python dependencies
@@ -162,20 +198,21 @@ class DigitalOceanDeployer:
         
         if os.path.exists("requirements.txt"):
             self.run_command([
-                "sudo", pip_path, "install", "--upgrade", "pip"
+                "sudo", "-u", user, pip_path, "install", "--upgrade", "pip"
             ])
             self.run_command([
-                "sudo", pip_path, "install", "-r", requirements_file
+                "sudo", "-u", user, pip_path, "install", "-r", requirements_file
             ])
         
         print("    ✓ Python environment configured")
     
     def create_systemd_service(self):
         """Create systemd service for auto-start"""
-        print("\n[3/5] Creating systemd service...")
+        print("\n[4/6] Creating systemd service...")
         
         install_dir = self.config["deployment"]["install_dir"]
         service_name = self.config["deployment"]["service_name"]
+        user = self.config["deployment"]["user"]
         node_port = self.config["application"]["node_port"]
         metrics_port = self.config["application"]["metrics_port"]
         
@@ -186,7 +223,8 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=root
+User={user}
+Group={user}
 WorkingDirectory={install_dir}/Sphinx_OS
 Environment="PATH={install_dir}/Sphinx_OS/venv/bin:/usr/local/bin:/usr/bin:/bin"
 Environment="NODE_PORT={node_port}"
@@ -197,6 +235,13 @@ RestartSec=10
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=sphinxos
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths={install_dir}/Sphinx_OS
+ProtectHome=true
 
 [Install]
 WantedBy=multi-user.target
@@ -224,7 +269,7 @@ WantedBy=multi-user.target
     
     def configure_firewall(self):
         """Configure UFW firewall rules"""
-        print("\n[4/5] Configuring firewall...")
+        print("\n[5/6] Configuring firewall...")
         
         node_port = self.config["application"]["node_port"]
         metrics_port = self.config["application"]["metrics_port"]
@@ -258,7 +303,7 @@ WantedBy=multi-user.target
     
     def start_service(self):
         """Start the SphinxOS service"""
-        print("\n[5/5] Starting SphinxOS service...")
+        print("\n[6/6] Starting SphinxOS service...")
         
         service_name = self.config["deployment"]["service_name"]
         
@@ -295,6 +340,8 @@ WantedBy=multi-user.target
         
         try:
             self.install_dependencies_local()
+            if self.config["deployment"].get("create_user", True):
+                self.create_service_user()
             self.setup_python_environment()
             self.create_systemd_service()
             self.configure_firewall()
@@ -397,13 +444,12 @@ def main():
     )
     parser.add_argument(
         "--host",
-        default="159.89.139.241",
-        help="Droplet IP address (default: 159.89.139.241)"
+        help="Droplet IP address (e.g., 159.89.139.241)"
     )
     parser.add_argument(
         "--user",
         default="root",
-        help="SSH user (default: root)"
+        help="SSH user (default: root - will create 'sphinxos' service user)"
     )
     parser.add_argument(
         "--ssh-key",
@@ -420,6 +466,11 @@ def main():
     if not args.local and not args.remote:
         parser.print_help()
         print("\nError: Must specify --local or --remote deployment mode")
+        sys.exit(1)
+    
+    if args.remote and not args.host:
+        parser.print_help()
+        print("\nError: --host is required for remote deployment")
         sys.exit(1)
     
     deployer = DigitalOceanDeployer(args.config)

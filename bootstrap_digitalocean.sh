@@ -99,7 +99,20 @@ fi
 echo -e "${GREEN}✓ Repository cloned/updated${NC}"
 echo ""
 
-echo -e "${BLUE}[4/6] Setting up Python environment...${NC}"
+echo -e "${BLUE}[4/7] Creating service user...${NC}"
+echo ""
+
+# Create dedicated service user for security
+if id -u sphinxos &>/dev/null; then
+    echo -e "${GREEN}✓ Service user 'sphinxos' already exists${NC}"
+else
+    echo "  Creating system user 'sphinxos'..."
+    $SUDO useradd --system --no-create-home --shell /bin/false sphinxos
+    echo -e "${GREEN}✓ Service user 'sphinxos' created${NC}"
+fi
+echo ""
+
+echo -e "${BLUE}[5/7] Setting up Python environment...${NC}"
 echo ""
 
 # Create virtual environment
@@ -108,15 +121,19 @@ if [ ! -d "$INSTALL_DIR/Sphinx_OS/venv" ]; then
     $SUDO python3 -m venv $INSTALL_DIR/Sphinx_OS/venv
 fi
 
+# Set ownership to service user
+echo "  Setting ownership to sphinxos user..."
+$SUDO chown -R sphinxos:sphinxos $INSTALL_DIR
+
 # Activate virtual environment and install dependencies
 echo "  Installing Python dependencies..."
-$SUDO $INSTALL_DIR/Sphinx_OS/venv/bin/pip install --upgrade pip -q
-$SUDO $INSTALL_DIR/Sphinx_OS/venv/bin/pip install -r $INSTALL_DIR/Sphinx_OS/requirements.txt -q
+$SUDO -u sphinxos $INSTALL_DIR/Sphinx_OS/venv/bin/pip install --upgrade pip -q
+$SUDO -u sphinxos $INSTALL_DIR/Sphinx_OS/venv/bin/pip install -r $INSTALL_DIR/Sphinx_OS/requirements.txt -q
 
 echo -e "${GREEN}✓ Python environment configured${NC}"
 echo ""
 
-echo -e "${BLUE}[5/6] Creating systemd service...${NC}"
+echo -e "${BLUE}[6/7] Creating systemd service...${NC}"
 echo ""
 
 # Create systemd service file
@@ -128,7 +145,8 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=root
+User=sphinxos
+Group=sphinxos
 WorkingDirectory=$INSTALL_DIR/Sphinx_OS
 Environment="PATH=$INSTALL_DIR/Sphinx_OS/venv/bin:/usr/local/bin:/usr/bin:/bin"
 Environment="NODE_PORT=8000"
@@ -161,7 +179,7 @@ $SUDO systemctl enable sphinxos
 echo -e "${GREEN}✓ Systemd service created and enabled${NC}"
 echo ""
 
-echo -e "${BLUE}[6/6] Configuring firewall...${NC}"
+echo -e "${BLUE}[7/7] Configuring firewall...${NC}"
 echo ""
 
 # Configure UFW if available
