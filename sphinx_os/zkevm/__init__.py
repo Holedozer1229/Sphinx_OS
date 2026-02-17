@@ -11,5 +11,6 @@ Zero-knowledge EVM integration for:
 from .zk_prover import ZKProver, ProofType
 from .evm_transpiler import EVMToCircomTranspiler
 from .circuit_builder import CircuitBuilder
+from .unified_zk_prover import UnifiedZKProver, UnifiedProof
 
-__all__ = ['ZKProver', 'ProofType', 'EVMToCircomTranspiler', 'CircuitBuilder']
+__all__ = ['ZKProver', 'ProofType', 'EVMToCircomTranspiler', 'CircuitBuilder', 'UnifiedZKProver', 'UnifiedProof']
