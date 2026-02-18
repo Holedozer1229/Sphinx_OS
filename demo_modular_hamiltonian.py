@@ -40,8 +40,11 @@ def generate_modular_hamiltonian(k=75/17, delta_val=1.0, seed=42):
     
     # Enforce Delta(k)=1 condition
     eigvals, eigvecs = np.linalg.eigh(H)
-    # Scale spectrum so minimal eigenvalue is delta_val
-    H_scaled = H * (delta_val / np.min(eigvals))
+    # Shift and scale spectrum so minimal eigenvalue is delta_val
+    # First shift to make all eigenvalues non-negative
+    eigvals_shifted = eigvals - np.min(eigvals) + delta_val
+    # Reconstruct matrix with new eigenvalues
+    H_scaled = eigvecs @ np.diag(eigvals_shifted) @ eigvecs.T
     
     return H_scaled
 
@@ -67,13 +70,15 @@ def deterministic_page_curve(K, eigvals, eigvecs):
     for i in range(1, dims + 1):
         # Project onto top-i eigenvectors
         idx = np.argsort(eigvals)[-i:]
-        K_proj = eigvecs[:, idx] @ np.diag(eigvals[idx]) @ eigvecs[:, idx].T
+        selected_eigvals = eigvals[idx]
         
-        # Smooth von Neumann entropy (ergotropy included)
-        rho = K_proj / np.trace(K_proj)
-        # Clip to avoid log of zero or negative values
-        rho_clipped = np.clip(rho, 1e-12, None)
-        S = -np.sum(rho * np.log(rho_clipped))
+        # Normalize eigenvalues to form a density matrix (sum to 1)
+        probs = selected_eigvals / np.sum(selected_eigvals)
+        
+        # von Neumann entropy: S = -sum(p_i * log(p_i))
+        # Clip to avoid log of zero
+        probs_clipped = np.clip(probs, 1e-12, None)
+        S = -np.sum(probs * np.log(probs_clipped))
         total_entropy.append(S)
     
     return np.array(total_entropy)
