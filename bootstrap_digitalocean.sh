@@ -26,7 +26,7 @@ REPO_URL="https://github.com/Holedozer1229/Sphinx_OS.git"
 INSTALL_DIR="/opt/sphinxos"
 BRANCH="main"
 
-echo -e "${BLUE}[1/7] Checking system requirements...${NC}"
+echo -e "${BLUE}[1/8] Checking system requirements...${NC}"
 echo ""
 
 # Check if we're on Ubuntu
@@ -53,7 +53,7 @@ else
 fi
 echo ""
 
-echo -e "${BLUE}[2/7] Installing system dependencies...${NC}"
+echo -e "${BLUE}[2/8] Installing system dependencies...${NC}"
 echo ""
 
 # Update package lists
@@ -78,7 +78,7 @@ $SUDO apt-get install -y -qq \
 echo -e "${GREEN}✓ System dependencies installed${NC}"
 echo ""
 
-echo -e "${BLUE}[3/7] Cloning SphinxOS repository...${NC}"
+echo -e "${BLUE}[3/8] Cloning SphinxOS repository...${NC}"
 echo ""
 
 # Create installation directory
@@ -99,7 +99,7 @@ fi
 echo -e "${GREEN}✓ Repository cloned/updated${NC}"
 echo ""
 
-echo -e "${BLUE}[4/7] Creating service user...${NC}"
+echo -e "${BLUE}[4/8] Creating service user...${NC}"
 echo ""
 
 # Create dedicated service user for security
@@ -112,7 +112,7 @@ else
 fi
 echo ""
 
-echo -e "${BLUE}[5/7] Setting up Python environment...${NC}"
+echo -e "${BLUE}[5/8] Setting up Python environment...${NC}"
 echo ""
 
 # Create virtual environment
@@ -133,7 +133,7 @@ $SUDO -u sphinxos $INSTALL_DIR/Sphinx_OS/venv/bin/pip install -r $INSTALL_DIR/Sp
 echo -e "${GREEN}✓ Python environment configured${NC}"
 echo ""
 
-echo -e "${BLUE}[6/7] Creating systemd service...${NC}"
+echo -e "${BLUE}[6/8] Creating systemd service...${NC}"
 echo ""
 
 # Create systemd service file
@@ -179,7 +179,7 @@ $SUDO systemctl enable sphinxos
 echo -e "${GREEN}✓ Systemd service created and enabled${NC}"
 echo ""
 
-echo -e "${BLUE}[7/7] Configuring firewall...${NC}"
+echo -e "${BLUE}[7/8] Configuring firewall...${NC}"
 echo ""
 
 # Configure UFW if available
@@ -222,6 +222,76 @@ else
 fi
 echo ""
 
+echo -e "${BLUE}[8/8] Deploying Quantum Pirate Miner with Oracle...${NC}"
+echo ""
+
+# Create quantum pirate miner systemd service
+cat << 'MINEREOF' | $SUDO tee /etc/systemd/system/quantum-pirate-miner.service > /dev/null
+[Unit]
+Description=Jones Quantum Pirate Miner - Headless 24/7 Operation with SphinxOSIIT Oracle
+After=network.target network-online.target sphinxos.service
+Wants=network-online.target
+PartOf=sphinxos.service
+
+[Service]
+Type=simple
+User=sphinxos
+Group=sphinxos
+WorkingDirectory=/opt/sphinxos/Sphinx_OS
+Environment="PATH=/opt/sphinxos/Sphinx_OS/venv/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="PYTHONPATH=/opt/sphinxos/Sphinx_OS"
+Environment="SDL_VIDEODRIVER=dummy"
+Environment="SDL_AUDIODRIVER=dummy"
+ExecStart=/opt/sphinxos/Sphinx_OS/venv/bin/python3 quantum_pirate_miner_headless.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=quantum-pirate-miner
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/opt/sphinxos/Sphinx_OS
+ReadWritePaths=/var/log
+ProtectHome=true
+
+# Resource limits
+MemoryLimit=512M
+CPUQuota=80%
+
+[Install]
+WantedBy=multi-user.target
+MINEREOF
+
+# Create log directory
+$SUDO mkdir -p /var/log
+$SUDO touch /var/log/quantum_pirate_miner.log
+$SUDO chown sphinxos:sphinxos /var/log/quantum_pirate_miner.log
+
+# Reload systemd
+$SUDO systemctl daemon-reload
+
+# Enable and start quantum pirate miner service
+echo "  Enabling Quantum Pirate Miner service..."
+$SUDO systemctl enable quantum-pirate-miner
+
+echo "  Starting Quantum Pirate Miner service..."
+$SUDO systemctl start quantum-pirate-miner
+
+# Wait a moment for service to start
+sleep 3
+
+# Check service status
+if $SUDO systemctl is-active --quiet quantum-pirate-miner; then
+    echo -e "${GREEN}✓ Quantum Pirate Miner service is running!${NC}"
+else
+    echo -e "${YELLOW}⚠ Quantum Pirate Miner service may be experiencing issues${NC}"
+    echo "  Check logs with: sudo journalctl -u quantum-pirate-miner -f"
+fi
+echo ""
+
 # Get droplet IP
 DROPLET_IP=$(hostname -I | awk '{print $1}')
 
@@ -231,24 +301,36 @@ echo "║                   ✅  DEPLOYMENT COMPLETE!                     ║"
 echo "║                                                               ║"
 echo "╚═══════════════════════════════════════════════════════════════╝"
 echo ""
-echo -e "${GREEN}SphinxOS is now running on your Digital Ocean droplet!${NC}"
+echo -e "${GREEN}SphinxOS + Quantum Pirate Miner are now running on your droplet!${NC}"
 echo ""
 echo "📊 Access Points:"
 echo "  • API Endpoint:    http://$DROPLET_IP:8000"
 echo "  • Metrics:         http://$DROPLET_IP:9090"
 echo ""
 echo "🔧 Service Management:"
-echo "  • Status:          sudo systemctl status sphinxos"
-echo "  • View Logs:       sudo journalctl -u sphinxos -f"
-echo "  • Restart:         sudo systemctl restart sphinxos"
-echo "  • Stop:            sudo systemctl stop sphinxos"
+echo ""
+echo "  SphinxOS Node:"
+echo "    • Status:        sudo systemctl status sphinxos"
+echo "    • View Logs:     sudo journalctl -u sphinxos -f"
+echo "    • Restart:       sudo systemctl restart sphinxos"
+echo "    • Stop:          sudo systemctl stop sphinxos"
+echo ""
+echo "  Quantum Pirate Miner (with Oracle):"
+echo "    • Status:        sudo systemctl status quantum-pirate-miner"
+echo "    • View Logs:     sudo journalctl -u quantum-pirate-miner -f"
+echo "    • Restart:       sudo systemctl restart quantum-pirate-miner"
+echo "    • Stop:          sudo systemctl stop quantum-pirate-miner"
 echo ""
 echo "📁 Installation Directory: $INSTALL_DIR/Sphinx_OS"
 echo ""
 echo -e "${BLUE}Next Steps:${NC}"
-echo "  1. Check the service status: sudo systemctl status sphinxos"
-echo "  2. View the logs: sudo journalctl -u sphinxos -f"
-echo "  3. Test the API: curl http://$DROPLET_IP:8000/health"
+echo "  1. Check service status:"
+echo "     sudo systemctl status sphinxos quantum-pirate-miner"
+echo "  2. View the miner logs:"
+echo "     sudo journalctl -u quantum-pirate-miner -f"
+echo "  3. Test the API:"
+echo "     curl http://$DROPLET_IP:8000/health"
 echo ""
+echo "🏴‍☠️ Quantum Pirate Miner: Running 24/7 with SphinxOSIIT Oracle"
 echo "🌌 SphinxOS: Quantum • Blockchain • AI"
 echo ""
