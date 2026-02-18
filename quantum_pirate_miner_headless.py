@@ -339,6 +339,7 @@ class OracleMiner:
         
         self.running = True
         self.last_update = time.time()
+        self.last_status_log = time.time()  # Track last status log time
         
     def get_oracle_decision(self) -> Tuple[int, int]:
         """Use Oracle to determine best movement direction"""
@@ -508,8 +509,9 @@ class OracleMiner:
                     # Update game state
                     self.update(dt)
                     
-                    # Log status periodically
-                    if int(current_time) % 10 == 0:
+                    # Log status periodically (every 10 seconds)
+                    if current_time - self.last_status_log >= 10.0:
+                        self.last_status_log = current_time
                         uncollected = sum(1 for t in self.treasure_map.treasures if not t["collected"])
                         logger.info(
                             f"Status: Score={self.score:.2f}, "

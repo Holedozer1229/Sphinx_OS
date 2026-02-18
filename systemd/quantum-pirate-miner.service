@@ -24,8 +24,7 @@ SyslogIdentifier=quantum-pirate-miner
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
-ReadWritePaths=/opt/sphinxos/Sphinx_OS
-ReadWritePaths=/var/log
+ReadWritePaths=/opt/sphinxos/Sphinx_OS /var/log
 ProtectHome=true
 
 # Resource limits

@@ -265,8 +265,7 @@ CPUQuota=80%
 WantedBy=multi-user.target
 MINEREOF
 
-# Create log directory
-$SUDO mkdir -p /var/log
+# Create log directory and file
 $SUDO touch /var/log/quantum_pirate_miner.log
 $SUDO chown sphinxos:sphinxos /var/log/quantum_pirate_miner.log
 
