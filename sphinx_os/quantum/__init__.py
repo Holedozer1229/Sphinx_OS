@@ -6,8 +6,12 @@ from .entanglement_cache import EntanglementCache
 from .qpu_driver import QPUDriver
 from .x86_adapter import X86Adapter
 from .unified_toe import Unified6DTOE
+from .omega_brane import OmegaBrane, BraneType, RevenueStream, BraneIntersection
+from .extend_omega_brane import ExtendedOmegaBrane, UnifiedRevenueMetrics, create_maximum_monetization_system
 
 __all__ = [
     "QubitFabric", "QuantumResult", "ErrorNexus", "QuantumVolume",
-    "EntanglementCache", "QPUDriver", "X86Adapter", "Unified6DTOE"
+    "EntanglementCache", "QPUDriver", "X86Adapter", "Unified6DTOE",
+    "OmegaBrane", "BraneType", "RevenueStream", "BraneIntersection",
+    "ExtendedOmegaBrane", "UnifiedRevenueMetrics", "create_maximum_monetization_system"
 ]
