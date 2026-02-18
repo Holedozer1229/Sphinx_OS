@@ -27,6 +27,11 @@
     "metrics_port": 9090,
     "enable_prometheus": true,
     "python_version": "3.12",
-    "enable_web_ui": false
+    "enable_web_ui": false,
+    "enable_oracle": true,
+    "oracle_threshold": 0.5,
+    "enable_oracle_replication": true,
+    "moltbot_endpoint": "molt://localhost:8080",
+    "clawbot_endpoint": "claw://localhost:8081"
   }
 }

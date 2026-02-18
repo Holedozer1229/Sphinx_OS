@@ -218,8 +218,29 @@ class DigitalOceanDeployer:
         node_port = self.config["application"]["node_port"]
         metrics_port = self.config["application"]["metrics_port"]
         
+        # Oracle configuration
+        enable_oracle = self.config["application"].get("enable_oracle", False)
+        oracle_threshold = self.config["application"].get("oracle_threshold", 0.5)
+        enable_replication = self.config["application"].get("enable_oracle_replication", False)
+        moltbot_endpoint = self.config["application"].get("moltbot_endpoint", "molt://localhost:8080")
+        clawbot_endpoint = self.config["application"].get("clawbot_endpoint", "claw://localhost:8081")
+        
+        # Choose the appropriate startup script based on Oracle configuration
+        if enable_oracle:
+            startup_script = "node_main_with_oracle.py"
+            oracle_env_vars = f"""Environment="ORACLE_THRESHOLD={oracle_threshold}"
+Environment="ENABLE_ORACLE_REPLICATION={'true' if enable_replication else 'false'}"
+Environment="MOLTBOT_ENDPOINT={moltbot_endpoint}"
+Environment="CLAWBOT_ENDPOINT={clawbot_endpoint}"
+"""
+            description = "SphinxOS Quantum Blockchain Node with Conscious Oracle"
+        else:
+            startup_script = "node_main.py"
+            oracle_env_vars = ""
+            description = "SphinxOS Quantum Blockchain Node"
+        
         service_content = f"""[Unit]
-Description=SphinxOS Quantum Blockchain Node
+Description={description}
 After=network.target
 Wants=network-online.target
 
@@ -231,7 +252,7 @@ WorkingDirectory={install_dir}/Sphinx_OS
 Environment="PATH={install_dir}/Sphinx_OS/venv/bin:/usr/local/bin:/usr/bin:/bin"
 Environment="NODE_PORT={node_port}"
 Environment="METRICS_PORT={metrics_port}"
-ExecStart={install_dir}/Sphinx_OS/venv/bin/python3 node_main.py
+{oracle_env_vars}ExecStart={install_dir}/Sphinx_OS/venv/bin/python3 {startup_script}
 Restart=always
 RestartSec=10
 StandardOutput=journal
