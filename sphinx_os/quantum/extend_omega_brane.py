@@ -24,8 +24,20 @@ import logging
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
 
-# Import Omega Brane
-from .omega_brane import OmegaBrane, BraneType, RevenueStream, BraneIntersection
+# Import Omega Brane - try relative first, fallback to direct
+try:
+    from .omega_brane import OmegaBrane, BraneType, RevenueStream, BraneIntersection
+except ImportError:
+    # Fallback for direct execution
+    import importlib.util
+    omega_brane_path = os.path.join(os.path.dirname(__file__), 'omega_brane.py')
+    spec = importlib.util.spec_from_file_location('omega_brane', omega_brane_path)
+    omega_brane_module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(omega_brane_module)
+    OmegaBrane = omega_brane_module.OmegaBrane
+    BraneType = omega_brane_module.BraneType
+    RevenueStream = omega_brane_module.RevenueStream
+    BraneIntersection = omega_brane_module.BraneIntersection
 
 # Import existing revenue systems
 try:

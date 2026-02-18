@@ -457,9 +457,9 @@ class QubitFabric:
         for idx in lattice_indices:
             self.quantum_state.state[idx] = amplitude_per_point
         norm = np.linalg.norm(self.quantum_state.state)
-        if norm >ऀ
-
-System: 0:
+        if norm > 0:
+            self.quantum_state.state /= norm
+        else:
             self.logger.warning("Zero norm in TVLE state application")
             phases = np.random.uniform(0, 2 * np.pi, self.total_points)
             self.quantum_state.state = np.exp(1j * phases) / np.sqrt(self.total_points)

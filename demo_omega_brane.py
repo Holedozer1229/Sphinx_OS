@@ -10,15 +10,30 @@ import sys
 import os
 import time
 from typing import Dict
+import importlib.util
 
 # Add parent directory to path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from sphinx_os.quantum.omega_brane import OmegaBrane, BraneType, OMEGA_FREQUENCIES
-from sphinx_os.quantum.extend_omega_brane import (
-    ExtendedOmegaBrane,
-    create_maximum_monetization_system
-)
+# Direct import to avoid sklearn dependency from qubit_fabric
+def load_module(module_name, file_path):
+    spec = importlib.util.spec_from_file_location(module_name, file_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+# Load omega_brane directly
+omega_brane_path = os.path.join(os.path.dirname(__file__), 'sphinx_os/quantum/omega_brane.py')
+omega_brane_module = load_module('omega_brane', omega_brane_path)
+OmegaBrane = omega_brane_module.OmegaBrane
+BraneType = omega_brane_module.BraneType
+OMEGA_FREQUENCIES = omega_brane_module.OMEGA_FREQUENCIES
+
+# Load extend_omega_brane directly
+extend_path = os.path.join(os.path.dirname(__file__), 'sphinx_os/quantum/extend_omega_brane.py')
+extend_module = load_module('extend_omega_brane', extend_path)
+ExtendedOmegaBrane = extend_module.ExtendedOmegaBrane
+create_maximum_monetization_system = extend_module.create_maximum_monetization_system
 
 
 def print_header(title: str):
