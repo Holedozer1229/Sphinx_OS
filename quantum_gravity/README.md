@@ -1,16 +1,130 @@
-# Quantum Gravity Module - NPTC Framework Implementation
+# Quantum Gravity Module
 
-This module implements the **Non-Periodic Thermodynamic Control (NPTC)** framework for quantum gravity proofs and full unification with hyper-relativity, based on the whitepaper by Travis Jones (2026).
+This module provides two complementary frameworks for quantum gravity:
+
+## 1. Jones Quantum Gravity Resolution (NEW)
+
+**Modular Hamiltonian, Deterministic Page Curve, and Emergent Islands**
+
+The Jones framework implements quantum gravity as an emergent phenomenon within a 27-dimensional octonionic operator space, resolving the black hole information paradox through algebraic enforcement.
+
+### Key Features:
+- **27-dimensional Exceptional Jordan Algebra J₃(𝕆)**: 3×3 Hermitian matrices over octonions
+- **Modular Hamiltonian**: K = -ln(Δ) where Δ = C·T·U·F
+- **Entanglement Islands**: Rank-reduction projections where Δ(k)=1
+- **Deterministic Page Curve**: Ergotropy-based entropy with modular nuclearity bounds
+- **Geodesic Flow**: Trajectories in operator space induced by entanglement metric
+- **Spectral Gap κ**: Fundamental modular metric from operator algebra
+
+See [`jones_quantum_gravity.py`](jones_quantum_gravity.py) and [`demonstrate_jones_quantum_gravity.py`](../demonstrate_jones_quantum_gravity.py).
+
+## 2. NPTC Framework
+
+This module also implements the **Non-Periodic Thermodynamic Control (NPTC)** framework for quantum gravity proofs and full unification with hyper-relativity, based on the whitepaper by Travis Jones (2026).
 
 ## Overview
 
-The NPTC framework provides a unified approach to:
+The frameworks provide unified approaches to:
 1. **Quantum Gravity Unification**: Bridging quantum mechanics and general relativity through geometric invariants
 2. **6D Hyper-Relativity**: Extending spacetime to 6 dimensions with signature (3,3)
 3. **Octonionic Holonomy**: Implementing non-associative Berry phases and G₂ structure
 4. **Experimental Predictions**: Testable predictions including Tsirelson bound violations and new forces
+5. **Black Hole Information**: Resolving information paradox through entanglement islands
 
 ## Components
+
+### Jones Quantum Gravity Resolution
+
+#### Core Classes:
+
+1. **ExceptionalJordanAlgebra**: 27-dimensional J₃(𝕆) operator space
+   - 3×3 Hermitian matrices over octonions
+   - Jordan product: A·B = (AB + BA)/2
+   - Non-associative structure encoding quantum gravity
+
+2. **Modular Hamiltonian**: K = -ln(Δ)
+   - Component operators:
+     - **C** (Contraction): D_p operator analogous to gravitational collapse
+     - **T** (Triality): Octonionic structure rotations
+     - **U** (CTC): Closed timelike curve rotations
+     - **F** (Freezing): Quantum-classical boundary operator
+   - Modular operator: Δ = C·T·U·F
+
+3. **Entanglement Islands**: Rank-reduction projections
+   - Located where Δ(k) ≈ 1 (or K(k) ≈ 0)
+   - Resolve black hole information paradox
+   - Preserve unitarity through discrete entropy contributions
+
+4. **Page Curve**: S(x) = ∫₀ˣ K(x') dx'
+   - Deterministic ergotropy-based entropy
+   - Modular nuclearity bounds: S(x) ≤ ln(dim ℋ_R)
+   - Saturation at island locations
+
+5. **Geodesic Flow**: d²x^i/ds² + Γ^i_jk dx^j/ds dx^k/ds = 0
+   - Entanglement metric: g_ij = ∂²S/∂x^i∂x^j
+   - Christoffel symbols from metric
+   - 3D projection for visualization
+
+#### Usage Example:
+
+```python
+from quantum_gravity.jones_quantum_gravity import JonesQuantumGravityResolution
+
+# Initialize framework
+jones = JonesQuantumGravityResolution(
+    dimension=27,
+    contraction_strength=1.0,
+    rotation_angle=np.pi/6
+)
+
+# Analyze spectral structure
+spectral = jones.analyze_spectral_structure()
+print(f"Spectral gap κ: {spectral['spectral_gap_kappa']:.6f}")
+
+# Find entanglement islands
+islands = jones.find_entanglement_islands(tolerance=0.5)
+print(f"Found {len(islands)} islands")
+
+# Compute Page curve
+page_data = jones.compute_page_curve(n_points=100)
+print(f"Max entropy: {page_data['max_entropy']:.4f}")
+
+# Compute geodesic flow
+import numpy as np
+x0 = np.array([0.5, 0.5, 0.5])
+v0 = np.array([0.1, 0.0, 0.0])
+geodesic = jones.compute_geodesic_flow(x0, v0)
+
+# Generate visualizations
+plots = jones.generate_visualizations()
+```
+
+#### Demonstration:
+
+Run the complete demonstration:
+```bash
+python demonstrate_jones_quantum_gravity.py
+```
+
+This generates:
+- Spectral gap heatmap showing islands
+- Page curve with nuclearity bounds
+- 3D geodesic trajectories
+
+#### Testing:
+
+Run comprehensive test suite:
+```bash
+python -m pytest tests/test_jones_quantum_gravity.py -v
+```
+
+All 36 tests cover:
+- Jordan algebra properties
+- Component operator construction
+- Modular Hamiltonian spectrum
+- Page curve computation
+- Geodesic flow
+- Full integration workflow
 
 ### 1. NPTC Framework (`nptc_framework.py`)
 
@@ -249,6 +363,20 @@ Three **pending** verification:
 6. ⏳ Tsirelson bound violation (quantum foundations)
 
 ## References
+
+### Jones Quantum Gravity Resolution
+
+1. D. Page, "Average entropy of a subsystem," *Phys. Rev. Lett.* **71**, 1291 (1993)
+2. S. Hawking, "Particle creation by black holes," *Commun. Math. Phys.* **43**, 199 (1975)
+3. R. Bousso, "The holographic principle," *Rev. Mod. Phys.* **74**, 825 (2002)
+4. A. Almheiri et al., "Black holes: complementarity and the firewall," *JHEP* **02** (2013) 062
+5. T. Jacobson, "Thermodynamics of spacetime," *Phys. Rev. Lett.* **75**, 1260 (1995)
+6. H. Araki, "Mathematical Theory of Quantum Fields," Oxford University Press (1999)
+7. R. Haag, "Local Quantum Physics," Springer (1996)
+
+### NPTC Framework
+
+- See `whitepaper/nptc_whitepaper.pdf` for complete mathematical derivations
 
 - See `whitepaper/nptc_whitepaper.pdf` for complete mathematical derivations
 - See `whitepaper/README.md` for whitepaper details
