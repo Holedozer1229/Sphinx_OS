@@ -46,9 +46,9 @@ def derive_uft(t: float) -> Dict:
     lambdas = compute_schmidt(matrix) * scalar
     s = entanglement_entropy(lambdas)
     w7 = seven_fold_warp(lambdas)
-    i = warp_integral(matrix, w7)
-    m_reduced = inertial_mass_reduction(m=1.0, i=i, t=t)
-    return {"entropy_S": s, "warp_W7": w7, "integral_I": i, "m_reduced": m_reduced}
+    integral_i = warp_integral(matrix, w7)
+    m_reduced = inertial_mass_reduction(m=1.0, integral_i=integral_i, t=t)
+    return {"entropy_S": s, "warp_W7": w7, "integral_I": integral_i, "m_reduced": m_reduced}
 
 @njit
 def compute_schmidt(matrix: np.ndarray) -> np.ndarray:
@@ -72,8 +72,9 @@ def seven_fold_warp(lambdas: np.ndarray) -> float:
     n = len(lambdas)
     for k in range(7):
         lam = lambdas[k % n]
-        phi = math.atan2(random.random(), random.random())
-        w7 += lam * math.cos(phi)
+        # Use deterministic phase based on lambda value and k
+        phase = math.atan2(lam * (k + 1), lam * (k + 2))
+        w7 += lam * math.cos(phase)
     return abs(w7)
 
 @njit
@@ -81,8 +82,8 @@ def warp_integral(matrix: np.ndarray, w7: float) -> float:
     return w7 * np.trace(matrix)
 
 @njit
-def inertial_mass_reduction(m: float = 1.0, eta: float = 0.999, f: float = 7.83, t: float = 0.0, i: float = 1.0) -> float:
-    delta = eta * math.sin(2 * math.pi * f * t) * (i / 1.0)
+def inertial_mass_reduction(m: float = 1.0, eta: float = 0.999, f: float = 7.83, t: float = 0.0, integral_i: float = 1.0) -> float:
+    delta = eta * math.sin(2 * math.pi * f * t) * (integral_i / 1.0)
     return max(m * (1 - delta), 0.001)
 
 # ============================================================
