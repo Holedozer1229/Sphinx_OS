@@ -126,11 +126,17 @@ def plot_modular_spectrum_heatmap(K):
 def plot_page_curve_islands(page_curve):
     """Plot and save Page curve with islands."""
     plt.figure(figsize=(6, 4))
-    plt.plot(np.arange(1, 28), page_curve, 'o-', label="Page curve")
+    x_values = np.arange(1, len(page_curve) + 1)
+    plt.plot(x_values, page_curve, 'o-', label="Page curve")
     
     # Highlight 'islands' where slope flattens
-    plateau_start = np.argmax(np.diff(page_curve) < 0.01)
-    plt.axvspan(plateau_start, 27, color='orange', alpha=0.3, label="Islands")
+    diffs = np.diff(page_curve)
+    plateau_indices = np.where(diffs < 0.01)[0]
+    
+    # Only highlight islands if a plateau was actually found
+    if len(plateau_indices) > 0:
+        plateau_start = plateau_indices[0]
+        plt.axvspan(plateau_start, len(page_curve), color='orange', alpha=0.3, label="Islands")
     
     plt.title("Deterministic Page Curve with Islands")
     plt.xlabel("Number of Included Eigenvectors")
@@ -173,7 +179,7 @@ def main():
     # -----------------------------
     print("Step 1: Constructing 27x27 Modular Hamiltonian...")
     K = generate_modular_hamiltonian(k=75/17, delta_val=1.0, seed=42)
-    eigvals = np.linalg.eigvalsh(K)
+    eigvals, eigvecs = np.linalg.eigh(K)
     print(f"✓ Generated 27x27 Modular Hamiltonian")
     print(f"  Eigenvalue range: [{eigvals.min():.4f}, {eigvals.max():.4f}]")
     print(f"  Minimum eigenvalue (Delta): {eigvals.min():.4f}")
@@ -183,7 +189,6 @@ def main():
     # 2. Compute Deterministic Page Curve with Islands
     # -----------------------------
     print("Step 2: Computing Deterministic Page Curve...")
-    eigvals, eigvecs = np.linalg.eigh(K)
     page_curve = deterministic_page_curve(K, eigvals, eigvecs)
     print(f"✓ Computed Page curve with {len(page_curve)} points")
     print(f"  Initial entropy: {page_curve[0]:.4f}")
