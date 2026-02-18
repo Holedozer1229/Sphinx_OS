@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jones Quantum Gravity Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #0a0020 0%, #1a0040 100%);
+            color: #00ff66;
+            overflow: hidden;
+        }
+        
+        .embed-container {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+        }
+        
+        canvas {
+            border: 2px solid #00ff66;
+            background: #0a0020;
+            box-shadow: 0 0 20px rgba(0, 255, 102, 0.3);
+            max-width: 100%;
+            height: auto;
+        }
+        
+        .hud {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00ff66;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+        }
+        
+        .hud-row {
+            margin: 3px 0;
+        }
+        
+        .controls-hint {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00ccff;
+            padding: 8px;
+            border-radius: 5px;
+            font-size: 11px;
+            color: #00ccff;
+        }
+    </style>
+</head>
+<body>
+    <div class="embed-container">
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+    </div>
+    
+    <div class="hud">
+        <div class="hud-row">SCORE: <span id="score">0.00</span></div>
+        <div class="hud-row">WORMHOLES: <span id="wormholes">0</span></div>
+        <div class="hud-row">λ₁: <span id="spectral">0.000</span></div>
+    </div>
+    
+    <div class="controls-hint">
+        ⬆️⬇️⬅️➡️ or WASD to move
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let gameState = null;
+        const keys = {};
+        
+        async function init() {
+            await fetchGameState();
+            setInterval(update, 100);
+            setInterval(fetchGameState, 200);
+        }
+        
+        async function fetchGameState() {
+            try {
+                const response = await fetch('/api/game/state');
+                gameState = await response.json();
+                updateHUD();
+            } catch (error) {
+                console.error('Failed to fetch game state:', error);
+            }
+        }
+        
+        function update() {
+            handleInput();
+            render();
+        }
+        
+        function handleInput() {
+            let dx = 0, dy = 0;
+            if (keys['ArrowUp'] || keys['w'] || keys['W']) dy = -1;
+            if (keys['ArrowDown'] || keys['s'] || keys['S']) dy = 1;
+            if (keys['ArrowLeft'] || keys['a'] || keys['A']) dx = -1;
+            if (keys['ArrowRight'] || keys['d'] || keys['D']) dx = 1;
+            if (dx !== 0 || dy !== 0) movePlayer(dx, dy);
+        }
+        
+        let lastMoveTime = 0;
+        async function movePlayer(dx, dy) {
+            const now = Date.now();
+            if (now - lastMoveTime < 150) return;
+            lastMoveTime = now;
+            
+            try {
+                const response = await fetch('/api/game/move', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({dx, dy})
+                });
+                const data = await response.json();
+                if (data.success && gameState) {
+                    gameState.player = data.player;
+                    gameState.score = data.score;
+                }
+            } catch (error) {
+                console.error('Failed to move player:', error);
+            }
+        }
+        
+        function render() {
+            if (!gameState) return;
+            
+            ctx.fillStyle = '#0a0020';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            const scale = Math.min(canvas.width / 690, canvas.height / 530);
+            const offsetX = (canvas.width - 690 * scale) / 2;
+            const offsetY = (canvas.height - 530 * scale) / 2;
+            
+            ctx.save();
+            ctx.translate(offsetX, offsetY);
+            ctx.scale(scale, scale);
+            
+            // Draw treasures
+            gameState.treasure_map.treasures.forEach(t => {
+                if (!t.collected) {
+                    const x = t.x * 10 + 50;
+                    const y = t.y * 10 + 50;
+                    ctx.fillStyle = `rgb(${t.color[0]}, ${t.color[1]}, ${t.color[2]})`;
+                    ctx.beginPath();
+                    ctx.arc(x, y, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+            
+            // Draw player
+            const px = gameState.player.x * 10 + 50;
+            const py = gameState.player.y * 10 + 50;
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(px - 5, py - 5, 10, 10);
+            ctx.strokeStyle = 'rgba(0, 255, 102, 0.6)';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(px - 7, py - 7, 14, 14);
+            
+            ctx.restore();
+        }
+        
+        function updateHUD() {
+            if (!gameState) return;
+            document.getElementById('score').textContent = gameState.score.toFixed(2);
+            document.getElementById('wormholes').textContent = gameState.wormholes_active;
+            document.getElementById('spectral').textContent = gameState.spectral_gap.toFixed(3);
+        }
+        
+        window.addEventListener('keydown', (e) => { keys[e.key] = true; });
+        window.addEventListener('keyup', (e) => { keys[e.key] = false; });
+        
+        init();
+    </script>
+</body>
+</html>
