@@ -21,6 +21,16 @@ import logging
 
 logger = logging.getLogger("SphinxOS.OmegaBrane")
 
+# Physics constants for string brane calculations
+STRING_TENSION_BASE = 500.0  # Base tension reference point for string branes
+STRING_TENSION_SCALE = 1000.0  # Scaling factor for string tension normalization
+
+# Cross-dimensional constants
+CROSS_DIMENSIONAL_BONUS = 0.2  # Additional flux from cross-dimensional interactions (20%)
+
+# Time constants
+SECONDS_PER_DAY = 86400  # Standard seconds in a day for temporal calculations
+
 
 class BraneType(Enum):
     """Types of revenue-generating branes"""
@@ -223,7 +233,8 @@ class OmegaBrane:
         phi_multiplier = self._calculate_phi_multiplier(phi_score)
         
         # String branes have length-based enhancement
-        string_tension = 1.0 + (phi_score - 500) / 1000.0
+        # Tension increases linearly with phi score above baseline
+        string_tension = 1.0 + (phi_score - STRING_TENSION_BASE) / STRING_TENSION_SCALE
         
         # Calculate enhanced revenue
         enhanced_amount = amount * phi_multiplier * string_tension * brane.entanglement_boost
@@ -436,7 +447,7 @@ class OmegaBrane:
         base_fee = bridge_amount * brane.base_extraction_rate
         
         # Bulk brane captures multi-dimensional flow
-        dimensional_flux = 1.0 + 0.2  # Cross-dimensional bonus
+        dimensional_flux = 1.0 + CROSS_DIMENSIONAL_BONUS
         
         # Apply phi multiplier
         phi_multiplier = self._calculate_phi_multiplier(phi_score)

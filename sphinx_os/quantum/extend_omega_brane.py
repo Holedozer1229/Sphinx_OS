@@ -53,6 +53,16 @@ except ImportError:
 
 logger = logging.getLogger("SphinxOS.ExtendedOmegaBrane")
 
+# Subscription tier fallback configuration
+DEFAULT_SUBSCRIPTION_TIERS = {
+    'free': 0.0,
+    'premium': 5.0,
+    'pro': 20.0
+}
+
+# Time constants
+SECONDS_PER_DAY = 86400  # Seconds in a day for period calculations
+
 
 @dataclass
 class UnifiedRevenueMetrics:
@@ -207,9 +217,8 @@ class ExtendedOmegaBrane:
             tier_enum = SubscriptionTier(tier.lower())
             amount = TIER_PRICING[tier_enum].cost
         else:
-            # Fallback amounts
-            amounts = {'free': 0.0, 'premium': 5.0, 'pro': 20.0}
-            amount = amounts.get(tier.lower(), 5.0)
+            # Fallback amounts if subscription system not available
+            amount = DEFAULT_SUBSCRIPTION_TIERS.get(tier.lower(), 5.0)
         
         # Extract through Omega Brane (D1)
         brane_stream = self.omega_brane.extract_subscription_revenue(
@@ -223,7 +232,7 @@ class ExtendedOmegaBrane:
         if self.subscription_manager and SubscriptionTier:
             tier_enum = SubscriptionTier(tier.lower())
             period_start = time.time()
-            period_end = period_start + (30 * 86400)  # 30 days
+            period_end = period_start + (30 * SECONDS_PER_DAY)  # 30 days
             
             if amount > 0:
                 self.subscription_manager.create_subscription(
@@ -237,7 +246,7 @@ class ExtendedOmegaBrane:
                 user_id=user_id,
                 tier=tier,
                 period_start=time.time(),
-                period_end=time.time() + (30 * 86400)
+                period_end=time.time() + (30 * SECONDS_PER_DAY)
             )
         
         return {
