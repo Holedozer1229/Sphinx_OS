@@ -46,3 +46,7 @@ scikit-learn>=1.0.0 # Machine learning library for PCA and dimensionality reduct
 pytest>=7.0.0     # Unit testing framework
 pytest-cov>=3.0.0 # Code coverage reporting for tests
 pytest-asyncio>=0.21.0    # Async test support
+
+# Quantum Pirate Miner dependencies
+pygame>=2.5.0     # Game engine for quantum pirate miner
+websocket-client>=1.6.0  # WebSocket client for live mempool data
