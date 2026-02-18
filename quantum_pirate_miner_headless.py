@@ -26,13 +26,21 @@ import logging
 from numba import njit
 
 # Configure logging
+LOG_FILE = os.environ.get('QUANTUM_MINER_LOG', '/var/log/quantum_pirate_miner.log')
+log_handlers = [logging.StreamHandler()]
+
+# Try to add file handler, fallback to local file if permission denied
+try:
+    log_handlers.append(logging.FileHandler(LOG_FILE))
+except PermissionError:
+    local_log = os.path.join(os.getcwd(), 'quantum_pirate_miner.log')
+    log_handlers.append(logging.FileHandler(local_log))
+    print(f"⚠️  Cannot write to {LOG_FILE}, using {local_log} instead")
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('/var/log/quantum_pirate_miner.log'),
-        logging.StreamHandler()
-    ]
+    handlers=log_handlers
 )
 logger = logging.getLogger("QuantumPirateMiner")
 
@@ -46,7 +54,7 @@ except ImportError:
 
 # Oracle integration
 try:
-    from sphinx_os.Artificial_Intelligence.SphinxOSIIT import IITQuantumConsciousnessEngine
+    from sphinx_os.AnubisCore.conscious_oracle import IITQuantumConsciousnessEngine
     ORACLE_AVAILABLE = True
     logger.info("✓ SphinxOSIIT Oracle integration enabled")
 except ImportError:
