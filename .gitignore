@@ -44,6 +44,11 @@ htmlcov/
 *.ipynb
 *.ipynb_checkpoints/
 
+# Generated visualization outputs
+modular_spectrum_heatmap.png
+page_curve_islands.png
+geodesic_3d_projection.png
+
 # SphinxSkynet build artifacts
 inputs.json
 build/
