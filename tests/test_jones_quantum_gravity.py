@@ -146,7 +146,7 @@ class TestModularHamiltonian:
         assert len(spectrum.eigenvalues) == 27
         assert spectrum.eigenvalues.shape == (27,)
         assert spectrum.eigenvectors.shape == (27, 27)
-        assert spectrum.kappa == spectrum.eigenvalues.min()
+        assert np.isclose(spectrum.kappa, spectrum.eigenvalues.min())
     
     def test_block_spectral_gaps(self, hamiltonian):
         """Test block spectral gap computation."""
@@ -224,7 +224,7 @@ class TestDeterministicPageCurve:
         bound = page_curve.nuclearity_bound()
         
         assert bound > 0
-        assert bound == np.log(27)  # ln(dim H_R)
+        assert np.isclose(bound, np.log(27))  # ln(dim H_R)
     
     def test_verify_nuclearity(self, page_curve):
         """Test nuclearity verification."""

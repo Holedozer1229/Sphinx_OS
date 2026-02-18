@@ -24,15 +24,11 @@ from typing import Dict, List, Tuple, Optional, Callable
 import logging
 from dataclasses import dataclass
 from scipy.linalg import logm, expm, eigh
-from scipy.integrate import solve_ivp, cumulative_trapezoid
+from scipy.integrate import solve_ivp, cumulative_trapezoid, trapezoid
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
 logger = logging.getLogger("SphinxOS.JonesQuantumGravity")
-
-# Physical constants
-HBAR = 1.0545718e-34  # Reduced Planck constant (J·s)
-K_B = 1.380649e-23    # Boltzmann constant (J/K)
 
 
 @dataclass
@@ -542,8 +538,7 @@ class DeterministicPageCurve:
         x_vals = np.linspace(0, x, 100)
         K_vals = np.array([self.modular_density(xi) for xi in x_vals])
         
-        # Trapezoidal integration (use scipy.integrate.trapezoid for newer numpy)
-        from scipy.integrate import trapezoid
+        # Trapezoidal integration
         S = trapezoid(K_vals, x_vals)
         return S
     
@@ -1074,9 +1069,9 @@ class JonesQuantumGravityResolution:
             ax.scatter(traj[0, 0], traj[0, 1], traj[0, 2], c='g', s=100, marker='o', label='Start')
             ax.scatter(traj[-1, 0], traj[-1, 1], traj[-1, 2], c='r', s=100, marker='s', label='End')
             
-            ax.set_xlabel('x¹')
-            ax.set_ylabel('x²')
-            ax.set_zlabel('x³')
+            ax.set_xlabel(r'$x^1$')
+            ax.set_ylabel(r'$x^2$')
+            ax.set_zlabel(r'$x^3$')
             ax.set_title('Geodesic Trajectory in Operator Space (3D Projection)')
             ax.legend()
             
