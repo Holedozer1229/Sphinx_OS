@@ -11,6 +11,10 @@ fastapi>=0.115.0          # Web framework for node API endpoints
 uvicorn>=0.30.0           # ASGI server for FastAPI
 prometheus_client>=0.20.0 # Prometheus metrics exposition
 pydantic>=2.0.0           # Data validation
+flask>=3.0.0              # Web framework for quantum game web server
+flask-cors>=4.0.0         # CORS support for Flask
+scikit-learn>=1.3.0       # Machine learning library for PCA in quantum game
+numba>=0.58.0             # JIT compiler for performance optimization
 
 # Security dependencies (Production)
 pyjwt>=2.8.0              # JWT token authentication

@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jones Quantum Gravity — ER=EPR Roguelite Miner V27.0</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #0a0020 0%, #1a0040 100%);
+            color: #00ff66;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 2px solid #00ff66;
+            margin: 10px;
+            border-radius: 10px;
+        }
+        
+        h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px #00ff66;
+        }
+        
+        .subtitle {
+            font-size: 14px;
+            color: #00ccff;
+        }
+        
+        .game-container {
+            display: flex;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1400px;
+        }
+        
+        .canvas-container {
+            position: relative;
+        }
+        
+        canvas {
+            border: 3px solid #00ff66;
+            background: #0a0020;
+            box-shadow: 0 0 20px rgba(0, 255, 102, 0.3);
+            border-radius: 5px;
+        }
+        
+        .stats {
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #00ff66;
+            padding: 20px;
+            border-radius: 10px;
+            min-width: 300px;
+            max-height: 720px;
+            overflow-y: auto;
+        }
+        
+        .stat-row {
+            margin: 10px 0;
+            padding: 8px;
+            background: rgba(0, 255, 102, 0.1);
+            border-radius: 5px;
+        }
+        
+        .stat-label {
+            color: #00ccff;
+            font-weight: bold;
+        }
+        
+        .stat-value {
+            color: #00ff66;
+            float: right;
+        }
+        
+        .controls {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 10px;
+        }
+        
+        .controls h3 {
+            color: #00ccff;
+            margin-bottom: 10px;
+        }
+        
+        .controls p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        
+        .page-curve {
+            margin-top: 20px;
+            padding: 10px;
+            background: rgba(255, 80, 80, 0.1);
+            border: 1px solid #ff5050;
+            border-radius: 5px;
+        }
+        
+        .page-curve h3 {
+            color: #ff5050;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        
+        button {
+            background: #00ff66;
+            color: #0a0020;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        button:hover {
+            background: #00ccff;
+        }
+        
+        .legend {
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 5px;
+            font-size: 12px;
+        }
+        
+        .legend-item {
+            margin: 5px 0;
+            display: flex;
+            align-items: center;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+            margin-right: 10px;
+            border: 1px solid #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏴‍☠️ JONES QUANTUM GRAVITY — ER=EPR ROGUELITE MINER V27.0 🏴‍☠️</h1>
+        <div class="subtitle">Omega Brane Edition | Captain Travis D. Jones | Houston HQ</div>
+    </div>
+    
+    <div class="game-container">
+        <div class="canvas-container">
+            <canvas id="gameCanvas" width="1000" height="720"></canvas>
+        </div>
+        
+        <div class="stats">
+            <h2 style="color: #00ff66; margin-bottom: 15px;">⚡ QUANTUM STATS ⚡</h2>
+            
+            <div class="stat-row">
+                <span class="stat-label">SCORE:</span>
+                <span class="stat-value" id="score">0.00</span>
+            </div>
+            
+            <div class="stat-row">
+                <span class="stat-label">WORMHOLES:</span>
+                <span class="stat-value" id="wormholes">0</span>
+            </div>
+            
+            <div class="stat-row">
+                <span class="stat-label">SPECTRAL GAP (λ₁):</span>
+                <span class="stat-value" id="spectral">0.000</span>
+            </div>
+            
+            <div class="stat-row">
+                <span class="stat-label">CHAIN HEIGHT:</span>
+                <span class="stat-value" id="height">0</span>
+            </div>
+            
+            <div class="stat-row">
+                <span class="stat-label">DIFFICULTY:</span>
+                <span class="stat-value" id="difficulty">0.00e+0</span>
+            </div>
+            
+            <div class="stat-row">
+                <span class="stat-label">MEMPOOL TXs:</span>
+                <span class="stat-value" id="mempool">0</span>
+            </div>
+            
+            <div class="controls">
+                <h3>🎮 CONTROLS</h3>
+                <p>⬆️ W or ↑ - Move Up</p>
+                <p>⬇️ S or ↓ - Move Down</p>
+                <p>⬅️ A or ← - Move Left</p>
+                <p>➡️ D or → - Move Right</p>
+                <br>
+                <button onclick="resetGame()">🔄 RESET GAME</button>
+            </div>
+            
+            <div class="legend">
+                <h3 style="color: #00ccff;">TREASURE RARITY</h3>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: rgb(200,200,200);"></div>
+                    <span>COMMON (0.1 BTC)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: rgb(100,150,255);"></div>
+                    <span>RARE (0.3 BTC)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: rgb(255,100,255);"></div>
+                    <span>EPIC (0.7 BTC)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: rgb(255,215,0);"></div>
+                    <span>LEGENDARY (1.5 BTC)</span>
+                </div>
+            </div>
+            
+            <div class="page-curve">
+                <h3>📈 DETERMINISTIC PAGE CURVE S(R)</h3>
+                <p style="font-size: 11px; color: #ffaaaa;">Ergotropy Islands — Real-time entanglement entropy evolution</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let gameState = null;
+        let lastUpdate = Date.now();
+        
+        // Keyboard state
+        const keys = {};
+        
+        // Initialize
+        async function init() {
+            await fetchGameState();
+            setInterval(update, 100); // 10 FPS
+            setInterval(fetchGameState, 200); // Fetch state 5 times per second
+        }
+        
+        // Fetch game state from server
+        async function fetchGameState() {
+            try {
+                const response = await fetch('/api/game/state');
+                gameState = await response.json();
+                updateStats();
+            } catch (error) {
+                console.error('Failed to fetch game state:', error);
+            }
+        }
+        
+        // Update game logic
+        function update() {
+            handleInput();
+            render();
+        }
+        
+        // Handle keyboard input
+        function handleInput() {
+            let dx = 0;
+            let dy = 0;
+            
+            if (keys['ArrowUp'] || keys['w'] || keys['W']) dy = -1;
+            if (keys['ArrowDown'] || keys['s'] || keys['S']) dy = 1;
+            if (keys['ArrowLeft'] || keys['a'] || keys['A']) dx = -1;
+            if (keys['ArrowRight'] || keys['d'] || keys['D']) dx = 1;
+            
+            if (dx !== 0 || dy !== 0) {
+                movePlayer(dx, dy);
+            }
+        }
+        
+        // Move player via API
+        let lastMoveTime = 0;
+        async function movePlayer(dx, dy) {
+            const now = Date.now();
+            if (now - lastMoveTime < 150) return; // Throttle movement
+            lastMoveTime = now;
+            
+            try {
+                const response = await fetch('/api/game/move', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({dx, dy})
+                });
+                const data = await response.json();
+                if (data.success) {
+                    // Update local state immediately for responsiveness
+                    if (gameState) {
+                        gameState.player = data.player;
+                        gameState.score = data.score;
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to move player:', error);
+            }
+        }
+        
+        // Render game
+        function render() {
+            if (!gameState) return;
+            
+            // Clear canvas
+            ctx.fillStyle = '#0a0020';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw treasure map
+            const treasures = gameState.treasure_map.treasures;
+            treasures.forEach(treasure => {
+                if (!treasure.collected) {
+                    const x = treasure.x * 10 + 50;
+                    const y = treasure.y * 10 + 50;
+                    ctx.fillStyle = `rgb(${treasure.color[0]}, ${treasure.color[1]}, ${treasure.color[2]})`;
+                    ctx.beginPath();
+                    ctx.arc(x, y, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Glow effect for legendary
+                    if (treasure.rarity === 'LEGENDARY') {
+                        ctx.strokeStyle = 'rgba(255, 215, 0, 0.5)';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.arc(x, y, 10, 0, Math.PI * 2);
+                        ctx.stroke();
+                    }
+                }
+            });
+            
+            // Draw player
+            const px = gameState.player.x * 10 + 50;
+            const py = gameState.player.y * 10 + 50;
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(px - 5, py - 5, 10, 10);
+            
+            // Draw player glow
+            ctx.strokeStyle = 'rgba(0, 255, 102, 0.6)';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(px - 7, py - 7, 14, 14);
+            
+            // Draw page curve
+            drawPageCurve();
+            
+            // Draw grid (subtle)
+            ctx.strokeStyle = 'rgba(0, 255, 102, 0.1)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 64; i++) {
+                ctx.beginPath();
+                ctx.moveTo(50 + i * 10, 50);
+                ctx.lineTo(50 + i * 10, 50 + 48 * 10);
+                ctx.stroke();
+            }
+            for (let i = 0; i <= 48; i++) {
+                ctx.beginPath();
+                ctx.moveTo(50, 50 + i * 10);
+                ctx.lineTo(50 + 64 * 10, 50 + i * 10);
+                ctx.stroke();
+            }
+        }
+        
+        // Draw page curve
+        function drawPageCurve() {
+            if (!gameState || !gameState.page_curve || gameState.page_curve.length < 2) return;
+            
+            const curve = gameState.page_curve;
+            const startX = 720;
+            const startY = 580;
+            const width = 260;
+            const height = 120;
+            
+            // Background
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.fillRect(startX, startY - height, width, height);
+            
+            // Find max score for scaling
+            const maxScore = Math.max(...curve.map(p => p.score), 1);
+            
+            // Draw curve
+            ctx.strokeStyle = '#ff5050';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            
+            curve.forEach((point, i) => {
+                const x = startX + (i / curve.length) * width;
+                const y = startY - (point.score / maxScore) * (height - 10);
+                
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            });
+            
+            ctx.stroke();
+            
+            // Label
+            ctx.fillStyle = '#ffaaaa';
+            ctx.font = '12px Courier New';
+            ctx.fillText('PAGE CURVE S(R)', startX + 10, startY - height + 20);
+        }
+        
+        // Update stats panel
+        function updateStats() {
+            if (!gameState) return;
+            
+            document.getElementById('score').textContent = gameState.score.toFixed(2);
+            document.getElementById('wormholes').textContent = gameState.wormholes_active;
+            document.getElementById('spectral').textContent = gameState.spectral_gap.toFixed(3);
+            document.getElementById('height').textContent = gameState.chain_height;
+            document.getElementById('difficulty').textContent = gameState.difficulty.toExponential(2);
+            document.getElementById('mempool').textContent = gameState.mempool_txs;
+        }
+        
+        // Reset game
+        async function resetGame() {
+            try {
+                const response = await fetch('/api/game/reset', {method: 'POST'});
+                const data = await response.json();
+                if (data.success) {
+                    await fetchGameState();
+                    alert('Game reset!');
+                }
+            } catch (error) {
+                console.error('Failed to reset game:', error);
+            }
+        }
+        
+        // Keyboard event listeners
+        window.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+        });
+        
+        window.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+        
+        // Start the game
+        init();
+    </script>
+</body>
+</html>
