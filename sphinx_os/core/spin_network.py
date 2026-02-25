@@ -2,6 +2,7 @@
 """
 SpinNetwork: Simulates a quantum spin network in 6D spacetime.
 """
+import collections
 import numpy as np
 from scipy.sparse import csr_matrix
 from scipy.integrate import solve_ivp
@@ -26,7 +27,7 @@ class SpinNetwork:
         self.total_points = np.prod(grid_size)
         self.state = np.ones(self.total_points, dtype=np.complex128) / np.sqrt(self.total_points)
         self.indices = np.arange(self.total_points).reshape(grid_size)
-        self.ctc_buffer = []
+        self.ctc_buffer = collections.deque(maxlen=self.ctc_steps)
         self.ctc_steps = CONFIG["time_delay_steps"]
         self.ctc_factor = CONFIG["ctc_feedback_factor"]
         logger.info("SpinNetwork initialized with grid size %s", grid_size)
@@ -101,8 +102,6 @@ class SpinNetwork:
         self.state = state_current.reshape(self.grid_size)
         self.state = np.clip(self.state, -CONFIG["field_clamp_max"], CONFIG["field_clamp_max"])
         self.ctc_buffer.append(self.state.copy())
-        if len(self.ctc_buffer) > self.ctc_steps:
-            self.ctc_buffer.pop(0)
         logger.debug("SpinNetwork evolved with %d steps", total_steps)
         return total_steps
 
@@ -137,16 +136,11 @@ class SpinNetwork:
             kinetic_term += inverse_metric[..., mu, mu] * laplacian_mu
         kinetic_energy = -hbar**2 / (2 * m_n) * kinetic_term.flatten()
 
-        potential_energy = np.zeros(N, dtype=np.complex128)
         nugget_norm = np.abs(nugget_field.flatten())**2
         higgs_norm = np.abs(higgs_field.flatten())**2
         higgs_norm = np.clip(higgs_norm, -CONFIG["field_clamp_max"], CONFIG["field_clamp_max"])
         em_potential = np.abs(em_fields["A"][..., 0].flatten())
-        for i in range(N):
-            V_nugget = kappa * nugget_norm[i]
-            V_higgs = lambda_higgs * higgs_norm[i]
-            V_em = e * em_potential[i]
-            potential_energy[i] = V_nugget + V_higgs + V_em
+        potential_energy = kappa * nugget_norm + lambda_higgs * higgs_norm + e * em_potential
 
         # Spin-gravity interaction
         connection = self._compute_affine_connection(metric, inverse_metric, deltas)

@@ -76,13 +76,12 @@ class PoWAlgorithms:
             Hash result
         """
         # Simplified version - multiple rounds of Keccak
-        data = f"{block_data}{nonce}".encode()
-        
-        hash_result = data
+        # Reuse raw bytes across rounds to avoid redundant encode/decode overhead
+        hash_bytes = f"{block_data}{nonce}".encode()
         for _ in range(64):  # Multiple rounds
-            hash_result = hashlib.sha3_256(hash_result).digest()
-        
-        return hash_result.hex()
+            hash_bytes = hashlib.sha3_256(hash_bytes).digest()
+
+        return hash_bytes.hex()
     
     @staticmethod
     def get_algorithm(name: str):
