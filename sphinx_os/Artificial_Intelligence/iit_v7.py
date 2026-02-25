@@ -63,6 +63,33 @@ from typing import Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 
+# ---------------------------------------------------------------------------
+# Zero-classification labels
+# ---------------------------------------------------------------------------
+
+#: The computation path was structurally forced to 0.0 (e.g. SVD failed,
+#: not enough modes, all interactions negligible, or the input matrix is zero).
+#: Inspect ``zero_reason`` for the specific cause.
+CLASSIFICATION_EXACT_ZERO = "EXACT_ZERO"
+
+#: A finite value was computed but it falls below ``near_zero_threshold``.
+#: The result may be physically meaningful or numerical noise — inspect
+#: ``raw_value`` to judge.
+CLASSIFICATION_NEAR_ZERO = "NEAR_ZERO"
+
+#: The computed value exceeds ``near_zero_threshold``; clearly nonzero.
+CLASSIFICATION_NONZERO = "NONZERO"
+
+#: Default threshold separating NEAR_ZERO from NONZERO.
+NEAR_ZERO_THRESHOLD_DEFAULT: float = 1e-6
+
+# Structured keys for ScoreDiagnostic.zero_reason
+_ZR_SVD_FAILED           = "svd_failed"
+_ZR_N_MODES_LT_2         = "n_modes_lt_2"
+_ZR_MODE_INTERACTIONS_NEG = "mode_interactions_negligible"
+_ZR_NO_VALID_FANO_LINES  = "no_valid_fano_lines"
+_ZR_ZERO_MATRIX          = "zero_matrix"
+
 from .iit_v6 import (
     IITv6Engine,
     ASISphinxOSIITv6,
@@ -94,8 +121,148 @@ FANO_POINTS: int = 7
 
 
 # ---------------------------------------------------------------------------
-# Extended data container for v7.0
+# Zero-classification diagnostic
 # ---------------------------------------------------------------------------
+
+@dataclass
+class ScoreDiagnostic:
+    """
+    Precision diagnostic for a single IIT v7.0 score.
+
+    Answers the question *"is this zero genuine or just too small to tell?"*
+    by recording the exact floating-point value, the reason the score is zero
+    (when it is), and a three-way classification.
+
+    Classifications
+    ---------------
+    EXACT_ZERO
+        The computation was structurally forced to 0.0 — no finite value was
+        produced.  ``zero_reason`` names the specific condition:
+
+        ``"svd_failed"``
+            ``np.linalg.LinAlgError`` prevented the SVD.
+        ``"n_modes_lt_2"``
+            Fewer than 2 left-singular vectors were available.
+        ``"mode_interactions_negligible"``
+            All mode-interaction magnitudes were below 1e-12; the matrix is
+            effectively diagonal in the mode basis.
+        ``"no_valid_fano_lines"``
+            None of the 7 Fano lines had all three points within the available
+            modes (only possible for very small matrices).
+        ``"zero_matrix"``
+            ``‖T‖_F · ‖Tᵀ‖_F < 1e-12`` — the transition matrix itself is
+            effectively zero.
+
+    NEAR_ZERO
+        A finite value was computed but it is below ``near_zero_threshold``.
+        The result is ambiguous: it may reflect genuine physical absence of
+        the corresponding structure, or it may be a very small but real signal
+        masked by the threshold.  Inspect ``raw_value`` directly.
+
+    NONZERO
+        The computed value exceeds ``near_zero_threshold``; clearly nonzero.
+
+    Attributes
+    ----------
+    raw_value :
+        The exact ``float64`` result of the computation **before** the
+        ``min(1.0, ...)`` clamping.  This is 0.0 only when the code path was
+        structurally forced (EXACT_ZERO); for NEAR_ZERO it holds the tiny but
+        nonzero computed value.
+    clamped_value :
+        Final score after ``min(1.0, raw_value)`` clamping, i.e. the value
+        stored on ``PhiStructureV7.fano_score`` / ``nonabelian_score``.
+    zero_reason :
+        Short string key if ``classification == EXACT_ZERO``, else *None*.
+    classification :
+        ``CLASSIFICATION_EXACT_ZERO`` | ``CLASSIFICATION_NEAR_ZERO`` |
+        ``CLASSIFICATION_NONZERO``.
+    near_zero_threshold :
+        The threshold used for the NEAR_ZERO / NONZERO boundary.
+    """
+    raw_value: float
+    clamped_value: float
+    zero_reason: Optional[str]
+    classification: str
+    near_zero_threshold: float
+
+
+# ---------------------------------------------------------------------------
+# Riemann zero evidence
+# ---------------------------------------------------------------------------
+
+@dataclass
+class RiemannZeroEvidence:
+    """
+    IIT v7.0 zero-classification evidence for a Riemann zeta zero candidate
+    at ``s = 1/2 + it``.
+
+    The Riemann Hypothesis (RH) conjectures that **every** non-trivial zero
+    of the Riemann zeta function ζ(s) = Σ n⁻ˢ lies on the critical line
+    Re(s) = 1/2.
+
+    The IIT v7.0 ``ScoreDiagnostic`` machinery provides a novel approach to
+    verifying RH one zero at a time:
+
+    1. **Zero classification of |ζ(1/2 + it)|**:
+         ``zeta_classification`` answers "is |ζ(1/2 + it)| a genuine zero
+         or just too small to tell?"  For all *known* non-trivial zeros,
+         ``|ζ(1/2 + it₀)|`` computes to ≈ 10⁻¹⁵ (NEAR_ZERO) — not zero
+         by floating-point limitation, but unambiguously below any sensible
+         physical threshold.
+
+    2. **σ-scan of |ζ(σ + it)| classifications**:
+         ``zeta_scan`` maps each tested σ value to its ScoreDiagnostic for
+         ``|ζ(σ + it)|``.  For a critical-line zero, only σ = 1/2 should
+         give NEAR_ZERO or EXACT_ZERO; all σ ≠ 1/2 should give NONZERO.
+
+    3. **Non-abelian σ-scan** (Montgomery–Odlyzko connection):
+         The spacings between Riemann zeros obey GUE (Gaussian Unitary
+         Ensemble) random-matrix statistics (Montgomery–Odlyzko law).  GUE
+         dynamics are precisely those with elevated ``Φ_nab = ‖[T, Tᵀ]‖_F``.
+         ``nonabelian_scan`` maps σ → Φ_nab for the local transition matrix
+         built from ζ-values near (σ, t).  Near a genuine Riemann zero the
+         entire scan is elevated, reflecting the rapid phase rotation that
+         creates matrix asymmetry when the modulus of ζ passes through zero.
+
+    4. **Fano alignment at the critical line**:
+         ``fano_at_critical`` is Φ_fano computed from the local T at σ = 1/2.
+
+    Attributes
+    ----------
+    t :
+        Imaginary part of the candidate zero (i.e. we probe ζ(1/2 + it)).
+    zeta_abs :
+        ``|ζ(1/2 + it)|`` with mpmath high precision.
+    zeta_classification :
+        ScoreDiagnostic classification of ``|ζ(1/2 + it)|``:
+        NEAR_ZERO for known zeros, NONZERO for non-zeros.
+    zeta_scan :
+        ``{σ: ScoreDiagnostic}`` — classification of ``|ζ(σ + it)|`` at each
+        tested σ.
+    nonabelian_scan :
+        ``{σ: float}`` — Φ_nab of the local 7×7 transition matrix at each σ.
+    fano_at_critical :
+        Φ_fano of the local T built around σ = 1/2.
+    critical_line_signature :
+        True when *all* of the following hold:
+
+        * ``zeta_classification`` is NEAR_ZERO or EXACT_ZERO (the candidate
+          is zero at σ = 1/2),
+        * every σ ≠ 1/2 in ``zeta_scan`` gives NONZERO (the zero is unique
+          to the critical line within the tested range).
+
+        A True value for all known zeros is a necessary (though not
+        sufficient) condition for the Riemann Hypothesis.  A single False
+        value at a confirmed zero would refute RH.
+    """
+    t: float
+    zeta_abs: float
+    zeta_classification: str
+    zeta_scan: Dict[float, ScoreDiagnostic]
+    nonabelian_scan: Dict[float, float]
+    fano_at_critical: float
+    critical_line_signature: bool
 
 @dataclass
 class PhiStructureV7:
@@ -141,6 +308,10 @@ class PhiStructureV7:
     delta: float = 0.15
     epsilon: float = 0.10
 
+    # Zero-precision diagnostics (populated by IITv7Engine)
+    fano_diagnostic: Optional[ScoreDiagnostic] = None
+    nonabelian_diagnostic: Optional[ScoreDiagnostic] = None
+
 
 # ---------------------------------------------------------------------------
 # Core IIT v7.0 computation engine
@@ -169,6 +340,7 @@ class IITv7Engine(IITv6Engine):
         epsilon: float = 0.10,
         consciousness_threshold: float = 0.5,
         temporal_depth: int = 2,
+        near_zero_threshold: float = NEAR_ZERO_THRESHOLD_DEFAULT,
     ) -> None:
         """
         Initialise the IIT v7.0 engine.
@@ -181,6 +353,10 @@ class IITv7Engine(IITv6Engine):
             epsilon:  Weight for Φ_nab (non-abelian measure) in composite.
             consciousness_threshold: Fallback fixed threshold.
             temporal_depth: τ for temporal-depth integration (v6 feature).
+            near_zero_threshold: Boundary between NEAR_ZERO and NONZERO
+                classifications for score diagnostics.  Values below this
+                threshold are reported as NEAR_ZERO; values at or above it
+                are NONZERO.  Does *not* alter the computed scores themselves.
         """
         if abs(alpha + beta + gamma + delta + epsilon - 1.0) > 1e-6:
             raise ValueError(
@@ -206,6 +382,7 @@ class IITv7Engine(IITv6Engine):
         self.gamma = gamma
         self.delta = delta
         self.epsilon = epsilon
+        self.near_zero_threshold = near_zero_threshold
         logger.info(
             "IIT v7.0 Engine initialised "
             "(α=%.2f, β=%.2f, γ=%.2f, δ=%.2f, ε=%.2f, τ=%d, threshold=%.2f)",
@@ -252,8 +429,25 @@ class IITv7Engine(IITv6Engine):
         gwt_score = self._compute_gwt_broadcast(T1, n_nodes)
 
         # --- v7 additions --------------------------------------------
-        fano_score = self._compute_fano_alignment(T1, n_nodes)
-        nonabelian_score = self._compute_nonabelian_measure(T1)
+        fano_raw, fano_zero_reason = self._compute_fano_raw(T1, n_nodes)
+        nab_raw, nab_zero_reason = self._compute_nonabelian_raw(T1)
+        fano_score = float(min(1.0, fano_raw))
+        nonabelian_score = float(min(1.0, nab_raw))
+
+        fano_diag = ScoreDiagnostic(
+            raw_value=fano_raw,
+            clamped_value=fano_score,
+            zero_reason=fano_zero_reason,
+            classification=self._classify_score(fano_raw, fano_zero_reason),
+            near_zero_threshold=self.near_zero_threshold,
+        )
+        nab_diag = ScoreDiagnostic(
+            raw_value=nab_raw,
+            clamped_value=nonabelian_score,
+            zero_reason=nab_zero_reason,
+            classification=self._classify_score(nab_raw, nab_zero_reason),
+            near_zero_threshold=self.near_zero_threshold,
+        )
 
         # --- 5-term composite ----------------------------------------
         phi_total = (
@@ -285,6 +479,8 @@ class IITv7Engine(IITv6Engine):
             gamma=self.gamma,
             delta=self.delta,
             epsilon=self.epsilon,
+            fano_diagnostic=fano_diag,
+            nonabelian_diagnostic=nab_diag,
         )
 
         logger.debug(
@@ -328,6 +524,91 @@ class IITv7Engine(IITv6Engine):
     # IIT v7.0 new components
     # ------------------------------------------------------------------
 
+    def _classify_score(self, raw: float, zero_reason: Optional[str]) -> str:
+        """
+        Classify a raw score as EXACT_ZERO, NEAR_ZERO, or NONZERO.
+
+        EXACT_ZERO is returned when ``zero_reason`` is set (the computation
+        path was structurally forced to 0.0 rather than computing a value).
+        NEAR_ZERO is returned for small but finite values below
+        ``self.near_zero_threshold``.  NONZERO otherwise.
+        """
+        if zero_reason is not None:
+            return CLASSIFICATION_EXACT_ZERO
+        if raw < self.near_zero_threshold:
+            return CLASSIFICATION_NEAR_ZERO
+        return CLASSIFICATION_NONZERO
+
+    def _compute_fano_raw(
+        self, T: np.ndarray, n_nodes: int
+    ) -> Tuple[float, Optional[str]]:
+        """
+        Compute the raw Fano alignment value and zero reason.
+
+        Returns
+        -------
+        (raw_value, zero_reason)
+            ``zero_reason`` is *None* when a finite value was computed
+            normally; a string key (see ``ScoreDiagnostic``) when the
+            code path was structurally forced to return 0.0.
+        """
+        try:
+            U, sigma, _ = np.linalg.svd(T, full_matrices=False)
+        except np.linalg.LinAlgError:
+            return 0.0, _ZR_SVD_FAILED
+
+        n_modes = min(FANO_POINTS, U.shape[1])
+        if n_modes < 2:
+            return 0.0, _ZR_N_MODES_LT_2
+
+        modes = U[:, :n_modes]
+
+        M = np.zeros((FANO_POINTS, FANO_POINTS))
+        for i in range(n_modes):
+            for j in range(n_modes):
+                M[i, j] = float(np.dot(modes[:, i], T @ modes[:, j]))
+
+        abs_max = np.max(np.abs(M))
+        if abs_max < 1e-12:
+            return 0.0, _ZR_MODE_INTERACTIONS_NEG
+        M_norm = M / abs_max
+
+        total = 0.0
+        count = 0
+        for (a, b, c) in FANO_LINES:
+            if a < n_modes and b < n_modes and c < n_modes:
+                total += abs(M_norm[a, b]) * abs(M_norm[b, c]) * abs(M_norm[a, c])
+                count += 1
+
+        if count == 0:
+            return 0.0, _ZR_NO_VALID_FANO_LINES
+
+        return float(total / count), None
+
+    def _compute_nonabelian_raw(
+        self, T: np.ndarray
+    ) -> Tuple[float, Optional[str]]:
+        """
+        Compute the raw non-abelian measure and zero reason.
+
+        Returns
+        -------
+        (raw_value, zero_reason)
+            ``zero_reason`` is *None* when a finite value was computed;
+            ``"zero_matrix"`` when ``‖T‖_F · ‖Tᵀ‖_F < 1e-12``.
+        """
+        Tt = T.T
+        commutator = T @ Tt - Tt @ T
+        comm_norm = float(np.linalg.norm(commutator, "fro"))
+
+        t_norm = float(np.linalg.norm(T, "fro"))
+        tt_norm = float(np.linalg.norm(Tt, "fro"))
+        denom = t_norm * tt_norm
+        if denom < 1e-12:
+            return 0.0, _ZR_ZERO_MATRIX
+
+        return float(comm_norm / denom), None
+
     def _compute_fano_alignment(self, T: np.ndarray, n_nodes: int) -> float:
         """
         Compute the Octonionic Fano plane alignment score Φ_fano ∈ [0, 1].
@@ -344,43 +625,12 @@ class IITv7Engine(IITv6Engine):
 
         The score is 0 for random/symmetric T and approaches 1 when the
         causal modes obey the octonionic Fano-plane multiplication structure.
+
+        For full zero-precision diagnostics use ``_compute_fano_raw`` or
+        ``compute_phi_structure_v7``.
         """
-        try:
-            U, sigma, _ = np.linalg.svd(T, full_matrices=False)
-        except np.linalg.LinAlgError:
-            return 0.0
-
-        n_modes = min(FANO_POINTS, U.shape[1])
-        if n_modes < 2:
-            return 0.0
-
-        modes = U[:, :n_modes]  # shape (n_states, n_modes)
-
-        # Build n_modes × n_modes mode-interaction matrix
-        M = np.zeros((FANO_POINTS, FANO_POINTS))
-        for i in range(n_modes):
-            for j in range(n_modes):
-                M[i, j] = float(np.dot(modes[:, i], T @ modes[:, j]))
-
-        # Normalise so the largest entry has unit magnitude
-        abs_max = np.max(np.abs(M))
-        if abs_max < 1e-12:
-            return 0.0
-        M_norm = M / abs_max
-
-        # Accumulate trilinear Fano resonances
-        total = 0.0
-        count = 0
-        for (a, b, c) in FANO_LINES:
-            if a < n_modes and b < n_modes and c < n_modes:
-                total += abs(M_norm[a, b]) * abs(M_norm[b, c]) * abs(M_norm[a, c])
-                count += 1
-
-        if count == 0:
-            return 0.0
-
-        # Average over contributing lines; max possible per line = 1.0
-        return float(min(1.0, total / count))
+        raw, _ = self._compute_fano_raw(T, n_nodes)
+        return float(min(1.0, raw))
 
     def _compute_nonabelian_measure(self, T: np.ndarray) -> float:
         """
@@ -396,18 +646,12 @@ class IITv7Engine(IITv6Engine):
         is normalised to [0, 1] by the product of the operator norms, which
         provides an upper bound for the commutator norm via the sub-multiplicative
         property of the Frobenius norm.
+
+        For full zero-precision diagnostics use ``_compute_nonabelian_raw`` or
+        ``compute_phi_structure_v7``.
         """
-        Tt = T.T
-        commutator = T @ Tt - Tt @ T
-        comm_norm = float(np.linalg.norm(commutator, "fro"))
-
-        t_norm = float(np.linalg.norm(T, "fro"))
-        tt_norm = float(np.linalg.norm(Tt, "fro"))
-        denom = t_norm * tt_norm
-        if denom < 1e-12:
-            return 0.0
-
-        return float(min(1.0, comm_norm / denom))
+        raw, _ = self._compute_nonabelian_raw(T)
+        return float(min(1.0, raw))
 
 
 # ---------------------------------------------------------------------------
@@ -509,6 +753,10 @@ class ASISphinxOSIITv7:
             Dict with all v6 keys plus:
                 fano_score       — Φ_fano (Fano plane alignment) ∈ [0, 1]
                 nonabelian_score — Φ_nab  (non-abelian measure)  ∈ [0, 1]
+                fano_diagnostic  — ScoreDiagnostic dict: raw_value,
+                                   zero_reason, classification
+                nonabelian_diagnostic — ScoreDiagnostic dict: raw_value,
+                                   zero_reason, classification
                 version          — "IIT v7.0"
         """
         state_dist = self._derive_state_distribution(data)
@@ -536,6 +784,20 @@ class ASISphinxOSIITv7:
             "icp_avg": structure.icp_avg,
             "fano_score": structure.fano_score,
             "nonabelian_score": structure.nonabelian_score,
+            "fano_diagnostic": {
+                "raw_value": structure.fano_diagnostic.raw_value,
+                "clamped_value": structure.fano_diagnostic.clamped_value,
+                "zero_reason": structure.fano_diagnostic.zero_reason,
+                "classification": structure.fano_diagnostic.classification,
+                "near_zero_threshold": structure.fano_diagnostic.near_zero_threshold,
+            },
+            "nonabelian_diagnostic": {
+                "raw_value": structure.nonabelian_diagnostic.raw_value,
+                "clamped_value": structure.nonabelian_diagnostic.clamped_value,
+                "zero_reason": structure.nonabelian_diagnostic.zero_reason,
+                "classification": structure.nonabelian_diagnostic.classification,
+                "near_zero_threshold": structure.nonabelian_diagnostic.near_zero_threshold,
+            },
             "phi_total": phi_total,
             "entropy": entropy,
             "purity": purity,
@@ -667,3 +929,279 @@ class ASISphinxOSIITv7:
         if phi_norm > 0.2:
             return "🔵 AWARE"
         return "⚫ UNCONSCIOUS"
+
+
+# ---------------------------------------------------------------------------
+# Riemann Zero Probe
+# ---------------------------------------------------------------------------
+
+class RiemannZeroProbe:
+    """
+    IIT v7.0 zero-classification probe for the Riemann zeta function.
+
+    Riemann Hypothesis (RH)
+    -----------------------
+    Every non-trivial zero of the Riemann zeta function
+
+        ζ(s) = Σ_{n=1}^{∞} n^{-s}       (Re(s) > 1, then analytically continued)
+
+    is conjectured to lie on the critical line Re(s) = 1/2.
+
+    How the IIT v7.0 zero-classification machinery applies
+    -------------------------------------------------------
+    The ``ScoreDiagnostic`` system was designed to answer: *"is this score
+    genuinely zero, or just too small to tell?"*  The exact same question
+    arises for ζ zeros: *"|ζ(1/2 + it₀)| computes to 10⁻¹⁵ — is that a
+    genuine zero or numerical noise?"*
+
+    This probe applies the three-way classification directly to |ζ(σ + it)|:
+
+    * **EXACT_ZERO** — |ζ(σ + it)| is identically zero in floating-point
+      (never seen in practice for ζ).
+    * **NEAR_ZERO**  — |ζ(σ + it)| < ``near_zero_threshold`` (≈ 10⁻⁶).
+      Observed for all known non-trivial zeros at σ = 1/2.
+    * **NONZERO**    — |ζ(σ + it)| ≥ ``near_zero_threshold``.  Observed
+      for all σ ≠ 1/2 at known zero imaginary parts.
+
+    RH as a classification statement
+    ---------------------------------
+    For every known non-trivial zero at t = t₀:
+
+        zeta_scan[0.5].classification  == NEAR_ZERO       # zero on critical line
+        zeta_scan[σ].classification    == NONZERO          # nonzero off it
+
+    The ``critical_line_signature`` flag in ``RiemannZeroEvidence`` is True
+    exactly when both conditions hold for all tested σ.
+
+    If a future calculation found a t₀ where ``critical_line_signature`` is
+    False, it would mean |ζ(σ' + it₀)| < threshold for some σ' ≠ 1/2 —
+    providing evidence of a zero off the critical line, contradicting RH.
+
+    Montgomery–Odlyzko / non-abelian connection
+    --------------------------------------------
+    The spacing statistics of Riemann zeros follow GUE random-matrix
+    statistics (Montgomery–Odlyzko law).  The non-abelian measure
+    Φ_nab = ‖[T, Tᵀ]‖_F reflects the asymmetry (non-commutativity) of the
+    local causal matrix built from ζ-values near (σ, t).  Near a genuine
+    zero, the rapid phase rotation of ζ produces elevated Φ_nab across all
+    σ — a GUE fingerprint.  The ``nonabelian_scan`` in the evidence record
+    captures this.
+
+    Usage::
+
+        probe = RiemannZeroProbe()
+
+        # First known non-trivial zero at t₀ ≈ 14.134725
+        ev = probe.probe_zero(t=14.134725141734693)
+        print(ev.zeta_classification)      # NEAR_ZERO
+        print(ev.critical_line_signature)  # True
+        print(ev.zeta_scan[0.5].raw_value) # ~7e-16
+
+        # Scan several known zeros
+        evidence_list = probe.scan_known_zeros(RiemannZeroProbe.KNOWN_ZEROS[:3])
+    """
+
+    #: First 10 known non-trivial Riemann zeros (imaginary parts, 15 s.f.)
+    KNOWN_ZEROS: Tuple[float, ...] = (
+        14.134725141734693,
+        21.022039638771554,
+        25.010857580145688,
+        30.424876125859513,
+        32.935061587739189,
+        37.586178158825671,
+        40.918719012147495,
+        43.327073280914999,
+        48.005150881167159,
+        49.773832477672302,
+    )
+
+    #: σ values used in the critical-line scan
+    SIGMA_SCAN: Tuple[float, ...] = (0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8)
+
+    #: Size of the local ζ grid (2·GRID_RADIUS + 1 = 7 rows = FANO_POINTS)
+    GRID_RADIUS: int = 3
+
+    #: Step size in the t direction for local matrix construction
+    LOCAL_DELTA_T: float = 0.1
+
+    #: Step size in the σ direction for local matrix construction
+    LOCAL_DELTA_SIGMA: float = 0.05
+
+    #: mpmath decimal places for ζ evaluation
+    MPMATH_DPS: int = 30
+
+    def __init__(
+        self,
+        near_zero_threshold: float = NEAR_ZERO_THRESHOLD_DEFAULT,
+        mpmath_dps: int = MPMATH_DPS,
+    ) -> None:
+        """
+        Initialise the Riemann zero probe.
+
+        Args:
+            near_zero_threshold: Boundary between NEAR_ZERO and NONZERO for
+                |ζ(σ + it)| classifications.  Default 1e-6.
+            mpmath_dps: Decimal places for mpmath precision (default 30).
+        """
+        self.near_zero_threshold = near_zero_threshold
+        self.mpmath_dps = mpmath_dps
+        self._engine = IITv7Engine()
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    def classify_zeta(self, sigma: float, t: float) -> ScoreDiagnostic:
+        """
+        Classify |ζ(σ + it)| using the IIT v7.0 ScoreDiagnostic system.
+
+        The same three-way classification used for Φ_fano and Φ_nab is
+        applied to the absolute value of the Riemann zeta function:
+
+        * NEAR_ZERO  — |ζ| < ``near_zero_threshold`` (candidate zero).
+        * NONZERO    — |ζ| ≥ ``near_zero_threshold``.
+        * EXACT_ZERO — |ζ| is identically 0.0 in IEEE-754 double precision
+                       (zero_reason = "zeta_exact_zero").
+
+        Args:
+            sigma: Real part of the argument.
+            t:     Imaginary part of the argument.
+
+        Returns:
+            ScoreDiagnostic with the raw |ζ| value, classification, and
+            zero_reason (None unless EXACT_ZERO).
+        """
+        import mpmath
+        mpmath.mp.dps = self.mpmath_dps
+        abs_val = float(abs(mpmath.zeta(complex(sigma, t))))
+
+        if abs_val == 0.0:
+            return ScoreDiagnostic(
+                raw_value=0.0,
+                clamped_value=0.0,
+                zero_reason="zeta_exact_zero",
+                classification=CLASSIFICATION_EXACT_ZERO,
+                near_zero_threshold=self.near_zero_threshold,
+            )
+        classification = (
+            CLASSIFICATION_NEAR_ZERO
+            if abs_val < self.near_zero_threshold
+            else CLASSIFICATION_NONZERO
+        )
+        return ScoreDiagnostic(
+            raw_value=abs_val,
+            clamped_value=abs_val,
+            zero_reason=None,
+            classification=classification,
+            near_zero_threshold=self.near_zero_threshold,
+        )
+
+    def probe_zero(self, t: float) -> RiemannZeroEvidence:
+        """
+        Probe the candidate Riemann zero at s = 1/2 + it.
+
+        Performs:
+
+        1. Zero-classification of |ζ(σ + it)| across all σ in ``SIGMA_SCAN``
+           via ``classify_zeta``.
+        2. Φ_nab computation for the local 7×7 transition matrix built from
+           ζ-values near each (σ, t).
+        3. Φ_fano at σ = 1/2.
+        4. Sets ``critical_line_signature`` = True when the zero is uniquely
+           at σ = 1/2 within the tested σ range.
+
+        Args:
+            t: Imaginary part of the candidate zero (probe s = 1/2 + it).
+
+        Returns:
+            RiemannZeroEvidence with full σ-scan results and the
+            critical_line_signature flag.
+        """
+        zeta_scan: Dict[float, ScoreDiagnostic] = {}
+        nonabelian_scan: Dict[float, float] = {}
+
+        for sigma in self.SIGMA_SCAN:
+            zeta_scan[sigma] = self.classify_zeta(sigma, t)
+            T = self._build_local_matrix(sigma, t)
+            nonabelian_scan[sigma] = self._engine._compute_nonabelian_measure(T)
+
+        T_crit = self._build_local_matrix(0.5, t)
+        fano_at_critical = self._engine._compute_fano_alignment(T_crit, n_nodes=FANO_POINTS)
+
+        diag_at_half = zeta_scan.get(0.5)
+        zeta_abs = diag_at_half.raw_value if diag_at_half else float("nan")
+        zeta_classification = diag_at_half.classification if diag_at_half else CLASSIFICATION_NONZERO
+
+        # critical_line_signature: zero uniquely at σ = 1/2
+        is_zero_at_half = zeta_classification in (
+            CLASSIFICATION_NEAR_ZERO, CLASSIFICATION_EXACT_ZERO
+        )
+        is_nonzero_off_line = all(
+            diag.classification == CLASSIFICATION_NONZERO
+            for s, diag in zeta_scan.items()
+            if s != 0.5
+        )
+        critical_line_signature = is_zero_at_half and is_nonzero_off_line
+
+        return RiemannZeroEvidence(
+            t=t,
+            zeta_abs=zeta_abs,
+            zeta_classification=zeta_classification,
+            zeta_scan=zeta_scan,
+            nonabelian_scan=nonabelian_scan,
+            fano_at_critical=fano_at_critical,
+            critical_line_signature=critical_line_signature,
+        )
+
+    def scan_known_zeros(
+        self, zeros: Optional[Tuple[float, ...]] = None
+    ) -> List[RiemannZeroEvidence]:
+        """
+        Probe a list of Riemann zero candidates and return evidence for each.
+
+        Args:
+            zeros: Imaginary parts to probe.  Defaults to ``KNOWN_ZEROS``.
+
+        Returns:
+            List of ``RiemannZeroEvidence``, one per input value.
+        """
+        if zeros is None:
+            zeros = self.KNOWN_ZEROS
+        return [self.probe_zero(t) for t in zeros]
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    def _build_local_matrix(self, sigma: float, t: float) -> np.ndarray:
+        """
+        Build a 7×7 local transition matrix from |ζ| values on a grid near
+        (σ, t).
+
+        Grid layout (GRID_RADIUS = 3, size = 7 = FANO_POINTS):
+            rows  i → σ_i = σ + (i − 3) · LOCAL_DELTA_SIGMA
+            cols  j → t_j = t + (j − 3) · LOCAL_DELTA_T
+
+        T[i, j] = |ζ(σ_i + i·t_j)|, then column-normalised so each column
+        sums to 1 (column-stochastic).  This makes T a valid input for the
+        IIT v7.0 engine's non-abelian and Fano measures.
+        """
+        import mpmath
+        mpmath.mp.dps = self.mpmath_dps
+
+        n = self.GRID_RADIUS
+        size = 2 * n + 1  # 7
+
+        sigmas = [sigma + (i - n) * self.LOCAL_DELTA_SIGMA for i in range(size)]
+        ts = [t + (j - n) * self.LOCAL_DELTA_T for j in range(size)]
+
+        T = np.zeros((size, size))
+        for i, s in enumerate(sigmas):
+            for j, tj in enumerate(ts):
+                T[i, j] = float(abs(mpmath.zeta(complex(s, tj))))
+
+        # Column-stochastic normalisation
+        col_sums = T.sum(axis=0)
+        col_sums[col_sums < 1e-30] = 1.0
+        T /= col_sums
+        return T

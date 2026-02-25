@@ -29,8 +29,15 @@ from .iit_v7 import (
     ASISphinxOSIITv7,
     IITv7Engine,
     PhiStructureV7,
+    ScoreDiagnostic,
+    RiemannZeroEvidence,
+    RiemannZeroProbe,
     FANO_LINES,
     FANO_POINTS,
+    CLASSIFICATION_EXACT_ZERO,
+    CLASSIFICATION_NEAR_ZERO,
+    CLASSIFICATION_NONZERO,
+    NEAR_ZERO_THRESHOLD_DEFAULT,
 )
 
 __version__ = "7.0.0"
@@ -43,8 +50,15 @@ __all__ = [
     "IITv7Engine",
     "PhiStructure",
     "PhiStructureV7",
+    "ScoreDiagnostic",
+    "RiemannZeroEvidence",
+    "RiemannZeroProbe",
     "CauseEffectRepertoire",
     "Partition",
     "FANO_LINES",
     "FANO_POINTS",
+    "CLASSIFICATION_EXACT_ZERO",
+    "CLASSIFICATION_NEAR_ZERO",
+    "CLASSIFICATION_NONZERO",
+    "NEAR_ZERO_THRESHOLD_DEFAULT",
 ]

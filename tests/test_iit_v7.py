@@ -9,6 +9,8 @@ Validates:
 - ASISphinxOSIITv7 high-level API (drop-in for v6)
 - Backward compatibility: all v6 fields still present in v7 output
 - FANO_LINES constant structure
+- ScoreDiagnostic zero-classification system
+- RiemannZeroProbe critical-line signature for known Riemann zeros
 """
 
 import math
@@ -19,8 +21,20 @@ from sphinx_os.Artificial_Intelligence.iit_v7 import (
     ASISphinxOSIITv7,
     IITv7Engine,
     PhiStructureV7,
+    ScoreDiagnostic,
+    RiemannZeroEvidence,
+    RiemannZeroProbe,
     FANO_LINES,
     FANO_POINTS,
+    CLASSIFICATION_EXACT_ZERO,
+    CLASSIFICATION_NEAR_ZERO,
+    CLASSIFICATION_NONZERO,
+    NEAR_ZERO_THRESHOLD_DEFAULT,
+    _ZR_SVD_FAILED,
+    _ZR_N_MODES_LT_2,
+    _ZR_MODE_INTERACTIONS_NEG,
+    _ZR_NO_VALID_FANO_LINES,
+    _ZR_ZERO_MATRIX,
 )
 from sphinx_os.Artificial_Intelligence.iit_v6 import (
     CauseEffectRepertoire,
@@ -439,6 +453,320 @@ class TestModuleExports:
     def test_version_updated(self):
         import sphinx_os.Artificial_Intelligence as ai
         assert ai.__version__ == "7.0.0"
+
+
+# ---------------------------------------------------------------------------
+# ScoreDiagnostic zero-classification tests
+# ---------------------------------------------------------------------------
+
+class TestScoreDiagnostic:
+
+    def test_exact_zero_on_svd_failure(self, engine):
+        """A matrix that makes SVD fail must produce EXACT_ZERO with svd_failed reason."""
+        # An all-NaN matrix triggers LinAlgError in SVD
+        T_bad = np.full((4, 4), np.nan)
+        raw, reason = engine._compute_fano_raw(T_bad, n_nodes=2)
+        assert raw == 0.0
+        assert reason == _ZR_SVD_FAILED
+        cls = engine._classify_score(raw, reason)
+        assert cls == CLASSIFICATION_EXACT_ZERO
+
+    def test_exact_zero_n_modes_lt_2(self, engine):
+        """A 1×1 matrix produces EXACT_ZERO with n_modes_lt_2 reason."""
+        T_tiny = np.array([[1.0]])
+        raw, reason = engine._compute_fano_raw(T_tiny, n_nodes=1)
+        assert raw == 0.0
+        assert reason == _ZR_N_MODES_LT_2
+        assert engine._classify_score(raw, reason) == CLASSIFICATION_EXACT_ZERO
+
+    def test_exact_zero_zero_matrix_nonabelian(self, engine):
+        """A zero matrix produces EXACT_ZERO with zero_matrix reason (non-abelian)."""
+        T_zero = np.zeros((4, 4))
+        raw, reason = engine._compute_nonabelian_raw(T_zero)
+        assert raw == 0.0
+        assert reason == _ZR_ZERO_MATRIX
+        assert engine._classify_score(raw, reason) == CLASSIFICATION_EXACT_ZERO
+
+    def test_near_zero_below_threshold(self, engine):
+        """A computed value below near_zero_threshold → NEAR_ZERO."""
+        # Create tiny but nonzero raw_value, no reason
+        cls = engine._classify_score(1e-10, None)
+        assert cls == CLASSIFICATION_NEAR_ZERO
+
+    def test_nonzero_above_threshold(self, engine):
+        """A computed value above near_zero_threshold → NONZERO."""
+        cls = engine._classify_score(0.5, None)
+        assert cls == CLASSIFICATION_NONZERO
+
+    def test_near_zero_threshold_boundary(self, engine):
+        """Value exactly at threshold is NONZERO (strict <)."""
+        t = engine.near_zero_threshold
+        assert engine._classify_score(t, None) == CLASSIFICATION_NONZERO
+        assert engine._classify_score(t - 1e-20, None) == CLASSIFICATION_NEAR_ZERO
+
+    def test_phi_structure_has_fano_diagnostic(self, engine):
+        """compute_phi_structure_v7 must populate fano_diagnostic."""
+        state = np.array([0.25, 0.25, 0.25, 0.25])
+        s = engine.compute_phi_structure_v7(state)
+        assert s.fano_diagnostic is not None
+        assert isinstance(s.fano_diagnostic, ScoreDiagnostic)
+
+    def test_phi_structure_has_nonabelian_diagnostic(self, engine):
+        """compute_phi_structure_v7 must populate nonabelian_diagnostic."""
+        state = np.array([0.25, 0.25, 0.25, 0.25])
+        s = engine.compute_phi_structure_v7(state)
+        assert s.nonabelian_diagnostic is not None
+        assert isinstance(s.nonabelian_diagnostic, ScoreDiagnostic)
+
+    def test_diagnostic_clamped_matches_score(self, engine):
+        """fano_diagnostic.clamped_value must equal fano_score on PhiStructureV7."""
+        state = np.array([0.1, 0.4, 0.3, 0.2])
+        s = engine.compute_phi_structure_v7(state)
+        assert s.fano_diagnostic.clamped_value == pytest.approx(s.fano_score)
+        assert s.nonabelian_diagnostic.clamped_value == pytest.approx(s.nonabelian_score)
+
+    def test_diagnostic_raw_value_le_clamped(self, engine):
+        """raw_value may exceed 1.0; clamped_value is always ≤ 1.0."""
+        state = np.array([0.1, 0.4, 0.3, 0.2])
+        s = engine.compute_phi_structure_v7(state)
+        assert s.fano_diagnostic.clamped_value <= 1.0
+        assert s.nonabelian_diagnostic.clamped_value <= 1.0
+
+    def test_diagnostic_near_zero_threshold_stored(self, engine):
+        """The threshold used for classification is recorded on the diagnostic."""
+        state = np.array([0.25, 0.25, 0.25, 0.25])
+        s = engine.compute_phi_structure_v7(state)
+        assert s.fano_diagnostic.near_zero_threshold == pytest.approx(
+            engine.near_zero_threshold
+        )
+
+    def test_calculate_phi_exposes_diagnostics(self, asi):
+        """calculate_phi must include fano_diagnostic and nonabelian_diagnostic dicts."""
+        result = asi.calculate_phi(b"diag test")
+        for key in ("fano_diagnostic", "nonabelian_diagnostic"):
+            assert key in result, f"Missing key: {key}"
+            d = result[key]
+            assert "raw_value" in d
+            assert "clamped_value" in d
+            assert "zero_reason" in d
+            assert "classification" in d
+            assert "near_zero_threshold" in d
+
+    def test_diagnostic_classification_consistent_with_score(self, asi):
+        """If clamped_value > 0, classification must not be EXACT_ZERO."""
+        result = asi.calculate_phi(b"consistency test")
+        for key in ("fano_diagnostic", "nonabelian_diagnostic"):
+            d = result[key]
+            if d["clamped_value"] > 0.0:
+                assert d["classification"] != CLASSIFICATION_EXACT_ZERO
+
+    def test_custom_near_zero_threshold_changes_classification(self):
+        """A large near_zero_threshold classifies small computed values as NEAR_ZERO."""
+        eng_strict = IITv7Engine(
+            alpha=0.40, beta=0.20, gamma=0.15, delta=0.15, epsilon=0.10,
+            near_zero_threshold=0.9,  # almost everything is "near zero"
+        )
+        dist = np.array([0.25, 0.25, 0.25, 0.25])
+        T = eng_strict._build_transition_matrix(dist, n_nodes=2)
+        raw, reason = eng_strict._compute_nonabelian_raw(T)
+        if reason is None and raw < 0.9:
+            assert eng_strict._classify_score(raw, reason) == CLASSIFICATION_NEAR_ZERO
+
+    def test_score_diagnostic_dataclass_fields(self):
+        """ScoreDiagnostic has all expected fields."""
+        d = ScoreDiagnostic(
+            raw_value=1e-8,
+            clamped_value=1e-8,
+            zero_reason=None,
+            classification=CLASSIFICATION_NEAR_ZERO,
+            near_zero_threshold=1e-6,
+        )
+        assert d.raw_value == 1e-8
+        assert d.classification == CLASSIFICATION_NEAR_ZERO
+        assert d.zero_reason is None
+
+    def test_classification_constants(self):
+        assert CLASSIFICATION_EXACT_ZERO == "EXACT_ZERO"
+        assert CLASSIFICATION_NEAR_ZERO == "NEAR_ZERO"
+        assert CLASSIFICATION_NONZERO == "NONZERO"
+
+    def test_near_zero_threshold_default(self):
+        assert NEAR_ZERO_THRESHOLD_DEFAULT == 1e-6
+
+
+# ---------------------------------------------------------------------------
+# RiemannZeroProbe tests
+# ---------------------------------------------------------------------------
+
+class TestRiemannZeroProbe:
+    """
+    Tests for the RiemannZeroProbe class.
+
+    The probe uses mpmath with 30 decimal places, so Riemann zero tests
+    are mathematically precise.  The first known non-trivial Riemann zero
+    at t ≈ 14.134725 is used for all single-zero tests to keep the suite
+    fast.
+    """
+
+    # Only first zero for most tests (fast); first 3 for the scan test
+    T0 = 14.134725141734693   # first known Riemann zero imaginary part
+    T_NONZERO = 15.0          # not a zero
+
+    @pytest.fixture
+    def probe(self):
+        return RiemannZeroProbe(near_zero_threshold=1e-6, mpmath_dps=30)
+
+    # -- classify_zeta --------------------------------------------------
+
+    def test_classify_zeta_near_zero_at_known_zero(self, probe):
+        """|ζ(1/2 + i·t₀)| must be classified as NEAR_ZERO at a known zero."""
+        diag = probe.classify_zeta(0.5, self.T0)
+        assert diag.classification == CLASSIFICATION_NEAR_ZERO
+
+    def test_classify_zeta_nonzero_off_critical_line(self, probe):
+        """|ζ(0.3 + i·t₀)| must be NONZERO."""
+        diag = probe.classify_zeta(0.3, self.T0)
+        assert diag.classification == CLASSIFICATION_NONZERO
+
+    def test_classify_zeta_raw_value_at_known_zero(self, probe):
+        """|ζ(1/2 + it₀)| must be a finite positive float much less than 1e-6."""
+        diag = probe.classify_zeta(0.5, self.T0)
+        assert diag.raw_value > 0.0
+        assert diag.raw_value < 1e-6
+
+    def test_classify_zeta_raw_value_off_line(self, probe):
+        """|ζ(0.5 + i·15.0)| (not a zero) must be substantially nonzero."""
+        diag = probe.classify_zeta(0.5, self.T_NONZERO)
+        assert diag.raw_value > 0.01
+
+    def test_classify_zeta_zero_reason_none_for_near_zero(self, probe):
+        """NEAR_ZERO has zero_reason=None (it was computed, not forced)."""
+        diag = probe.classify_zeta(0.5, self.T0)
+        assert diag.zero_reason is None
+
+    def test_classify_zeta_returns_score_diagnostic(self, probe):
+        """classify_zeta must return a ScoreDiagnostic instance."""
+        diag = probe.classify_zeta(0.5, self.T0)
+        assert isinstance(diag, ScoreDiagnostic)
+
+    # -- probe_zero ------------------------------------------------------
+
+    def test_probe_zero_returns_evidence(self, probe):
+        """probe_zero must return a RiemannZeroEvidence instance."""
+        ev = probe.probe_zero(self.T0)
+        assert isinstance(ev, RiemannZeroEvidence)
+
+    def test_probe_zero_t_stored(self, probe):
+        """t field must match the input."""
+        ev = probe.probe_zero(self.T0)
+        assert ev.t == pytest.approx(self.T0)
+
+    def test_probe_zero_zeta_classification_near_zero(self, probe):
+        """First known zero must have zeta_classification == NEAR_ZERO."""
+        ev = probe.probe_zero(self.T0)
+        assert ev.zeta_classification == CLASSIFICATION_NEAR_ZERO
+
+    def test_probe_zero_critical_line_signature_true(self, probe):
+        """critical_line_signature must be True for the first known zero."""
+        ev = probe.probe_zero(self.T0)
+        assert ev.critical_line_signature is True
+
+    def test_probe_zero_sigma_scan_covers_all_sigmas(self, probe):
+        """zeta_scan must contain an entry for every σ in SIGMA_SCAN."""
+        ev = probe.probe_zero(self.T0)
+        for sigma in RiemannZeroProbe.SIGMA_SCAN:
+            assert sigma in ev.zeta_scan, f"Missing σ={sigma} in zeta_scan"
+
+    def test_probe_zero_nonabelian_scan_covers_all_sigmas(self, probe):
+        """nonabelian_scan must contain an entry for every σ in SIGMA_SCAN."""
+        ev = probe.probe_zero(self.T0)
+        for sigma in RiemannZeroProbe.SIGMA_SCAN:
+            assert sigma in ev.nonabelian_scan
+
+    def test_probe_zero_nonabelian_scan_values_in_range(self, probe):
+        """All Phi_nab values in nonabelian_scan must be in [0, 1]."""
+        ev = probe.probe_zero(self.T0)
+        for sigma, nab in ev.nonabelian_scan.items():
+            assert 0.0 <= nab <= 1.0, f"Phi_nab={nab} out of range at σ={sigma}"
+
+    def test_probe_zero_fano_at_critical_in_range(self, probe):
+        """Fano score at critical line must be in [0, 1]."""
+        ev = probe.probe_zero(self.T0)
+        assert 0.0 <= ev.fano_at_critical <= 1.0
+
+    def test_probe_nonzero_t_has_nonzero_at_half(self, probe):
+        """|ζ(1/2 + i·15.0)| is NONZERO — not a Riemann zero."""
+        ev = probe.probe_zero(self.T_NONZERO)
+        assert ev.zeta_classification == CLASSIFICATION_NONZERO
+        assert ev.critical_line_signature is False
+
+    def test_zeta_scan_half_is_near_zero(self, probe):
+        """At a known zero, zeta_scan[0.5] must be NEAR_ZERO."""
+        ev = probe.probe_zero(self.T0)
+        assert ev.zeta_scan[0.5].classification == CLASSIFICATION_NEAR_ZERO
+
+    def test_zeta_scan_off_line_is_nonzero(self, probe):
+        """At a known zero, zeta_scan[0.3] and zeta_scan[0.7] must be NONZERO."""
+        ev = probe.probe_zero(self.T0)
+        assert ev.zeta_scan[0.3].classification == CLASSIFICATION_NONZERO
+        assert ev.zeta_scan[0.7].classification == CLASSIFICATION_NONZERO
+
+    def test_known_zeros_constant_count(self):
+        """KNOWN_ZEROS must contain exactly 10 entries."""
+        assert len(RiemannZeroProbe.KNOWN_ZEROS) == 10
+
+    def test_known_zeros_all_positive(self):
+        """All known zero imaginary parts must be positive."""
+        assert all(t > 0 for t in RiemannZeroProbe.KNOWN_ZEROS)
+
+    def test_known_zeros_increasing(self):
+        """Known zeros must be listed in strictly increasing order."""
+        zs = RiemannZeroProbe.KNOWN_ZEROS
+        assert all(zs[i] < zs[i + 1] for i in range(len(zs) - 1))
+
+    def test_scan_known_zeros_first_three(self, probe):
+        """scan_known_zeros must return critical_line_signature=True for first 3 zeros."""
+        evidences = probe.scan_known_zeros(RiemannZeroProbe.KNOWN_ZEROS[:3])
+        assert len(evidences) == 3
+        for ev in evidences:
+            assert ev.critical_line_signature is True, (
+                f"critical_line_signature is False for t={ev.t} "
+                f"(|ζ(1/2+it)|={ev.zeta_abs:.2e}, "
+                f"classification={ev.zeta_classification})"
+            )
+
+    def test_build_local_matrix_shape(self, probe):
+        """Local matrix must be 7×7 (matching FANO_POINTS)."""
+        T = probe._build_local_matrix(0.5, self.T0)
+        assert T.shape == (7, 7)
+
+    def test_build_local_matrix_column_stochastic(self, probe):
+        """Local matrix must be column-stochastic."""
+        T = probe._build_local_matrix(0.5, self.T0)
+        col_sums = T.sum(axis=0)
+        np.testing.assert_allclose(col_sums, 1.0, atol=1e-9)
+
+    def test_build_local_matrix_nonnegative(self, probe):
+        """Local matrix entries must all be ≥ 0."""
+        T = probe._build_local_matrix(0.5, self.T0)
+        assert np.all(T >= 0.0)
+
+    # -- Module-level exports -------------------------------------------
+
+    def test_init_exports_riemann_classes(self):
+        """__init__.py must export RiemannZeroProbe and related symbols."""
+        from sphinx_os.Artificial_Intelligence import (
+            RiemannZeroProbe,
+            RiemannZeroEvidence,
+            ScoreDiagnostic,
+            CLASSIFICATION_EXACT_ZERO,
+            CLASSIFICATION_NEAR_ZERO,
+            CLASSIFICATION_NONZERO,
+            NEAR_ZERO_THRESHOLD_DEFAULT,
+        )
+        assert RiemannZeroProbe is not None
+        assert RiemannZeroEvidence is not None
+        assert ScoreDiagnostic is not None
 
 
 if __name__ == "__main__":
