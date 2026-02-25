@@ -318,9 +318,9 @@ class RiemannZeroEvidence:
         """Return a JSON-serialisable dictionary of the evidence record.
 
         ``zeta_scan`` entries are expanded into nested dicts with
-        ``raw_value`` and ``classification`` keys.  ``nonabelian_scan``
-        sigma keys are converted to strings so the result can be passed
-        directly to ``json.dumps``.
+        ``raw_value`` and ``classification`` keys.  Both ``zeta_scan``
+        and ``nonabelian_scan`` sigma keys are converted to strings so
+        the result can be passed directly to ``json.dumps``.
         """
         return {
             "t": self.t,
