@@ -602,19 +602,20 @@ class TestRiemannZeroProbe:
     """
     Tests for the RiemannZeroProbe class.
 
-    The probe uses mpmath with 30 decimal places, so Riemann zero tests
-    are mathematically precise.  The first known non-trivial Riemann zero
-    at t ≈ 14.134725 is used for all single-zero tests to keep the suite
-    fast.
+    The probe uses mpmath with 50 decimal places by default and supports
+    high-precision string coordinates (``KNOWN_ZEROS_HP``) for maximal
+    accuracy.  The first known non-trivial Riemann zero at t ≈ 14.134725
+    is used for all single-zero tests to keep the suite fast.
     """
 
     # Only first zero for most tests (fast); first 3 for the scan test
     T0 = 14.134725141734693   # first known Riemann zero imaginary part
+    T0_HP = "14.134725141734693790457251983562470270784257115699"
     T_NONZERO = 15.0          # not a zero
 
     @pytest.fixture
     def probe(self):
-        return RiemannZeroProbe(near_zero_threshold=1e-6, mpmath_dps=30)
+        return RiemannZeroProbe(near_zero_threshold=1e-6, mpmath_dps=50)
 
     # -- classify_zeta --------------------------------------------------
 
@@ -712,8 +713,12 @@ class TestRiemannZeroProbe:
         assert ev.zeta_scan[0.7].classification == CLASSIFICATION_NONZERO
 
     def test_known_zeros_constant_count(self):
-        """KNOWN_ZEROS must contain exactly 10 entries."""
-        assert len(RiemannZeroProbe.KNOWN_ZEROS) == 10
+        """KNOWN_ZEROS must contain exactly 30 entries."""
+        assert len(RiemannZeroProbe.KNOWN_ZEROS) == 30
+
+    def test_known_zeros_hp_count(self):
+        """KNOWN_ZEROS_HP must contain exactly 30 entries."""
+        assert len(RiemannZeroProbe.KNOWN_ZEROS_HP) == 30
 
     def test_known_zeros_all_positive(self):
         """All known zero imaginary parts must be positive."""
@@ -750,6 +755,46 @@ class TestRiemannZeroProbe:
         """Local matrix entries must all be ≥ 0."""
         T = probe._build_local_matrix(0.5, self.T0)
         assert np.all(T >= 0.0)
+
+    # -- High-precision tests -------------------------------------------
+
+    def test_classify_zeta_hp_much_smaller_than_float(self, probe):
+        """HP string input must yield |ζ| orders of magnitude below float."""
+        diag_hp = probe.classify_zeta(0.5, self.T0_HP)
+        diag_float = probe.classify_zeta(0.5, self.T0)
+        assert diag_hp.raw_value < diag_float.raw_value * 1e-10, (
+            f"HP={diag_hp.raw_value:.2e} should be ≪ float={diag_float.raw_value:.2e}"
+        )
+
+    def test_classify_zeta_hp_near_zero(self, probe):
+        """HP string at known zero must be NEAR_ZERO with |ζ| < 1e-40."""
+        diag = probe.classify_zeta(0.5, self.T0_HP)
+        assert diag.classification == CLASSIFICATION_NEAR_ZERO
+        assert diag.raw_value < 1e-40
+
+    def test_probe_zero_hp_critical_line_signature(self, probe):
+        """probe_zero with HP string must yield critical_line_signature=True."""
+        ev = probe.probe_zero(self.T0_HP)
+        assert ev.critical_line_signature is True
+        assert ev.zeta_abs < 1e-40
+
+    # -- GUE pair-correlation tests -------------------------------------
+
+    def test_probe_zero_has_gue_field(self, probe):
+        """RiemannZeroEvidence must include gue_pair_correlation."""
+        ev = probe.probe_zero(self.T0)
+        assert hasattr(ev, "gue_pair_correlation")
+
+    def test_gue_pair_correlation_is_float(self, probe):
+        """gue_pair_correlation must be a float (not None) for known zeros."""
+        ev = probe.probe_zero(self.T0)
+        assert ev.gue_pair_correlation is not None
+        assert isinstance(ev.gue_pair_correlation, float)
+
+    def test_gue_pair_correlation_in_range(self, probe):
+        """GUE pair-correlation must be in [-1, 1] (Pearson correlation)."""
+        ev = probe.probe_zero(self.T0)
+        assert -1.0 <= ev.gue_pair_correlation <= 1.0
 
     # -- Module-level exports -------------------------------------------
 
