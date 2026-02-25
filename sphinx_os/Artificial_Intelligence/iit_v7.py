@@ -314,6 +314,41 @@ class RiemannZeroEvidence:
     zeta_threshold: float = NEAR_ZERO_THRESHOLD_DEFAULT
     margin_factor: float = 1.0
 
+    def to_dict(self) -> Dict:
+        """Return a JSON-serialisable dictionary of the evidence record.
+
+        ``zeta_scan`` entries are expanded into nested dicts with
+        ``raw_value`` and ``classification`` keys.  ``nonabelian_scan``
+        sigma keys are converted to strings so the result can be passed
+        directly to ``json.dumps``.
+        """
+        return {
+            "t": self.t,
+            "zeta_abs": self.zeta_abs,
+            "zeta_classification": self.zeta_classification,
+            "zeta_scan": {
+                str(sigma): {
+                    "raw_value": diag.raw_value,
+                    "classification": diag.classification,
+                }
+                for sigma, diag in self.zeta_scan.items()
+            },
+            "nonabelian_scan": {
+                str(sigma): val
+                for sigma, val in self.nonabelian_scan.items()
+            },
+            "fano_at_critical": self.fano_at_critical,
+            "critical_line_signature": self.critical_line_signature,
+            "gue_pair_correlation": self.gue_pair_correlation,
+            "min_other_raw": self.min_other_raw,
+            "separation_ratio": self.separation_ratio,
+            "refined_t": self.refined_t,
+            "refine_iterations": self.refine_iterations,
+            "refine_residual": self.refine_residual,
+            "zeta_threshold": self.zeta_threshold,
+            "margin_factor": self.margin_factor,
+        }
+
 @dataclass
 class PhiStructureV7:
     """
@@ -1383,6 +1418,42 @@ class RiemannZeroProbe:
         if zeros is None:
             zeros = self.KNOWN_ZEROS_HP
         return [self.probe_zero(t) for t in zeros]
+
+    def publish_results(
+        self,
+        zeros: Optional[Sequence[Union[float, str]]] = None,
+    ) -> Dict:
+        """Run the probe on *zeros* and return a JSON-serialisable report.
+
+        The report includes per-zero evidence dictionaries (via
+        ``RiemannZeroEvidence.to_dict``) and an aggregate summary
+        with the number of zeros probed and how many satisfy the
+        critical-line signature.
+
+        Args:
+            zeros: Imaginary parts to probe.  Defaults to the first
+                three entries of ``KNOWN_ZEROS_HP`` for a fast yet
+                meaningful result set.
+
+        Returns:
+            A dictionary with ``"summary"`` and ``"evidence"`` keys,
+            directly passable to ``json.dumps``.
+        """
+        if zeros is None:
+            zeros = self.KNOWN_ZEROS_HP[:3]
+        evidences = self.scan_known_zeros(zeros)
+        return {
+            "summary": {
+                "zeros_probed": len(evidences),
+                "critical_line_confirmed": sum(
+                    1 for ev in evidences if ev.critical_line_signature
+                ),
+                "mpmath_dps": self.mpmath_dps,
+                "zeta_threshold": self._get_zeta_threshold(),
+                "margin_factor": self.margin_factor,
+            },
+            "evidence": [ev.to_dict() for ev in evidences],
+        }
 
     # ------------------------------------------------------------------
     # Internal helpers

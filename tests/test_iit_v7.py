@@ -983,5 +983,104 @@ class TestRiemannZeroProbeEnhancements:
         ev = probe.probe_zero(self.T_NONZERO)
         assert ev.critical_line_signature is False
 
+
+class TestRiemannZeroPublishResults:
+    """Tests for RiemannZeroEvidence.to_dict and RiemannZeroProbe.publish_results."""
+
+    T0 = 14.134725141734693
+    T0_HP = "14.134725141734693790457251983562470270784257115699"
+
+    @pytest.fixture
+    def probe(self):
+        return RiemannZeroProbe(near_zero_threshold=1e-6, mpmath_dps=50,
+                                zeta_near_zero_threshold=1e-6)
+
+    # -- to_dict -----------------------------------------------------------
+
+    def test_to_dict_returns_dict(self, probe):
+        """to_dict must return a plain dict."""
+        ev = probe.probe_zero(self.T0)
+        d = ev.to_dict()
+        assert isinstance(d, dict)
+
+    def test_to_dict_has_all_top_level_keys(self, probe):
+        """to_dict must contain all evidence fields."""
+        ev = probe.probe_zero(self.T0)
+        d = ev.to_dict()
+        expected_keys = {
+            "t", "zeta_abs", "zeta_classification", "zeta_scan",
+            "nonabelian_scan", "fano_at_critical", "critical_line_signature",
+            "gue_pair_correlation", "min_other_raw", "separation_ratio",
+            "refined_t", "refine_iterations", "refine_residual",
+            "zeta_threshold", "margin_factor",
+        }
+        assert expected_keys == set(d.keys())
+
+    def test_to_dict_is_json_serialisable(self, probe):
+        """to_dict output must be serialisable with json.dumps."""
+        import json
+        ev = probe.probe_zero(self.T0)
+        d = ev.to_dict()
+        text = json.dumps(d)
+        assert isinstance(text, str)
+
+    def test_to_dict_zeta_scan_sigma_keys_are_strings(self, probe):
+        """zeta_scan keys in the dict must be strings (for JSON compat)."""
+        ev = probe.probe_zero(self.T0)
+        d = ev.to_dict()
+        for key in d["zeta_scan"]:
+            assert isinstance(key, str)
+
+    def test_to_dict_preserves_values(self, probe):
+        """Round-trip key values must match the original evidence."""
+        ev = probe.probe_zero(self.T0)
+        d = ev.to_dict()
+        assert d["t"] == ev.t
+        assert d["zeta_abs"] == ev.zeta_abs
+        assert d["critical_line_signature"] == ev.critical_line_signature
+        assert d["zeta_classification"] == ev.zeta_classification
+
+    # -- publish_results ---------------------------------------------------
+
+    def test_publish_results_returns_dict(self, probe):
+        """publish_results must return a dict."""
+        result = probe.publish_results([self.T0])
+        assert isinstance(result, dict)
+
+    def test_publish_results_has_summary_and_evidence(self, probe):
+        """publish_results must contain 'summary' and 'evidence' keys."""
+        result = probe.publish_results([self.T0])
+        assert "summary" in result
+        assert "evidence" in result
+
+    def test_publish_results_summary_fields(self, probe):
+        """Summary must report zeros_probed and critical_line_confirmed."""
+        result = probe.publish_results([self.T0])
+        summary = result["summary"]
+        assert summary["zeros_probed"] == 1
+        assert "critical_line_confirmed" in summary
+        assert "mpmath_dps" in summary
+        assert "zeta_threshold" in summary
+        assert "margin_factor" in summary
+
+    def test_publish_results_evidence_count_matches(self, probe):
+        """Evidence list length must match the number of zeros supplied."""
+        zeros = RiemannZeroProbe.KNOWN_ZEROS[:2]
+        result = probe.publish_results(zeros)
+        assert len(result["evidence"]) == 2
+
+    def test_publish_results_is_json_serialisable(self, probe):
+        """publish_results output must serialise with json.dumps."""
+        import json
+        result = probe.publish_results([self.T0])
+        text = json.dumps(result)
+        assert isinstance(text, str)
+
+    def test_publish_results_default_uses_three_zeros(self, probe):
+        """Default publish_results (no args) must probe 3 zeros."""
+        result = probe.publish_results()
+        assert result["summary"]["zeros_probed"] == 3
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
