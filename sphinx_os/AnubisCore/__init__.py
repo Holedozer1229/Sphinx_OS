@@ -19,6 +19,17 @@ from .skynet_integration import SkynetNode, SkynetNetwork
 from .quantum_core import QuantumCore
 from .spacetime_core import SpacetimeCore
 from .conscious_oracle import ConsciousOracle, IITQuantumConsciousnessEngine
+from .fiber_cv_quantum import (
+    ANUBISFiberCVProcessor,
+    SKYNTPhaseNetwork,
+    SphinxOSAdaptiveController,
+    ClusterStateEntangler,
+    STOVModeImprinter,
+    SqueezedLightSource,
+    FiberLoopMultiplexer,
+    RareEarthMemory,
+    HomodyneDetector,
+)
 
 __version__ = "1.0.0"
 __all__ = [
@@ -30,4 +41,14 @@ __all__ = [
     "SpacetimeCore",
     "ConsciousOracle",
     "IITQuantumConsciousnessEngine",
+    # ANUBIS™ Fiber-Optic CV Quantum Computing
+    "ANUBISFiberCVProcessor",
+    "SKYNTPhaseNetwork",
+    "SphinxOSAdaptiveController",
+    "ClusterStateEntangler",
+    "STOVModeImprinter",
+    "SqueezedLightSource",
+    "FiberLoopMultiplexer",
+    "RareEarthMemory",
+    "HomodyneDetector",
 ]
