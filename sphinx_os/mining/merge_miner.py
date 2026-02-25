@@ -37,6 +37,7 @@ class MergeMiningCoordinator:
             'btc_blocks_found': 0,
             'eth_blocks_found': 0,
             'etc_blocks_found': 0,
+            'skynt_blocks_found': 0,
             'total_aux_rewards': 0.0
         }
     
@@ -48,7 +49,7 @@ class MergeMiningCoordinator:
             chain: Chain name (btc, eth, etc)
         """
         chain = chain.lower()
-        supported = ['btc', 'eth', 'etc']
+        supported = ['btc', 'eth', 'etc', 'skynt']
         
         if chain not in supported:
             raise ValueError(f"Unsupported chain: {chain}. Supported: {supported}")
@@ -166,6 +167,7 @@ class MergeMiningCoordinator:
             'btc_blocks': self.stats['btc_blocks_found'],
             'eth_blocks': self.stats['eth_blocks_found'],
             'etc_blocks': self.stats['etc_blocks_found'],
+            'skynt_blocks': self.stats['skynt_blocks_found'],
             'total_rewards': self.calculate_total_rewards(),
             'reward_distribution': {
                 'main_chain': f"{self.main_chain_share * 100}%",

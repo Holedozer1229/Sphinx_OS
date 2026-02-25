@@ -16,6 +16,7 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from sphinx_os.blockchain.core import SphinxSkynetBlockchain
+from sphinx_os.blockchain.btc_hard_fork import SKYNTBTCChain, BTC_GENESIS_HASH
 from sphinx_os.mining.miner import SphinxMiner
 from sphinx_os.mining.merge_miner import MergeMiningCoordinator
 
@@ -42,6 +43,9 @@ class TransactionRequest(BaseModel):
 blockchain = SphinxSkynetBlockchain()
 miner: Optional[SphinxMiner] = None
 merge_coordinator: Optional[MergeMiningCoordinator] = None
+
+# SKYNT-BTC hard fork chain (singleton, lazy-deployed via API)
+skynt_btc_chain: SKYNTBTCChain = SKYNTBTCChain()
 
 
 # Create FastAPI app
@@ -370,6 +374,44 @@ async def get_consciousness_metrics(block_index: Optional[int] = None):
             "phi_timeline": phi_timeline,
         }
 
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ---------------------------------------------------------------------------
+# SKYNT-BTC hard fork endpoints
+# ---------------------------------------------------------------------------
+
+@app.get("/api/skynt-btc/info")
+async def skynt_btc_info():
+    """
+    Return current SKYNT-BTC chain state.
+
+    Includes genesis block details, hard-fork anchor (BTC genesis hash),
+    PoW algorithm (Spectral IIT), and deployment status.
+    """
+    try:
+        return skynt_btc_chain.get_chain_info()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/skynt-btc/deploy")
+async def skynt_btc_deploy():
+    """
+    Deploy the SKYNT-BTC hard fork chain (idempotent).
+
+    Seals the genesis block, records the deployment timestamp, and
+    returns the full deployment receipt including:
+
+    - ``genesis_hash``  — hash of the SKYNT-BTC genesis block
+    - ``btc_fork_point`` — Bitcoin genesis hash (canonical fork anchor)
+    - ``pow_algorithm``  — ``"spectral"`` (Spectral IIT PoW)
+    - ``iit_phi_threshold`` — minimum normalised Φ required per block
+    """
+    try:
+        receipt = skynt_btc_chain.deploy()
+        return receipt
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
