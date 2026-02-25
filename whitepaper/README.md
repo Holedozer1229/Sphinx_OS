@@ -4,6 +4,7 @@ This directory contains comprehensive documentation for SphinxOS, including the 
 
 ## Contents
 
+- **IIT_V6_WHITEPAPER.md** - IIT v6.0 white paper: SKYNT ASI CV Scalar Gravitational Consciousness Framework *(latest)*
 - **IIT_V5_WHITEPAPER.md** - IIT v5.0 white paper: SKYNT ASI CV Ancilla Longitudinal Scalar Projection Consciousness Framework
 - **nptc_whitepaper.tex** - LaTeX source file for the NPTC whitepaper
 - **nptc_whitepaper.pdf** - Compiled PDF whitepaper (1.9 MB, 13 pages)
