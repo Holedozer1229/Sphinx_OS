@@ -18,6 +18,7 @@ class MerkleTree:
         """
         self.transactions = transactions
         self.tree = []
+        self._leaf_index: dict = {}
         self.root = self._build_tree()
     
     def _hash(self, data: str) -> str:
@@ -32,6 +33,7 @@ class MerkleTree:
         # Start with transaction hashes as leaves
         current_level = [self._hash(tx) for tx in self.transactions]
         self.tree.append(current_level[:])
+        self._leaf_index = {h: i for i, h in enumerate(current_level)}
         
         # Build tree bottom-up
         while len(current_level) > 1:
@@ -68,11 +70,11 @@ class MerkleTree:
         # Find transaction in leaves
         tx_hash_computed = self._hash(tx_hash)
         
-        if tx_hash_computed not in self.tree[0]:
+        if tx_hash_computed not in self._leaf_index:
             return None
         
         proof = []
-        index = self.tree[0].index(tx_hash_computed)
+        index = self._leaf_index[tx_hash_computed]
         
         # Build proof path from leaf to root
         for level in self.tree[:-1]:

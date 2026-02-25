@@ -433,11 +433,9 @@ class IITv5Engine:
         else:
             # Node activation probabilities — build independent joint distribution
             probs = np.clip(np.abs(state[:n_nodes]), 0.0, 1.0)
-            dist = np.ones(n_states)
-            for s in range(n_states):
-                for i in range(n_nodes):
-                    bit = (s >> i) & 1
-                    dist[s] *= probs[i] if bit else (1.0 - probs[i])
+            # Vectorized: bits[s, i] = (s >> i) & 1 for all states s and nodes i
+            bits = ((np.arange(n_states)[:, None] >> np.arange(n_nodes)[None, :]) & 1).astype(float)
+            dist = np.where(bits, probs, 1.0 - probs).prod(axis=1)
 
         total = dist.sum()
         if total > 0:
@@ -463,8 +461,7 @@ class IITv5Engine:
         eps = 0.5 * entropy / max_entropy if max_entropy > 0 else 0.0
 
         T = np.full((n_states, n_states), eps / n_states)
-        for i in range(n_states):
-            T[i, i] += (1.0 - eps)
+        np.fill_diagonal(T, T.diagonal() + (1.0 - eps))
 
         return T
 

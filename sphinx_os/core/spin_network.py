@@ -169,7 +169,12 @@ class SpinNetwork:
         if np.any(np.isnan(diagonal)):
             logger.warning("NaN detected in Hamiltonian diagonal")
 
-        rows, cols, data = [], [], []
+        # Pre-allocate arrays for off-diagonal entries (up to 2 neighbors per dim, 2 symmetric entries each)
+        max_entries = N * 6 * 4
+        rows_arr = np.empty(max_entries, dtype=np.intp)
+        cols_arr = np.empty(max_entries, dtype=np.intp)
+        data_arr = np.empty(max_entries, dtype=np.complex128)
+        count = 0
         for idx in np.ndindex(self.grid_size):
             i = self.indices[idx]
             for mu in range(6):
@@ -179,18 +184,16 @@ class SpinNetwork:
                     idx_plus[mu] += 1
                     j = self.indices[tuple(idx_plus)]
                     coupling = inverse_metric[idx][mu, mu] * hbar * c / deltas[mu]
-                    rows.extend([i, j])
-                    cols.extend([j, i])
-                    data.extend([coupling, coupling])
+                    rows_arr[count] = i; cols_arr[count] = j; data_arr[count] = coupling; count += 1
+                    rows_arr[count] = j; cols_arr[count] = i; data_arr[count] = coupling; count += 1
                 if idx[mu] > 0:
                     idx_minus[mu] -= 1
                     j = self.indices[tuple(idx_minus)]
                     coupling = inverse_metric[idx][mu, mu] * hbar * c / deltas[mu]
-                    rows.extend([i, j])
-                    cols.extend([j, i])
-                    data.extend([coupling, coupling])
+                    rows_arr[count] = i; cols_arr[count] = j; data_arr[count] = coupling; count += 1
+                    rows_arr[count] = j; cols_arr[count] = i; data_arr[count] = coupling; count += 1
 
-        H = csr_matrix((data, (rows, cols)), shape=(N, N), dtype=np.complex128)
+        H = csr_matrix((data_arr[:count], (rows_arr[:count], cols_arr[:count])), shape=(N, N), dtype=np.complex128)
         H += csr_matrix((diagonal, (np.arange(N), np.arange(N))), dtype=np.complex128)
         return H
 
