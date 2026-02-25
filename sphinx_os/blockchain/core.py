@@ -36,11 +36,19 @@ class SphinxSkynetBlockchain:
         self.transaction_pool: List[Transaction] = []
         self.consensus = ConsensusEngine()
         self.chain_manager = ChainManager()
-        
+
+        # Fast-lookup indexes
+        self._block_by_hash: Dict[str, Block] = {}
+        self._tx_index: Dict[str, Transaction] = {}
+        self._pool_input_refs: set = set()  # "txid:index" strings for inputs in pool
+
         # Create genesis block
         genesis = Block.create_genesis_block()
         self.chain.append(genesis)
-        
+        self._block_by_hash[genesis.hash] = genesis
+        for tx in genesis.transactions:
+            self._tx_index[tx.txid] = tx
+
         # Statistics
         self.stats = {
             'total_blocks': 1,
@@ -56,10 +64,7 @@ class SphinxSkynetBlockchain:
     
     def get_block_by_hash(self, block_hash: str) -> Optional[Block]:
         """Get block by hash"""
-        for block in self.chain:
-            if block.hash == block_hash:
-                return block
-        return None
+        return self._block_by_hash.get(block_hash)
     
     def get_block_by_height(self, height: int) -> Optional[Block]:
         """Get block by height/index"""
@@ -84,15 +89,15 @@ class SphinxSkynetBlockchain:
         if not transaction.verify(utxo_set):
             return False
         
-        # Check for double-spend in pool
-        for tx in self.transaction_pool:
-            for inp1 in transaction.inputs:
-                for inp2 in tx.inputs:
-                    if (inp1.prev_txid == inp2.prev_txid and 
-                        inp1.output_index == inp2.output_index):
-                        return False
-        
+        # Check for double-spend in pool using O(1) set lookup
+        for inp in transaction.inputs:
+            ref = f"{inp.prev_txid}:{inp.output_index}"
+            if ref in self._pool_input_refs:
+                return False
+
         self.transaction_pool.append(transaction)
+        for inp in transaction.inputs:
+            self._pool_input_refs.add(f"{inp.prev_txid}:{inp.output_index}")
         return True
     
     def create_block(
@@ -183,15 +188,25 @@ class SphinxSkynetBlockchain:
         ):
             return False
         
-        # Add to chain
+        # Add to chain and update block hash index
         self.chain.append(block)
-        
-        # Remove mined transactions from pool
+        self._block_by_hash[block.hash] = block
+
+        # Remove mined transactions from pool and update indexes
         mined_txids = {tx.txid for tx in block.transactions}
+        # Rebuild pool input refs for remaining pool transactions
         self.transaction_pool = [
             tx for tx in self.transaction_pool
             if tx.txid not in mined_txids
         ]
+        self._pool_input_refs = {
+            f"{inp.prev_txid}:{inp.output_index}"
+            for tx in self.transaction_pool
+            for inp in tx.inputs
+        }
+        # Index all transactions in the confirmed block
+        for tx in block.transactions:
+            self._tx_index[tx.txid] = tx
         
         # Update stats
         self.stats['total_blocks'] += 1
@@ -220,17 +235,16 @@ class SphinxSkynetBlockchain:
     
     def get_transaction(self, txid: str) -> Optional[Transaction]:
         """Get transaction by ID"""
-        # Search in chain
-        for block in self.chain:
-            for tx in block.transactions:
-                if tx.txid == txid:
-                    return tx
-        
-        # Search in pool
+        # Check confirmed-transaction index first (O(1))
+        tx = self._tx_index.get(txid)
+        if tx is not None:
+            return tx
+
+        # Fall back to pool search
         for tx in self.transaction_pool:
             if tx.txid == txid:
                 return tx
-        
+
         return None
     
     def get_chain_stats(self) -> Dict:
