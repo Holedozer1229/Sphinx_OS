@@ -1,0 +1,34 @@
+{
+  "version": 2,
+  "name": "sphinxos-dapp",
+  "buildCommand": "cd dapp && npm install && npm run build",
+  "outputDirectory": "dapp/.next",
+  "installCommand": "cd dapp && npm install",
+  "framework": "nextjs",
+  "rootDirectory": "dapp",
+  "env": {
+    "NEXT_PUBLIC_SKYNT_MAINNET":         "",
+    "NEXT_PUBLIC_BRIDGE_MAINNET":        "",
+    "NEXT_PUBLIC_AGGREGATOR_MAINNET":    "",
+    "NEXT_PUBLIC_NFT_MAINNET":           "",
+    "NEXT_PUBLIC_SKYNT_POLYGON":         "",
+    "NEXT_PUBLIC_BRIDGE_POLYGON":        "",
+    "NEXT_PUBLIC_AGGREGATOR_POLYGON":    "",
+    "NEXT_PUBLIC_NFT_POLYGON":           "",
+    "NEXT_PUBLIC_SKYNT_ARBITRUM":        "",
+    "NEXT_PUBLIC_BRIDGE_ARBITRUM":       "",
+    "NEXT_PUBLIC_AGGREGATOR_ARBITRUM":   "",
+    "NEXT_PUBLIC_NFT_ARBITRUM":          ""
+  },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options",  "value": "nosniff" },
+        { "key": "X-Frame-Options",          "value": "DENY" },
+        { "key": "X-XSS-Protection",         "value": "1; mode=block" },
+        { "key": "Referrer-Policy",          "value": "strict-origin-when-cross-origin" }
+      ]
+    }
+  ]
+}

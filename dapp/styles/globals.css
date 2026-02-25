@@ -1,0 +1,201 @@
+/* SphinxOS DApp — global styles */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #0d1117;
+  --surface:   #161b22;
+  --border:    #30363d;
+  --text:      #c9d1d9;
+  --muted:     #8b949e;
+  --accent:    #58a6ff;
+  --accent2:   #d2a8ff;
+  --success:   #3fb950;
+  --warning:   #d29922;
+  --danger:    #f85149;
+  --gold:      #ffd700;
+  --radius:    8px;
+  --shadow:    0 2px 12px rgba(0,0,0,.5);
+  --transition: 0.2s ease;
+}
+
+html, body {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+h1, h2, h3, h4 { color: var(--accent); font-weight: 600; }
+
+/* ── Layout ── */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* ── Nav ── */
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.nav-logo {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--gold);
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.nav-links { display: flex; gap: 24px; }
+.nav-links a { color: var(--muted); transition: color var(--transition); }
+.nav-links a:hover, .nav-links a.active { color: var(--text); text-decoration: none; }
+
+/* ── Cards ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  box-shadow: var(--shadow);
+}
+.card h2 { font-size: 1.1rem; margin-bottom: 16px; }
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 20px;
+  border-radius: var(--radius);
+  border: none;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity var(--transition), transform var(--transition);
+}
+.btn:hover:not(:disabled) { opacity: 0.85; transform: translateY(-1px); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-primary   { background: var(--accent);  color: #0d1117; }
+.btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+.btn-success   { background: var(--success); color: #0d1117; }
+.btn-danger    { background: var(--danger);  color: #fff; }
+.btn-gold      { background: var(--gold);    color: #0d1117; }
+
+/* ── Inputs ── */
+.input-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+.input-group label { font-size: 0.85rem; color: var(--muted); }
+.input {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  color: var(--text);
+  font-size: 1rem;
+  outline: none;
+  transition: border-color var(--transition);
+  width: 100%;
+}
+.input:focus { border-color: var(--accent); }
+
+/* ── Stats row ── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+  margin: 24px 0;
+}
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  text-align: center;
+}
+.stat-card .value { font-size: 1.5rem; font-weight: 700; color: var(--gold); }
+.stat-card .label { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
+
+/* ── Tags/badges ── */
+.badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.badge-blue   { background: #1a3a5c; color: var(--accent); }
+.badge-purple { background: #2d1f4e; color: var(--accent2); }
+.badge-green  { background: #0f2d17; color: var(--success); }
+.badge-yellow { background: #2d2300; color: var(--warning); }
+
+/* ── Hero ── */
+.hero {
+  text-align: center;
+  padding: 72px 24px 48px;
+}
+.hero h1 { font-size: clamp(2rem, 5vw, 3.5rem); color: var(--gold); margin-bottom: 16px; }
+.hero p  { font-size: 1.1rem; color: var(--muted); max-width: 600px; margin: 0 auto 32px; }
+
+/* ── Grid layouts ── */
+.grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 24px; }
+.grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+
+/* ── Misc ── */
+.text-muted   { color: var(--muted); }
+.text-success { color: var(--success); }
+.text-danger  { color: var(--danger); }
+.text-gold    { color: var(--gold); }
+.text-center  { text-align: center; }
+.mt-16 { margin-top: 16px; }
+.mt-24 { margin-top: 24px; }
+.mb-24 { margin-bottom: 24px; }
+.flex { display: flex; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.gap-8  { gap: 8px; }
+.gap-16 { gap: 16px; }
+
+/* ── Wallet button ── */
+.wallet-btn {
+  padding: 8px 18px;
+  border-radius: 99px;
+  background: var(--accent);
+  color: #0d1117;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: opacity var(--transition);
+}
+.wallet-btn:hover { opacity: 0.85; }
+.wallet-connected {
+  background: #0f2d17;
+  color: var(--success);
+  border: 1px solid var(--success);
+}
+
+/* ── Toast / Alert ── */
+.alert {
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  margin: 12px 0;
+}
+.alert-info    { background: #1a3a5c; color: var(--accent); border: 1px solid var(--accent); }
+.alert-success { background: #0f2d17; color: var(--success); border: 1px solid var(--success); }
+.alert-error   { background: #2d0f0f; color: var(--danger);  border: 1px solid var(--danger); }
