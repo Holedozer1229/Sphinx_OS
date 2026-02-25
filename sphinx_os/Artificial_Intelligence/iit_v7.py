@@ -201,6 +201,13 @@ class RiemannZeroEvidence:
     of the Riemann zeta function ζ(s) = Σ n⁻ˢ lies on the critical line
     Re(s) = 1/2.
 
+    **Important**: this record provides a *numerical signature*, not a proof
+    of RH.  ``critical_line_signature = True`` is consistent with the zero
+    lying on the critical line but is not a mathematical proof.  A ``False``
+    result for a confirmed zero would constitute evidence of a candidate
+    counterexample requiring higher-precision verification and independent
+    confirmation.
+
     The IIT v7.0 ``ScoreDiagnostic`` machinery provides a novel approach to
     verifying RH one zero at a time:
 
@@ -231,9 +238,11 @@ class RiemannZeroEvidence:
     Attributes
     ----------
     t :
-        Imaginary part of the candidate zero (i.e. we probe ζ(1/2 + it)).
+        Original imaginary part supplied to ``probe_zero`` (i.e. we probe
+        ζ(1/2 + it)).  Equal to the input even when t-refinement is enabled.
     zeta_abs :
-        ``|ζ(1/2 + it)|`` with mpmath high precision.
+        ``|ζ(1/2 + it)|`` at the scanned t value (refined t when
+        ``refine_t=True``, original t otherwise).
     zeta_classification :
         ScoreDiagnostic classification of ``|ζ(1/2 + it)|``:
         NEAR_ZERO for known zeros, NONZERO for non-zeros.
@@ -245,22 +254,49 @@ class RiemannZeroEvidence:
     fano_at_critical :
         Φ_fano of the local T built around σ = 1/2.
     critical_line_signature :
-        True when *all* of the following hold:
+        True when the margin-based criterion is satisfied:
 
-        * ``zeta_classification`` is NEAR_ZERO or EXACT_ZERO (the candidate
-          is zero at σ = 1/2),
-        * every σ ≠ 1/2 in ``zeta_scan`` gives NONZERO (the zero is unique
-          to the critical line within the tested range).
+        * ``|ζ(1/2 + it)| < zeta_threshold`` (zero at σ = 1/2), **and**
+        * ``min_other_raw > margin_factor × zeta_threshold`` (non-zero
+          off the critical line by at least the required margin).
+
+        With ``margin_factor = 1.0`` (default) this is equivalent to the
+        boolean "zero only at σ = 1/2" check.
 
         A True value for all known zeros is a necessary (though not
-        sufficient) condition for the Riemann Hypothesis.  A single False
-        value at a confirmed zero would refute RH.
+        sufficient) numerical condition for the Riemann Hypothesis.  A
+        single False value at a confirmed zero would be a candidate
+        counterexample requiring higher precision and independent
+        verification.
     gue_pair_correlation :
         Montgomery–Odlyzko GUE pair-correlation statistic for the zero
         neighbourhood.  Computed from the normalised spacings of zeroes
         near *t* using the density ``log(t / 2π) / (2π)`` and compared to
         the GUE prediction ``1 − (sin(πu) / (πu))²``.  ``None`` when
         fewer than 3 neighbours are available.
+    min_other_raw :
+        Minimum ``|ζ(σ + it)|`` over all σ ≠ 1/2 in ``SIGMA_SCAN``.
+        Used by the margin criterion.  ``nan`` when no off-line σ exists.
+    separation_ratio :
+        ``min_other_raw / zeta_abs`` when both are well-defined and
+        ``zeta_abs > 0``; otherwise ``None``.  Large values (≫ 1) indicate
+        a clear separation between the on-line zero and off-line magnitudes.
+    refined_t :
+        t value after local minimisation of ``|ζ(1/2 + it)|`` (golden-
+        section search within the supplied window).  ``None`` when
+        ``refine_t=False``.
+    refine_iterations :
+        Number of golden-section iterations used.  ``None`` when refinement
+        is disabled.
+    refine_residual :
+        ``|ζ(1/2 + i·refined_t)|`` at the end of refinement.  ``None``
+        when refinement is disabled.
+    zeta_threshold :
+        The threshold used for zeta near-zero classification in this probe
+        call (precision-aware value ``10^(-(dps//2))`` or the caller-
+        supplied override).
+    margin_factor :
+        The margin factor applied in the critical-line signature criterion.
     """
     t: float
     zeta_abs: float
@@ -270,6 +306,13 @@ class RiemannZeroEvidence:
     fano_at_critical: float
     critical_line_signature: bool
     gue_pair_correlation: Optional[float] = None
+    min_other_raw: float = field(default_factory=lambda: float("nan"))
+    separation_ratio: Optional[float] = None
+    refined_t: Optional[float] = None
+    refine_iterations: Optional[int] = None
+    refine_residual: Optional[float] = None
+    zeta_threshold: float = NEAR_ZERO_THRESHOLD_DEFAULT
+    margin_factor: float = 1.0
 
 @dataclass
 class PhiStructureV7:
@@ -965,9 +1008,11 @@ class RiemannZeroProbe:
 
     * **EXACT_ZERO** — |ζ(σ + it)| is identically zero in floating-point
       (never seen in practice for ζ).
-    * **NEAR_ZERO**  — |ζ(σ + it)| < ``near_zero_threshold`` (≈ 10⁻⁶).
-      Observed for all known non-trivial zeros at σ = 1/2.
-    * **NONZERO**    — |ζ(σ + it)| ≥ ``near_zero_threshold``.  Observed
+    * **NEAR_ZERO**  — |ζ(σ + it)| < ``zeta_threshold`` (precision-aware;
+      ``10^(-(dps//2))`` by default, e.g. ``1e-25`` at ``dps=50``).
+      Observed for all known non-trivial zeros at σ = 1/2 when a sufficiently
+      precise t value is supplied.
+    * **NONZERO**    — |ζ(σ + it)| ≥ ``zeta_threshold``.  Observed
       for all σ ≠ 1/2 at known zero imaginary parts.
 
     RH as a classification statement
@@ -978,11 +1023,12 @@ class RiemannZeroProbe:
         zeta_scan[σ].classification    == NONZERO          # nonzero off it
 
     The ``critical_line_signature`` flag in ``RiemannZeroEvidence`` is True
-    exactly when both conditions hold for all tested σ.
+    when the margin-based criterion is satisfied: ``|ζ(1/2 + it)| < threshold``
+    **and** ``min_other_raw > margin_factor × threshold``.
 
     If a future calculation found a t₀ where ``critical_line_signature`` is
-    False, it would mean |ζ(σ' + it₀)| < threshold for some σ' ≠ 1/2 —
-    providing evidence of a zero off the critical line, contradicting RH.
+    False, it would be a candidate counterexample to RH requiring independent
+    verification at higher precision.
 
     Montgomery–Odlyzko / non-abelian connection
     --------------------------------------------
@@ -999,6 +1045,12 @@ class RiemannZeroProbe:
     GUE prediction ``1 − (sin(πu)/(πu))²``.  A correlation near 1.0
     indicates strong agreement with the Montgomery–Odlyzko law.
 
+    **Numerical signature caveat**: a ``critical_line_signature = True`` is a
+    reproducible numerical result consistent with the Riemann Hypothesis, but
+    it is *not* a mathematical proof.  A ``False`` result at a confirmed zero
+    would be a candidate counterexample requiring higher-precision re-evaluation
+    and independent verification.
+
     Usage::
 
         probe = RiemannZeroProbe()
@@ -1008,6 +1060,13 @@ class RiemannZeroProbe:
         print(ev.zeta_classification)      # NEAR_ZERO
         print(ev.critical_line_signature)  # True
         print(ev.zeta_scan[0.5].raw_value) # ~4e-51
+        print(ev.zeta_threshold)           # precision-aware threshold
+        print(ev.separation_ratio)         # min_other / at_half
+
+        # With t-refinement
+        ev = probe.probe_zero(RiemannZeroProbe.KNOWN_ZEROS[0], refine_t=True)
+        print(ev.refined_t)                # refined zero location
+        print(ev.refine_residual)          # |ζ(1/2 + i·refined_t)|
 
         # Scan several known zeros
         evidence_list = probe.scan_known_zeros(RiemannZeroProbe.KNOWN_ZEROS[:3])
@@ -1101,17 +1160,33 @@ class RiemannZeroProbe:
         self,
         near_zero_threshold: float = NEAR_ZERO_THRESHOLD_DEFAULT,
         mpmath_dps: int = MPMATH_DPS,
+        zeta_near_zero_threshold: Optional[float] = None,
+        margin_factor: float = 1.0,
     ) -> None:
         """
         Initialise the Riemann zero probe.
 
         Args:
             near_zero_threshold: Boundary between NEAR_ZERO and NONZERO for
-                |ζ(σ + it)| classifications.  Default 1e-6.
+                IIT scores (Φ_fano, Φ_nab).  Default 1e-6.  Not used for
+                zeta classification; see ``zeta_near_zero_threshold``.
             mpmath_dps: Decimal places for mpmath precision (default 50).
+            zeta_near_zero_threshold: Threshold for classifying |ζ(σ + it)|
+                as NEAR_ZERO.  When ``None`` (default) the value is computed
+                as ``10 ** (-(mpmath_dps // 2))``, which scales with the
+                working precision.  Pass an explicit value (e.g. ``1e-6``) to
+                fix a legacy-compatible threshold.
+            margin_factor: Multiplier applied to ``zeta_near_zero_threshold``
+                when testing off-line σ values in the margin-based
+                ``critical_line_signature`` criterion.  Default ``1.0``
+                (equivalent to the original boolean check).  Values > 1 demand
+                a larger separation between the on-line near-zero and off-line
+                magnitudes.
         """
         self.near_zero_threshold = near_zero_threshold
         self.mpmath_dps = mpmath_dps
+        self.zeta_near_zero_threshold = zeta_near_zero_threshold
+        self.margin_factor = margin_factor
         self._engine = IITv7Engine()
 
     # ------------------------------------------------------------------
@@ -1127,10 +1202,15 @@ class RiemannZeroProbe:
         The same three-way classification used for Φ_fano and Φ_nab is
         applied to the absolute value of the Riemann zeta function:
 
-        * NEAR_ZERO  — |ζ| < ``near_zero_threshold`` (candidate zero).
-        * NONZERO    — |ζ| ≥ ``near_zero_threshold``.
+        * NEAR_ZERO  — |ζ| < ``zeta_threshold`` (candidate zero).
+        * NONZERO    — |ζ| ≥ ``zeta_threshold``.
         * EXACT_ZERO — |ζ| is identically 0.0 in IEEE-754 double precision
                        (zero_reason = "zeta_exact_zero").
+
+        The threshold used is ``zeta_near_zero_threshold`` if supplied to the
+        constructor, otherwise the precision-aware default
+        ``10 ** (-(mpmath_dps // 2))``.  The threshold applied is recorded
+        in ``ScoreDiagnostic.near_zero_threshold``.
 
         Args:
             sigma: Real part of the argument (float or high-precision string).
@@ -1145,6 +1225,7 @@ class RiemannZeroProbe:
         mpmath.mp.dps = self.mpmath_dps
         s = mpmath.mpc(mpmath.mpf(sigma), mpmath.mpf(t))
         abs_val = float(abs(mpmath.zeta(s)))
+        zeta_threshold = self._get_zeta_threshold()
 
         if abs_val == 0.0:
             return ScoreDiagnostic(
@@ -1152,11 +1233,11 @@ class RiemannZeroProbe:
                 clamped_value=0.0,
                 zero_reason="zeta_exact_zero",
                 classification=CLASSIFICATION_EXACT_ZERO,
-                near_zero_threshold=self.near_zero_threshold,
+                near_zero_threshold=zeta_threshold,
             )
         classification = (
             CLASSIFICATION_NEAR_ZERO
-            if abs_val < self.near_zero_threshold
+            if abs_val < zeta_threshold
             else CLASSIFICATION_NONZERO
         )
         return ScoreDiagnostic(
@@ -1164,59 +1245,103 @@ class RiemannZeroProbe:
             clamped_value=abs_val,
             zero_reason=None,
             classification=classification,
-            near_zero_threshold=self.near_zero_threshold,
+            near_zero_threshold=zeta_threshold,
         )
 
-    def probe_zero(self, t: Union[float, str]) -> RiemannZeroEvidence:
+    def probe_zero(
+        self,
+        t: Union[float, str],
+        refine_t: bool = False,
+        refine_window: float = 0.5,
+        max_iter: int = 20,
+    ) -> RiemannZeroEvidence:
         """
         Probe the candidate Riemann zero at s = 1/2 + it.
 
         Performs:
 
-        1. Zero-classification of |ζ(σ + it)| across all σ in ``SIGMA_SCAN``
-           via ``classify_zeta``.
-        2. Φ_nab computation for the local 7×7 transition matrix built from
+        1. Optional t-refinement: minimises ``|ζ(1/2 + it)|`` within
+           ``[t − refine_window, t + refine_window]`` via golden-section
+           search (when ``refine_t=True``).
+        2. Zero-classification of |ζ(σ + it)| across all σ in ``SIGMA_SCAN``
+           via ``classify_zeta``, using the precision-aware zeta threshold.
+        3. Φ_nab computation for the local 7×7 transition matrix built from
            ζ-values near each (σ, t).
-        3. Φ_fano at σ = 1/2.
-        4. Sets ``critical_line_signature`` = True when the zero is uniquely
-           at σ = 1/2 within the tested σ range.
-        5. Computes the GUE pair-correlation statistic from the normalised
-           spacings of nearby known zeros (when available).
+        4. Φ_fano at σ = 1/2.
+        5. Margin-based ``critical_line_signature``: True when
+           ``|ζ(1/2 + it)| < zeta_threshold`` **and**
+           ``min_other_raw > margin_factor × zeta_threshold``.
+        6. GUE pair-correlation statistic from normalised zero spacings.
 
         Args:
             t: Imaginary part of the candidate zero (probe s = 1/2 + it).
                May be a float or a high-precision string from
-               ``KNOWN_ZEROS_HP``.
+               ``KNOWN_ZEROS_HP``.  Stored in ``RiemannZeroEvidence.t``
+               unchanged regardless of refinement.
+            refine_t: When True, run a golden-section minimisation of
+               ``|ζ(1/2 + it)|`` in
+               ``[float(t) − refine_window, float(t) + refine_window]``
+               before the σ-scan.  The scan uses the refined t value.
+               Default False (backward compatible).
+            refine_window: Half-width of the refinement search interval.
+               Default 0.5.
+            max_iter: Maximum golden-section iterations.  Default 20.
 
         Returns:
-            RiemannZeroEvidence with full σ-scan results, the
-            critical_line_signature flag, and gue_pair_correlation.
+            RiemannZeroEvidence with full σ-scan results, margin-based
+            critical_line_signature, separation evidence, refinement
+            metadata, and gue_pair_correlation.
         """
         t_float = float(t)
+
+        # Optional t-refinement
+        refined_t: Optional[float] = None
+        refine_iterations: Optional[int] = None
+        refine_residual: Optional[float] = None
+        if refine_t:
+            refined_t, refine_iterations, refine_residual = self._refine_t(
+                t_float, window=refine_window, max_iter=max_iter
+            )
+            zeta_scan_t: Union[float, str] = refined_t
+            t_for_matrix: float = refined_t
+        else:
+            zeta_scan_t = t           # preserve HP string when supplied
+            t_for_matrix = t_float
 
         zeta_scan: Dict[float, ScoreDiagnostic] = {}
         nonabelian_scan: Dict[float, float] = {}
 
         for sigma in self.SIGMA_SCAN:
-            zeta_scan[sigma] = self.classify_zeta(sigma, t)
-            T = self._build_local_matrix(sigma, t_float)
+            zeta_scan[sigma] = self.classify_zeta(sigma, zeta_scan_t)
+            T = self._build_local_matrix(sigma, t_for_matrix)
             nonabelian_scan[sigma] = self._engine._compute_nonabelian_measure(T)
 
-        T_crit = self._build_local_matrix(0.5, t_float)
+        T_crit = self._build_local_matrix(0.5, t_for_matrix)
         fano_at_critical = self._engine._compute_fano_alignment(T_crit, n_nodes=FANO_POINTS)
 
         diag_at_half = zeta_scan.get(0.5)
         zeta_abs = diag_at_half.raw_value if diag_at_half else float("nan")
         zeta_classification = diag_at_half.classification if diag_at_half else CLASSIFICATION_NONZERO
 
-        # critical_line_signature: zero uniquely at σ = 1/2
-        is_zero_at_half = zeta_classification in (
-            CLASSIFICATION_NEAR_ZERO, CLASSIFICATION_EXACT_ZERO
+        # Margin-based critical-line signature
+        zeta_threshold = self._get_zeta_threshold()
+        other_raws = [
+            diag.raw_value for s, diag in zeta_scan.items() if s != 0.5
+        ]
+        min_other_raw = min(other_raws) if other_raws else float("nan")
+        separation_ratio: Optional[float] = (
+            min_other_raw / zeta_abs
+            if (zeta_abs > 0.0 and not math.isnan(min_other_raw))
+            else None
         )
-        is_nonzero_off_line = all(
-            diag.classification == CLASSIFICATION_NONZERO
-            for s, diag in zeta_scan.items()
-            if s != 0.5
+
+        is_zero_at_half = (
+            zeta_classification == CLASSIFICATION_EXACT_ZERO
+            or zeta_abs < zeta_threshold
+        )
+        is_nonzero_off_line = (
+            not math.isnan(min_other_raw)
+            and min_other_raw > self.margin_factor * zeta_threshold
         )
         critical_line_signature = is_zero_at_half and is_nonzero_off_line
 
@@ -1231,6 +1356,13 @@ class RiemannZeroProbe:
             fano_at_critical=fano_at_critical,
             critical_line_signature=critical_line_signature,
             gue_pair_correlation=gue_pc,
+            min_other_raw=min_other_raw,
+            separation_ratio=separation_ratio,
+            refined_t=refined_t,
+            refine_iterations=refine_iterations,
+            refine_residual=refine_residual,
+            zeta_threshold=zeta_threshold,
+            margin_factor=self.margin_factor,
         )
 
     def scan_known_zeros(
@@ -1255,6 +1387,62 @@ class RiemannZeroProbe:
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
+
+    def _get_zeta_threshold(self) -> float:
+        """Return the zeta near-zero threshold.
+
+        Uses ``zeta_near_zero_threshold`` if set; otherwise computes the
+        precision-aware default ``10 ** (-(mpmath_dps // 2))``.
+        """
+        if self.zeta_near_zero_threshold is not None:
+            return self.zeta_near_zero_threshold
+        return 10.0 ** (-(self.mpmath_dps // 2))
+
+    def _refine_t(
+        self, t: float, window: float = 0.5, max_iter: int = 20
+    ) -> Tuple[float, int, float]:
+        """
+        Minimise ``|ζ(1/2 + it)|`` over ``[t − window, t + window]`` using
+        golden-section search with mpmath precision.
+
+        Returns:
+            (refined_t, iterations, residual) where *residual* is
+            ``|ζ(1/2 + i·refined_t)|``.
+        """
+        import mpmath
+        mpmath.mp.dps = self.mpmath_dps
+        half = mpmath.mpf("0.5")
+        phi = (mpmath.sqrt(5) - 1) / 2  # ≈ 0.618
+
+        def f(x: mpmath.mpf) -> mpmath.mpf:
+            return abs(mpmath.zeta(mpmath.mpc(half, x)))
+
+        a = mpmath.mpf(t - window)
+        b = mpmath.mpf(t + window)
+        c = b - phi * (b - a)
+        d = a + phi * (b - a)
+        fc = f(c)
+        fd = f(d)
+
+        tol = mpmath.mpf(10) ** (-(self.mpmath_dps - 5))
+        iters = 0
+        for iters in range(1, max_iter + 1):
+            if abs(b - a) < tol:
+                break
+            if fc < fd:
+                b = d
+                d, fd = c, fc
+                c = b - phi * (b - a)
+                fc = f(c)
+            else:
+                a = c
+                c, fc = d, fd
+                d = a + phi * (b - a)
+                fd = f(d)
+
+        x_min = float(c if fc < fd else d)
+        residual = float(min(fc, fd))
+        return x_min, iters, residual
 
     def _build_local_matrix(self, sigma: float, t: float) -> np.ndarray:
         """
