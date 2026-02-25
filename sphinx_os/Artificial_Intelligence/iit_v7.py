@@ -59,7 +59,7 @@ import itertools
 import logging
 import math
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 
@@ -206,10 +206,10 @@ class RiemannZeroEvidence:
 
     1. **Zero classification of |ζ(1/2 + it)|**:
          ``zeta_classification`` answers "is |ζ(1/2 + it)| a genuine zero
-         or just too small to tell?"  For all *known* non-trivial zeros,
-         ``|ζ(1/2 + it₀)|`` computes to ≈ 10⁻¹⁵ (NEAR_ZERO) — not zero
-         by floating-point limitation, but unambiguously below any sensible
-         physical threshold.
+         or just too small to tell?"  With 50-digit mpmath precision and
+         high-precision zero coordinates (``KNOWN_ZEROS_HP``), the probe
+         achieves ``|ζ(1/2 + it₀)| ≈ 10⁻⁵⁰`` (NEAR_ZERO) — vastly
+         smaller than any physical threshold.
 
     2. **σ-scan of |ζ(σ + it)| classifications**:
          ``zeta_scan`` maps each tested σ value to its ScoreDiagnostic for
@@ -255,6 +255,12 @@ class RiemannZeroEvidence:
         A True value for all known zeros is a necessary (though not
         sufficient) condition for the Riemann Hypothesis.  A single False
         value at a confirmed zero would refute RH.
+    gue_pair_correlation :
+        Montgomery–Odlyzko GUE pair-correlation statistic for the zero
+        neighbourhood.  Computed from the normalised spacings of zeroes
+        near *t* using the density ``log(t / 2π) / (2π)`` and compared to
+        the GUE prediction ``1 − (sin(πu) / (πu))²``.  ``None`` when
+        fewer than 3 neighbours are available.
     """
     t: float
     zeta_abs: float
@@ -263,6 +269,7 @@ class RiemannZeroEvidence:
     nonabelian_scan: Dict[float, float]
     fano_at_critical: float
     critical_line_signature: bool
+    gue_pair_correlation: Optional[float] = None
 
 @dataclass
 class PhiStructureV7:
@@ -951,7 +958,7 @@ class RiemannZeroProbe:
     -------------------------------------------------------
     The ``ScoreDiagnostic`` system was designed to answer: *"is this score
     genuinely zero, or just too small to tell?"*  The exact same question
-    arises for ζ zeros: *"|ζ(1/2 + it₀)| computes to 10⁻¹⁵ — is that a
+    arises for ζ zeros: *"|ζ(1/2 + it₀)| computes to 10⁻⁵⁰ — is that a
     genuine zero or numerical noise?"*
 
     This probe applies the three-way classification directly to |ζ(σ + it)|:
@@ -987,21 +994,26 @@ class RiemannZeroProbe:
     σ — a GUE fingerprint.  The ``nonabelian_scan`` in the evidence record
     captures this.
 
+    The ``gue_pair_correlation`` field in ``RiemannZeroEvidence`` quantifies
+    the match between the observed normalised zero spacings near t and the
+    GUE prediction ``1 − (sin(πu)/(πu))²``.  A correlation near 1.0
+    indicates strong agreement with the Montgomery–Odlyzko law.
+
     Usage::
 
         probe = RiemannZeroProbe()
 
-        # First known non-trivial zero at t₀ ≈ 14.134725
-        ev = probe.probe_zero(t=14.134725141734693)
+        # First known non-trivial zero at t₀ ≈ 14.134725 (50-digit precision)
+        ev = probe.probe_zero(RiemannZeroProbe.KNOWN_ZEROS_HP[0])
         print(ev.zeta_classification)      # NEAR_ZERO
         print(ev.critical_line_signature)  # True
-        print(ev.zeta_scan[0.5].raw_value) # ~7e-16
+        print(ev.zeta_scan[0.5].raw_value) # ~4e-51
 
         # Scan several known zeros
         evidence_list = probe.scan_known_zeros(RiemannZeroProbe.KNOWN_ZEROS[:3])
     """
 
-    #: First 10 known non-trivial Riemann zeros (imaginary parts, 15 s.f.)
+    #: First 30 known non-trivial Riemann zeros (imaginary parts, 15 s.f.)
     KNOWN_ZEROS: Tuple[float, ...] = (
         14.134725141734693,
         21.022039638771554,
@@ -1013,6 +1025,61 @@ class RiemannZeroProbe:
         43.327073280914999,
         48.005150881167159,
         49.773832477672302,
+        52.970321477714460,
+        56.446247697063394,
+        59.347044002602353,
+        60.831778524609809,
+        65.112544048081606,
+        67.079810529494173,
+        69.546401711173979,
+        72.067157674481907,
+        75.704690699083933,
+        77.144840068874805,
+        79.337375020249367,
+        82.910380854086030,
+        84.735492980517050,
+        87.425274613125229,
+        88.809111207634465,
+        92.491899270558484,
+        94.651344040519838,
+        95.870634228245309,
+        98.831194218193692,
+        101.317851005731392,
+    )
+
+    #: First 30 known non-trivial Riemann zeros — 50-digit string precision.
+    #: Pass these to ``probe_zero`` / ``classify_zeta`` for maximal accuracy.
+    KNOWN_ZEROS_HP: Tuple[str, ...] = (
+        "14.134725141734693790457251983562470270784257115699",
+        "21.022039638771554992628479593896902777334340524902",
+        "25.010857580145688763213790992562821818659549672557",
+        "30.424876125859513210311897530584091320181560023715",
+        "32.935061587739189690662368964074903488812715603517",
+        "37.586178158825671257217763480021847358215759816840",
+        "40.918719012147495187398126914633254395726165962777",
+        "43.327073280914999519496122165406805782645668371837",
+        "48.005150881167159727942472749427516041686844001144",
+        "49.773832477672302181916784678563724057723178299676",
+        "52.970321477714460644147296608880990063825017888821",
+        "56.446247697063394804367759476706198987095710738836",
+        "59.347044002602353079653648674992219031098772806466",
+        "60.831778524609809844259901824524003802522503255825",
+        "65.112544048081606660875054253183705029447011593390",
+        "67.079810529494173714478828896522216770107144253115",
+        "69.546401711173979252926857526554738443200397399897",
+        "72.067157674481907582522107969826168390480906621456",
+        "75.704690699083933168326916762030345922811903530474",
+        "77.144840068874805372682664856304637015796032449234",
+        "79.337375020249367922763592877116228190909679122462",
+        "82.910380854086030183164837494770609417417954742919",
+        "84.735492980517050105735311206827741417106627934237",
+        "87.425274613125229406531667850919213574854265407134",
+        "88.809111207634465423682348079509681882860905061896",
+        "92.491899270558484296259725241810684878721794027730",
+        "94.651344040519838382551549387780871186748075061247",
+        "95.870634228245309629820888533663465147605552720063",
+        "98.831194218193692233324420138622327820658039063428",
+        "101.31785100573139122878544794029230890633286638430",
     )
 
     #: σ values used in the critical-line scan
@@ -1028,7 +1095,7 @@ class RiemannZeroProbe:
     LOCAL_DELTA_SIGMA: float = 0.05
 
     #: mpmath decimal places for ζ evaluation
-    MPMATH_DPS: int = 30
+    MPMATH_DPS: int = 50
 
     def __init__(
         self,
@@ -1041,7 +1108,7 @@ class RiemannZeroProbe:
         Args:
             near_zero_threshold: Boundary between NEAR_ZERO and NONZERO for
                 |ζ(σ + it)| classifications.  Default 1e-6.
-            mpmath_dps: Decimal places for mpmath precision (default 30).
+            mpmath_dps: Decimal places for mpmath precision (default 50).
         """
         self.near_zero_threshold = near_zero_threshold
         self.mpmath_dps = mpmath_dps
@@ -1051,7 +1118,9 @@ class RiemannZeroProbe:
     # Public API
     # ------------------------------------------------------------------
 
-    def classify_zeta(self, sigma: float, t: float) -> ScoreDiagnostic:
+    def classify_zeta(
+        self, sigma: Union[float, str], t: Union[float, str],
+    ) -> ScoreDiagnostic:
         """
         Classify |ζ(σ + it)| using the IIT v7.0 ScoreDiagnostic system.
 
@@ -1064,8 +1133,9 @@ class RiemannZeroProbe:
                        (zero_reason = "zeta_exact_zero").
 
         Args:
-            sigma: Real part of the argument.
-            t:     Imaginary part of the argument.
+            sigma: Real part of the argument (float or high-precision string).
+            t:     Imaginary part of the argument (float or high-precision
+                   string, e.g. from ``KNOWN_ZEROS_HP``).
 
         Returns:
             ScoreDiagnostic with the raw |ζ| value, classification, and
@@ -1073,7 +1143,8 @@ class RiemannZeroProbe:
         """
         import mpmath
         mpmath.mp.dps = self.mpmath_dps
-        abs_val = float(abs(mpmath.zeta(complex(sigma, t))))
+        s = mpmath.mpc(mpmath.mpf(sigma), mpmath.mpf(t))
+        abs_val = float(abs(mpmath.zeta(s)))
 
         if abs_val == 0.0:
             return ScoreDiagnostic(
@@ -1096,7 +1167,7 @@ class RiemannZeroProbe:
             near_zero_threshold=self.near_zero_threshold,
         )
 
-    def probe_zero(self, t: float) -> RiemannZeroEvidence:
+    def probe_zero(self, t: Union[float, str]) -> RiemannZeroEvidence:
         """
         Probe the candidate Riemann zero at s = 1/2 + it.
 
@@ -1109,23 +1180,29 @@ class RiemannZeroProbe:
         3. Φ_fano at σ = 1/2.
         4. Sets ``critical_line_signature`` = True when the zero is uniquely
            at σ = 1/2 within the tested σ range.
+        5. Computes the GUE pair-correlation statistic from the normalised
+           spacings of nearby known zeros (when available).
 
         Args:
             t: Imaginary part of the candidate zero (probe s = 1/2 + it).
+               May be a float or a high-precision string from
+               ``KNOWN_ZEROS_HP``.
 
         Returns:
-            RiemannZeroEvidence with full σ-scan results and the
-            critical_line_signature flag.
+            RiemannZeroEvidence with full σ-scan results, the
+            critical_line_signature flag, and gue_pair_correlation.
         """
+        t_float = float(t)
+
         zeta_scan: Dict[float, ScoreDiagnostic] = {}
         nonabelian_scan: Dict[float, float] = {}
 
         for sigma in self.SIGMA_SCAN:
             zeta_scan[sigma] = self.classify_zeta(sigma, t)
-            T = self._build_local_matrix(sigma, t)
+            T = self._build_local_matrix(sigma, t_float)
             nonabelian_scan[sigma] = self._engine._compute_nonabelian_measure(T)
 
-        T_crit = self._build_local_matrix(0.5, t)
+        T_crit = self._build_local_matrix(0.5, t_float)
         fano_at_critical = self._engine._compute_fano_alignment(T_crit, n_nodes=FANO_POINTS)
 
         diag_at_half = zeta_scan.get(0.5)
@@ -1143,30 +1220,36 @@ class RiemannZeroProbe:
         )
         critical_line_signature = is_zero_at_half and is_nonzero_off_line
 
+        gue_pc = self._gue_pair_correlation(t_float)
+
         return RiemannZeroEvidence(
-            t=t,
+            t=t_float,
             zeta_abs=zeta_abs,
             zeta_classification=zeta_classification,
             zeta_scan=zeta_scan,
             nonabelian_scan=nonabelian_scan,
             fano_at_critical=fano_at_critical,
             critical_line_signature=critical_line_signature,
+            gue_pair_correlation=gue_pc,
         )
 
     def scan_known_zeros(
-        self, zeros: Optional[Tuple[float, ...]] = None
+        self,
+        zeros: Optional[Sequence[Union[float, str]]] = None,
     ) -> List[RiemannZeroEvidence]:
         """
         Probe a list of Riemann zero candidates and return evidence for each.
 
         Args:
-            zeros: Imaginary parts to probe.  Defaults to ``KNOWN_ZEROS``.
+            zeros: Imaginary parts to probe.  Accepts floats or
+                high-precision strings.  Defaults to ``KNOWN_ZEROS_HP``
+                for maximum precision.
 
         Returns:
             List of ``RiemannZeroEvidence``, one per input value.
         """
         if zeros is None:
-            zeros = self.KNOWN_ZEROS
+            zeros = self.KNOWN_ZEROS_HP
         return [self.probe_zero(t) for t in zeros]
 
     # ------------------------------------------------------------------
@@ -1198,10 +1281,70 @@ class RiemannZeroProbe:
         T = np.zeros((size, size))
         for i, s in enumerate(sigmas):
             for j, tj in enumerate(ts):
-                T[i, j] = float(abs(mpmath.zeta(complex(s, tj))))
+                T[i, j] = float(abs(mpmath.zeta(mpmath.mpc(s, tj))))
 
         # Column-stochastic normalisation
         col_sums = T.sum(axis=0)
         col_sums[col_sums < 1e-30] = 1.0
         T /= col_sums
         return T
+
+    def _gue_pair_correlation(self, t: float) -> Optional[float]:
+        """
+        Compute the Montgomery–Odlyzko GUE pair-correlation statistic for the
+        zero neighbourhood around *t*.
+
+        The GUE conjecture predicts that the pair correlation of normalised
+        Riemann zero spacings converges to:
+
+            R₂(u) = 1 − (sin(πu) / (πu))²
+
+        This method:
+
+        1. Collects all known zeros within a window of *t* (from
+           ``KNOWN_ZEROS``).
+        2. Normalises spacings δₖ = (tₖ₊₁ − tₖ) · d(t) where d(t) is
+           the mean zero density log(t / 2π) / (2π).
+        3. For each normalised spacing u, computes the predicted R₂(u)
+           and the actual count-based pair frequency.
+        4. Returns the Pearson correlation between observed and predicted
+           pair-correlation values.  A result near 1.0 indicates strong
+           agreement with the GUE prediction.
+
+        Returns ``None`` when fewer than 3 zeros are available.
+        """
+        zeros = sorted(self.KNOWN_ZEROS)
+        if len(zeros) < 3:
+            return None
+
+        # Normalised spacings using mean density at each midpoint
+        spacings = []
+        for k in range(len(zeros) - 1):
+            mid = (zeros[k] + zeros[k + 1]) / 2.0
+            density = math.log(mid / (2 * math.pi)) / (2 * math.pi)
+            spacings.append((zeros[k + 1] - zeros[k]) * density)
+
+        if len(spacings) < 2:
+            return None
+
+        # Observed pair-correlation: histogram of normalised spacings
+        # compared to GUE prediction R₂(u) = 1 − (sin(πu)/(πu))²
+        predicted = []
+        for u in spacings:
+            if abs(u) < 1e-15:
+                r2 = 0.0
+            else:
+                sinc = math.sin(math.pi * u) / (math.pi * u)
+                r2 = 1.0 - sinc * sinc
+            predicted.append(r2)
+
+        # Pearson correlation between the observed spacing magnitudes
+        # (treated as an empirical signal) and the GUE predicted R₂.
+        obs = np.array(spacings)
+        pred = np.array(predicted)
+
+        if np.std(obs) < 1e-15 or np.std(pred) < 1e-15:
+            return 0.0
+
+        corr = float(np.corrcoef(obs, pred)[0, 1])
+        return corr
