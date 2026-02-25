@@ -69,3 +69,14 @@ wallets/
 .env
 .env.local
 secrets/
+
+# Node / Next.js (DApp)
+node_modules/
+dapp/node_modules/
+dapp/.next/
+dapp/out/
+contracts/node_modules/
+contracts/artifacts/
+contracts/cache/
+contracts/typechain/
+contracts/typechain-types/
