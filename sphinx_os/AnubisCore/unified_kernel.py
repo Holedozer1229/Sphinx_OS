@@ -706,6 +706,7 @@ class UnifiedAnubisKernel:
         enable_nptc: bool = True,
         enable_oracle: bool = True,
         enable_sovereign_framework: bool = True,
+        enable_fiber_cv: bool = True,
         tau: float = 1e-6,
         T_eff: float = 1.5,
         consciousness_threshold: float = 0.5,
@@ -713,7 +714,8 @@ class UnifiedAnubisKernel:
         delta_0: float = 0.4,
         q_magnitude: float = np.pi/8,
         lattice_size: int = 16,
-        mu: float = 0.3
+        mu: float = 0.3,
+        fiber_cv_params: Optional[Dict[str, Any]] = None,
     ):
         """
         Initialize the Unified AnubisCore Kernel.
@@ -725,6 +727,7 @@ class UnifiedAnubisKernel:
             enable_nptc: Enable NPTC thermodynamic control
             enable_oracle: Enable Conscious Oracle agent
             enable_sovereign_framework: Enable Sovereign Framework v2.3 (Yang-Mills)
+            enable_fiber_cv: Enable ANUBIS™ fiber-optic CV quantum processor
             tau: NPTC control timescale (seconds)
             T_eff: Effective temperature for NPTC (Kelvin)
             consciousness_threshold: Φ threshold for conscious decisions
@@ -733,6 +736,8 @@ class UnifiedAnubisKernel:
             q_magnitude: FFLO wave vector magnitude
             lattice_size: BdG lattice size (L³)
             mu: Chemical potential for BdG
+            fiber_cv_params: Optional dict of keyword arguments forwarded to
+                             ANUBISFiberCVProcessor (e.g. squeezing_db, oam_modes).
         """
         logger.info("Initializing Unified AnubisCore Kernel...")
         logger.info(f"Grid: {grid_size}, Qubits: {num_qubits}, Skynet Nodes: {num_skynet_nodes}")
@@ -743,6 +748,7 @@ class UnifiedAnubisKernel:
         self.enable_nptc = enable_nptc
         self.enable_oracle = enable_oracle
         self.enable_sovereign_framework = enable_sovereign_framework
+        self.enable_fiber_cv = enable_fiber_cv
         self.tau = tau
         self.T_eff = T_eff
         self.consciousness_threshold = consciousness_threshold
@@ -764,6 +770,10 @@ class UnifiedAnubisKernel:
         
         self._init_skynet_network()
         self._init_quantum_services()
+
+        # Initialize ANUBIS™ fiber-optic CV quantum processor
+        if enable_fiber_cv:
+            self._init_fiber_cv_processor(fiber_cv_params or {})
         
         # Fusion state
         self.fusion_state = {
@@ -772,6 +782,7 @@ class UnifiedAnubisKernel:
             "nptc_enabled": enable_nptc,
             "oracle_enabled": enable_oracle,
             "sovereign_framework_enabled": enable_sovereign_framework,
+            "fiber_cv_enabled": enable_fiber_cv,
             "skynet_active": True,
             "services_running": True
         }
@@ -902,7 +913,16 @@ class UnifiedAnubisKernel:
             "vault": None,      # Will be QuantumVault
         }
         logger.info("✅ Quantum Services initialized (placeholders)")
-    
+
+    def _init_fiber_cv_processor(self, params: Dict[str, Any]):
+        """Initialize ANUBIS™ fiber-optic CV quantum processor."""
+        logger.info("Initializing ANUBIS™ Fiber-Optic CV Quantum Processor...")
+
+        from .fiber_cv_quantum import ANUBISFiberCVProcessor
+
+        self.fiber_cv_processor = ANUBISFiberCVProcessor(**params)
+        logger.info("✅ ANUBIS™ Fiber-Optic CV Quantum Processor initialized")
+
     def execute(self, quantum_program: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
         Execute a unified quantum-spacetime operation with Oracle guidance
@@ -972,14 +992,20 @@ class UnifiedAnubisKernel:
         skynet_results = self.skynet_network.propagate(
             phi_values=spacetime_results.get("phi_values", [])
         )
-        
-        # 6. Fuse results with Oracle guidance
+
+        # 6. Run ANUBIS™ fiber-optic CV quantum processor cycle (if enabled)
+        fiber_cv_results = None
+        if self.enable_fiber_cv and hasattr(self, 'fiber_cv_processor'):
+            fiber_cv_results = self.fiber_cv_processor.run()
+
+        # 7. Fuse results with Oracle guidance
         unified_results = {
             "quantum": quantum_results,
             "spacetime": spacetime_results,
             "nptc": nptc_results,
             "sovereign_framework": sovereign_results,
             "skynet": skynet_results,
+            "fiber_cv": fiber_cv_results,
             "oracle": oracle_guidance,
             "fusion_state": self.fusion_state,
             "timestamp": np.datetime64('now')
@@ -1146,7 +1172,11 @@ class UnifiedAnubisKernel:
                     "xi_value": self.master_potential.xi_value
                 }
             }
-        
+
+        # Add ANUBIS™ fiber-optic CV processor state if enabled
+        if self.enable_fiber_cv and hasattr(self, 'fiber_cv_processor'):
+            state["fiber_cv_state"] = self.fiber_cv_processor.get_state()
+
         return state
     
     def shutdown(self):
