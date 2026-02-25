@@ -4,6 +4,14 @@ import { useState, useEffect } from 'react'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 const BRIDGE_API_URL = process.env.NEXT_PUBLIC_BRIDGE_API_URL || 'http://localhost:8001'
+const EXCALIBUR_ORACLE_URL = process.env.NEXT_PUBLIC_EXCALIBUR_ORACLE_URL || 'https://oracle.excaliburcrypto.com'
+const EXCALIBUR_REPO_URL = 'https://github.com/Holedozer1229/Excalibur-EXS'
+
+const PROPHECY_AXIOM = [
+  'sword', 'legend', 'pull', 'magic', 'kingdom',
+  'artist', 'stone', 'destroy', 'forget', 'fire',
+  'steel', 'honey', 'question',
+]
 
 export default function Dashboard() {
   const [chainStats, setChainStats] = useState<any>(null)
@@ -11,10 +19,17 @@ export default function Dashboard() {
   const [bridgeStats, setBridgeStats] = useState<any>(null)
   const [recentBlocks, setRecentBlocks] = useState<any[]>([])
   const [activeTab, setActiveTab] = useState('dashboard')
+  const [excaliburStats, setExcaliburStats] = useState<any>(null)
+  const [yoeldResult, setYoeldResult] = useState<any>(null)
+  const [yoeldLoading, setYoeldLoading] = useState(false)
   
   // Mining form state
   const [minerAddress, setMinerAddress] = useState('MINER_ADDRESS_1')
   const [algorithm, setAlgorithm] = useState('spectral')
+
+  // Excalibur forge form state
+  const [forgeAxiom, setForgeAxiom] = useState(PROPHECY_AXIOM.join(' '))
+  const [forgeAddress, setForgeAddress] = useState('')
   
   // Bridge form state
   const [bridgeAmount, setBridgeAmount] = useState('10')
@@ -54,8 +69,31 @@ export default function Dashboard() {
         const data = await blocksRes.json()
         setRecentBlocks(data.blocks || [])
       }
+
+      // Fetch Excalibur Yoeld stats
+      const exsRes = await fetch(`${API_URL}/excalibur/stats`)
+      if (exsRes.ok) {
+        setExcaliburStats(await exsRes.json())
+      }
     } catch (error) {
       console.error('Error fetching data:', error)
+    }
+  }
+
+  const triggerYoeld = async () => {
+    setYoeldLoading(true)
+    try {
+      const res = await fetch(`${API_URL}/excalibur/yoeld`, { method: 'POST' })
+      if (res.ok) {
+        setYoeldResult(await res.json())
+        fetchData()
+      } else {
+        setYoeldResult({ error: 'Yoeld cycle failed' })
+      }
+    } catch (error) {
+      setYoeldResult({ error: `${error}` })
+    } finally {
+      setYoeldLoading(false)
     }
   }
 
@@ -135,17 +173,19 @@ export default function Dashboard() {
       <nav className="bg-gray-800 border-b border-gray-700">
         <div className="container mx-auto px-4">
           <div className="flex space-x-8">
-            {['dashboard', 'mining', 'bridge', 'explorer'].map(tab => (
+            {['dashboard', 'mining', 'bridge', 'explorer', 'excalibur'].map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={`py-3 px-4 border-b-2 ${
                   activeTab === tab
-                    ? 'border-blue-500 text-blue-400'
+                    ? tab === 'excalibur'
+                      ? 'border-yellow-500 text-yellow-400'
+                      : 'border-blue-500 text-blue-400'
                     : 'border-transparent text-gray-400 hover:text-white'
                 }`}
               >
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                {tab === 'excalibur' ? '⚔️ Excalibur' : tab.charAt(0).toUpperCase() + tab.slice(1)}
               </button>
             ))}
           </div>
@@ -407,13 +447,189 @@ export default function Dashboard() {
             </div>
           </div>
         )}
+        {/* Excalibur Tab */}
+        {activeTab === 'excalibur' && (
+          <div className="space-y-6">
+            {/* Header */}
+            <div className="bg-gray-800 rounded-lg p-6 border border-yellow-700">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-2xl font-semibold text-yellow-400">⚔️ Excalibur $EXS — Proof-of-Forge</h3>
+                <a
+                  href={EXCALIBUR_REPO_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-gray-400 hover:text-yellow-400 underline"
+                >
+                  GitHub ↗
+                </a>
+              </div>
+              <p className="text-gray-400 text-sm">
+                SKYNT Excalibur Yoeld Engine — yield $EXS tokens by coupling SphinxSkynet
+                hypercube nodes with the Excalibur Proof-of-Forge protocol.
+              </p>
+            </div>
+
+            {/* Forge Stats & Yoeld Cycle */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Forge Stats */}
+              <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                <h4 className="text-lg font-semibold mb-4 text-yellow-400">📊 Forge Statistics</h4>
+                {excaliburStats ? (
+                  <div className="space-y-2 text-sm">
+                    <p><span className="text-gray-400">Total $EXS Yielded:</span> <span className="font-mono text-yellow-400">{excaliburStats.total_exs_yielded?.toLocaleString()} EXS</span></p>
+                    <p><span className="text-gray-400">Total Forges:</span> <span className="font-mono">{excaliburStats.total_forges?.toLocaleString()}</span></p>
+                    <p><span className="text-gray-400">Forges Remaining:</span> <span className="font-mono">{(excaliburStats.max_forges - excaliburStats.total_forges)?.toLocaleString()}</span></p>
+                    <p><span className="text-gray-400">Forge Reward:</span> <span className="font-mono text-green-400">{excaliburStats.forge_reward_exs} EXS</span></p>
+                    <p><span className="text-gray-400">Total Supply:</span> <span className="font-mono">21,000,000 EXS</span></p>
+                    <p><span className="text-gray-400">Eligible Nodes:</span> <span className="font-mono">{excaliburStats.eligible_nodes} / {excaliburStats.num_nodes}</span></p>
+                    <p><span className="text-gray-400">Mean Φ:</span> <span className="font-mono text-purple-400">{excaliburStats.mean_phi?.toFixed(3)}</span></p>
+                    <p><span className="text-gray-400">Φ Threshold:</span> <span className="font-mono">{excaliburStats.phi_threshold}</span></p>
+                    <p><span className="text-gray-400">Oracle:</span> <a href={EXCALIBUR_ORACLE_URL} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline text-xs">{EXCALIBUR_ORACLE_URL} ↗</a></p>
+                  </div>
+                ) : (
+                  <p className="text-gray-400 text-sm">Connect the SphinxSkynet node to view stats…</p>
+                )}
+              </div>
+
+              {/* Yoeld Cycle Trigger */}
+              <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                <h4 className="text-lg font-semibold mb-4 text-yellow-400">⚡ Trigger Yoeld Cycle</h4>
+                <p className="text-gray-400 text-sm mb-4">
+                  Runs one Proof-of-Forge cycle across all eligible Skynet nodes
+                  (Φ_total ≥ threshold) and yields $EXS rewards.
+                </p>
+                <button
+                  onClick={triggerYoeld}
+                  disabled={yoeldLoading}
+                  className="w-full bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition"
+                >
+                  {yoeldLoading ? '⏳ Forging…' : '⚔️ Draw the Sword — Yoeld $EXS'}
+                </button>
+                {yoeldResult && (
+                  <div className="mt-4 p-3 bg-gray-900 rounded-lg border border-gray-700 text-xs font-mono">
+                    {yoeldResult.error ? (
+                      <p className="text-red-400">{yoeldResult.error}</p>
+                    ) : (
+                      <div className="space-y-1">
+                        <p><span className="text-gray-400">Eligible nodes:</span> <span className="text-yellow-400">{yoeldResult.eligible_nodes}</span></p>
+                        <p><span className="text-gray-400">Forges this cycle:</span> <span className="text-green-400">{yoeldResult.forges_this_cycle}</span></p>
+                        <p><span className="text-gray-400">$EXS yielded:</span> <span className="text-yellow-400 font-bold">{yoeldResult.total_exs_yielded_this_cycle} EXS</span></p>
+                        <p><span className="text-gray-400">All-time total:</span> <span className="text-yellow-400">{yoeldResult.total_exs_yielded_all_time} EXS</span></p>
+                        <p><span className="text-gray-400">Forges remaining:</span> <span>{yoeldResult.forges_remaining?.toLocaleString()}</span></p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* The 13-Word Prophecy Axiom */}
+            <div className="bg-gray-800 rounded-lg p-6 border border-yellow-800">
+              <h4 className="text-lg font-semibold mb-4 text-yellow-400">🔮 The XIII-Word Prophecy Axiom</h4>
+              <div className="flex flex-wrap gap-2 mb-4">
+                {PROPHECY_AXIOM.map((word, idx) => (
+                  <span
+                    key={idx}
+                    className="bg-gray-900 border border-yellow-700 text-yellow-300 px-3 py-1 rounded-full text-sm font-mono"
+                  >
+                    <span className="text-gray-500 mr-1">{idx + 1}.</span>{word.toUpperCase()}
+                  </span>
+                ))}
+              </div>
+              <p className="text-gray-500 text-xs italic">
+                "Whosoever speaks the XIII words true, and endures the 128 transmutations, shall draw
+                forth digital steel from algorithmic stone, and be crowned in the currency of the future age."
+              </p>
+
+              {/* Axiom Override */}
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-400 mb-1">Axiom Override (space-separated)</label>
+                <input
+                  type="text"
+                  value={forgeAxiom}
+                  onChange={e => setForgeAxiom(e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-white text-sm font-mono"
+                />
+              </div>
+              <div className="mt-3">
+                <label className="block text-sm font-medium text-gray-400 mb-1">Reward Address (BTC P2TR)</label>
+                <input
+                  type="text"
+                  value={forgeAddress}
+                  onChange={e => setForgeAddress(e.target.value)}
+                  placeholder="bc1p…"
+                  className="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-white text-sm font-mono"
+                />
+              </div>
+            </div>
+
+            {/* Yoeld forge results detail */}
+            {yoeldResult?.forge_results?.length > 0 && (
+              <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                <h4 className="text-lg font-semibold mb-4 text-yellow-400">🗡️ Forge Results</h4>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs font-mono">
+                    <thead>
+                      <tr className="border-b border-gray-700 text-gray-400">
+                        <th className="text-left py-2 pr-4">Node</th>
+                        <th className="text-left py-2 pr-4">Valid</th>
+                        <th className="text-left py-2 pr-4">$EXS</th>
+                        <th className="text-left py-2 pr-4">Zetahash</th>
+                        <th className="text-left py-2">P2TR Vault</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {yoeldResult.forge_results.map((r: any) => (
+                        <tr key={r.node_id} className="border-b border-gray-700 hover:bg-gray-750">
+                          <td className="py-1 pr-4 text-gray-300">{r.node_id}</td>
+                          <td className="py-1 pr-4">
+                            <span className={r.proof_valid ? 'text-green-400' : 'text-red-400'}>
+                              {r.proof_valid ? '✓' : '✗'}
+                            </span>
+                          </td>
+                          <td className="py-1 pr-4 text-yellow-400">{r.forge_reward_exs}</td>
+                          <td className="py-1 pr-4 text-purple-300">{r.zetahash?.substring(0, 12)}…</td>
+                          <td className="py-1 text-blue-300 text-xs">{r.p2tr_vault_address?.substring(0, 20)}…</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Links */}
+            <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+              <h4 className="text-sm font-semibold mb-3 text-gray-300">🔗 Excalibur-EXS Resources</h4>
+              <div className="flex flex-wrap gap-4 text-sm">
+                <a href={EXCALIBUR_REPO_URL} target="_blank" rel="noopener noreferrer"
+                   className="text-yellow-400 hover:underline">⟐ GitHub Repository</a>
+                <a href="https://www.excaliburcrypto.com" target="_blank" rel="noopener noreferrer"
+                   className="text-yellow-400 hover:underline">⟐ excaliburcrypto.com</a>
+                <a href={`${EXCALIBUR_REPO_URL}/blob/main/README.md`} target="_blank" rel="noopener noreferrer"
+                   className="text-yellow-400 hover:underline">⟐ Whitepaper</a>
+                <a href="/web/knights-round-table/" target="_blank" rel="noopener noreferrer"
+                   className="text-yellow-400 hover:underline">⟐ Knights' Round Table</a>
+                <a href={EXCALIBUR_ORACLE_URL} target="_blank" rel="noopener noreferrer"
+                   className="text-yellow-400 hover:underline">⟐ Oracle API</a>
+              </div>
+            </div>
+          </div>
+        )}
+
       </main>
 
       {/* Footer */}
       <footer className="bg-gray-800 border-t border-gray-700 mt-12">
         <div className="container mx-auto px-4 py-6 text-center text-gray-400">
           <p>SphinxSkynet Blockchain v1.0.0 | Production-Ready</p>
-          <p className="text-sm mt-2">Multi-PoW • Cross-Chain Bridge • Φ-Boosted Consensus</p>
+          <p className="text-sm mt-2">Multi-PoW • Cross-Chain Bridge • Φ-Boosted Consensus • ⚔️ Excalibur Yoeld Engine</p>
+          <p className="text-xs mt-1">
+            Excalibur-EXS integration powered by{' '}
+            <a href={EXCALIBUR_REPO_URL} target="_blank" rel="noopener noreferrer" className="text-yellow-400 hover:underline">
+              github.com/Holedozer1229/Excalibur-EXS
+            </a>
+          </p>
         </div>
       </footer>
     </div>
