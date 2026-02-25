@@ -22,6 +22,9 @@ export default function Dashboard() {
   const [excaliburStats, setExcaliburStats] = useState<any>(null)
   const [yoeldResult, setYoeldResult] = useState<any>(null)
   const [yoeldLoading, setYoeldLoading] = useState(false)
+  const [consciousnessData, setConsciousnessData] = useState<any>(null)
+  const [phiCalcLoading, setPhiCalcLoading] = useState(false)
+  const [phiCalcBlockIndex, setPhiCalcBlockIndex] = useState('')
   
   // Mining form state
   const [minerAddress, setMinerAddress] = useState('MINER_ADDRESS_1')
@@ -74,6 +77,12 @@ export default function Dashboard() {
       const exsRes = await fetch(`${API_URL}/excalibur/stats`)
       if (exsRes.ok) {
         setExcaliburStats(await exsRes.json())
+      }
+
+      // Fetch consciousness / IIT metrics
+      const consRes = await fetch(`${API_URL}/api/consciousness`)
+      if (consRes.ok) {
+        setConsciousnessData(await consRes.json())
       }
     } catch (error) {
       console.error('Error fetching data:', error)
@@ -159,6 +168,24 @@ export default function Dashboard() {
     }
   }
 
+  const computePhi = async () => {
+    setPhiCalcLoading(true)
+    try {
+      const params = phiCalcBlockIndex ? `?block_index=${phiCalcBlockIndex}` : ''
+      const res = await fetch(`${API_URL}/api/consciousness${params}`)
+      if (res.ok) {
+        setConsciousnessData(await res.json())
+      } else {
+        const err = await res.json()
+        alert(`Φ computation failed: ${err.detail}`)
+      }
+    } catch (error) {
+      alert(`Error: ${error}`)
+    } finally {
+      setPhiCalcLoading(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       {/* Header */}
@@ -173,7 +200,7 @@ export default function Dashboard() {
       <nav className="bg-gray-800 border-b border-gray-700">
         <div className="container mx-auto px-4">
           <div className="flex space-x-8">
-            {['dashboard', 'mining', 'bridge', 'explorer', 'excalibur'].map(tab => (
+            {['dashboard', 'mining', 'bridge', 'explorer', 'excalibur', 'consciousness'].map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -181,11 +208,13 @@ export default function Dashboard() {
                   activeTab === tab
                     ? tab === 'excalibur'
                       ? 'border-yellow-500 text-yellow-400'
+                      : tab === 'consciousness'
+                      ? 'border-purple-500 text-purple-400'
                       : 'border-blue-500 text-blue-400'
                     : 'border-transparent text-gray-400 hover:text-white'
                 }`}
               >
-                {tab === 'excalibur' ? '⚔️ Excalibur' : tab.charAt(0).toUpperCase() + tab.slice(1)}
+                {tab === 'excalibur' ? '⚔️ Excalibur' : tab === 'consciousness' ? '🧠 Consciousness' : tab.charAt(0).toUpperCase() + tab.slice(1)}
               </button>
             ))}
           </div>
@@ -614,6 +643,280 @@ export default function Dashboard() {
                    className="text-yellow-400 hover:underline">⟐ Oracle API</a>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Consciousness Tab */}
+        {activeTab === 'consciousness' && (
+          <div className="space-y-6">
+
+            {/* Header row: gauge + key metrics + consensus */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+              {/* Consciousness Gauge */}
+              <div className="bg-gray-800 rounded-lg p-6 border border-purple-700 flex flex-col items-center justify-center">
+                <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Consciousness Gauge</p>
+                {consciousnessData ? (
+                  <>
+                    <div className="text-6xl font-mono font-bold text-purple-400 my-2">
+                      {consciousnessData.phi.toFixed(4)}
+                    </div>
+                    <div className="text-lg font-semibold text-yellow-300 mb-1">
+                      {consciousnessData.consciousness_level}
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      Block #{consciousnessData.block_index.toLocaleString()}
+                    </div>
+                    <div className="mt-3 w-full bg-gray-700 rounded-full h-3">
+                      <div
+                        className="bg-purple-500 h-3 rounded-full transition-all"
+                        style={{ width: `${Math.min(100, consciousnessData.phi * 100)}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">Φ ∈ [0, 1]</p>
+                  </>
+                ) : <p className="text-gray-400 text-sm">Loading…</p>}
+              </div>
+
+              {/* Von Neumann Entropy + IIT Bonus */}
+              <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 space-y-4">
+                <div>
+                  <p className="text-xs text-gray-400 uppercase tracking-wider">Von Neumann Entropy</p>
+                  <p className="text-3xl font-mono font-bold text-cyan-400 mt-1">
+                    {consciousnessData ? consciousnessData.entropy_bits.toFixed(4) : '—'}
+                  </p>
+                  <p className="text-xs text-gray-500">bits of integration</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 uppercase tracking-wider">IIT Bonus (E^Φ)</p>
+                  <p className="text-3xl font-mono font-bold text-green-400 mt-1">
+                    {consciousnessData ? consciousnessData.iit_bonus.toFixed(4) : '—'}
+                  </p>
+                  <p className="text-xs text-gray-500">causal integration</p>
+                </div>
+              </div>
+
+              {/* Consensus */}
+              <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 flex flex-col items-center justify-center space-y-3">
+                <p className="text-xs text-gray-400 uppercase tracking-wider">Consensus</p>
+                {consciousnessData ? (
+                  <>
+                    <span className={`text-2xl font-bold px-4 py-2 rounded-lg ${consciousnessData.consensus_valid ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'}`}>
+                      {consciousnessData.consensus_valid ? '✓ VALID' : '✗ INVALID'}
+                    </span>
+                    <p className="text-xs text-gray-400 text-center">
+                      Φ_total &gt; log₂({consciousnessData.n_nodes}) = {consciousnessData.consensus_threshold.toFixed(2)}
+                    </p>
+                    <p className="text-sm font-mono text-purple-300">
+                      Φ_total = {consciousnessData.phi_total.toFixed(4)}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      α={consciousnessData.alpha} · Φ_IIT + β={consciousnessData.beta} · GWT
+                    </p>
+                  </>
+                ) : <p className="text-gray-400 text-sm">Loading…</p>}
+              </div>
+            </div>
+
+            {/* Φ Timeline */}
+            <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+              <h3 className="text-lg font-semibold mb-4 text-purple-400">
+                Φ TIMELINE
+                {consciousnessData && <span className="text-xs text-gray-400 ml-2 font-normal">{consciousnessData.phi_timeline.length} samples</span>}
+              </h3>
+              {consciousnessData?.phi_timeline ? (
+                <div className="relative h-40">
+                  <svg viewBox="0 0 400 120" className="w-full h-full" preserveAspectRatio="none">
+                    {/* Grid lines */}
+                    {[0, 0.25, 0.5, 0.75, 1].map((y) => (
+                      <line key={y} x1="0" y1={120 - y * 120} x2="400" y2={120 - y * 120}
+                        stroke="#374151" strokeWidth="1" strokeDasharray="4,4" />
+                    ))}
+                    {/* Y-axis labels */}
+                    {[0, 0.25, 0.5, 0.75, 1].map((y) => (
+                      <text key={y} x="2" y={120 - y * 120 - 2} fontSize="9" fill="#6B7280">{y}</text>
+                    ))}
+                    {/* Line */}
+                    <polyline
+                      fill="none"
+                      stroke="#A78BFA"
+                      strokeWidth="2"
+                      points={consciousnessData.phi_timeline.map((pt: any, i: number) => {
+                        const x = (i / (consciousnessData.phi_timeline.length - 1)) * 380 + 10
+                        const y = 120 - pt.phi * 120
+                        return `${x},${y}`
+                      }).join(' ')}
+                    />
+                    {/* Data points */}
+                    {consciousnessData.phi_timeline.map((pt: any, i: number) => {
+                      const x = (i / (consciousnessData.phi_timeline.length - 1)) * 380 + 10
+                      const y = 120 - pt.phi * 120
+                      return <circle key={i} cx={x} cy={y} r="4" fill="#7C3AED" />
+                    })}
+                  </svg>
+                  {/* X-axis labels */}
+                  <div className="flex justify-between text-xs text-gray-500 mt-1">
+                    {consciousnessData.phi_timeline.map((pt: any) => (
+                      <span key={pt.sample}>{pt.sample}</span>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1 text-right">
+                    phi : {consciousnessData.phi_timeline[consciousnessData.phi_timeline.length - 1]?.phi.toFixed(3)}
+                  </p>
+                </div>
+              ) : <p className="text-gray-400 text-sm">Loading…</p>}
+            </div>
+
+            {/* Eigenvalue Spectrum */}
+            <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+              <h3 className="text-lg font-semibold mb-1 text-purple-400">EIGENVALUE SPECTRUM</h3>
+              {consciousnessData ? (
+                <>
+                  <p className="text-xs text-gray-400 mb-3">
+                    {consciousnessData.eigenvalues.length} eigenvalues &nbsp;|&nbsp;
+                    Spectral decomposition of density matrix ρ — λ_max = {consciousnessData.lambda_max.toFixed(4)}
+                  </p>
+                  <div className="space-y-2">
+                    {consciousnessData.eigenvalues.map((lam: number, i: number) => (
+                      <div key={i} className="flex items-center gap-2 text-xs">
+                        <span className="text-gray-400 w-8">λ{i + 1}</span>
+                        <div className="flex-1 bg-gray-700 rounded h-4 overflow-hidden">
+                          <div
+                            className="bg-purple-600 h-4 rounded transition-all"
+                            style={{ width: `${Math.max(0, (lam / consciousnessData.lambda_max) * 100)}%` }}
+                          />
+                        </div>
+                        <span className="font-mono text-gray-300 w-16 text-right">{lam.toFixed(4)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : <p className="text-gray-400 text-sm">Loading…</p>}
+            </div>
+
+            {/* Network Adjacency + Density Matrix */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+              {/* Network Adjacency Matrix */}
+              <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                <h3 className="text-lg font-semibold mb-1 text-purple-400">NETWORK ADJACENCY</h3>
+                {consciousnessData ? (
+                  <>
+                    <p className="text-xs text-gray-400 mb-3">
+                      {consciousnessData.n_nodes}×{consciousnessData.n_nodes} matrix &nbsp;|&nbsp;
+                      Guardian node connectivity — edge weights represent causal coupling
+                    </p>
+                    <div className="overflow-x-auto">
+                      <div
+                        className="inline-grid gap-px text-xs font-mono"
+                        style={{ gridTemplateColumns: `repeat(${consciousnessData.n_nodes}, minmax(2.5rem, 1fr))` }}
+                      >
+                        {consciousnessData.adjacency_matrix.flat().map((val: number, idx: number) => (
+                          <div
+                            key={idx}
+                            className="flex items-center justify-center h-8 rounded-sm text-white"
+                            style={{ backgroundColor: `rgba(124, 58, 237, ${val})` }}
+                          >
+                            {val.toFixed(1)}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                ) : <p className="text-gray-400 text-sm">Loading…</p>}
+              </div>
+
+              {/* Density Matrix */}
+              <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                <h3 className="text-lg font-semibold mb-1 text-purple-400">DENSITY MATRIX Ρ</h3>
+                {consciousnessData ? (
+                  <>
+                    <p className="text-xs text-gray-400 mb-3">
+                      8×8 | Tr(ρ) = 1.0 &nbsp;|&nbsp;
+                      Quantum density matrix — normalized from network adjacency A_S / Tr(A_S)
+                    </p>
+                    <div className="overflow-x-auto">
+                      <div className="inline-grid gap-px text-xs font-mono" style={{ gridTemplateColumns: 'repeat(8, minmax(2.5rem, 1fr))' }}>
+                        {consciousnessData.density_matrix.flat().map((val: number, idx: number) => {
+                          const intensity = Math.abs(val) / Math.max(...consciousnessData.density_matrix.flat().map(Math.abs))
+                          return (
+                            <div
+                              key={idx}
+                              className="flex items-center justify-center h-8 rounded-sm"
+                              style={{
+                                backgroundColor: val >= 0
+                                  ? `rgba(34, 197, 94, ${intensity * 0.8})`
+                                  : `rgba(239, 68, 68, ${intensity * 0.8})`,
+                                color: 'white'
+                              }}
+                            >
+                              {val.toFixed(2)}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  </>
+                ) : <p className="text-gray-400 text-sm">Loading…</p>}
+              </div>
+            </div>
+
+            {/* Φ Calculator */}
+            <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+              <h3 className="text-lg font-semibold mb-4 text-purple-400">Φ CALCULATOR</h3>
+              <p className="text-sm text-gray-400 mb-4">Custom IIT Computation — enter a block index to compute Φ for that block, or leave blank for the latest block.</p>
+              <div className="flex gap-3 items-end">
+                <div className="flex-1">
+                  <label className="block text-xs text-gray-400 mb-1">Block Index (optional)</label>
+                  <input
+                    type="number"
+                    value={phiCalcBlockIndex}
+                    onChange={e => setPhiCalcBlockIndex(e.target.value)}
+                    placeholder="e.g. 938222"
+                    className="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-white text-sm font-mono"
+                  />
+                </div>
+                <button
+                  onClick={computePhi}
+                  disabled={phiCalcLoading}
+                  className="bg-purple-700 hover:bg-purple-800 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-2 px-6 rounded-lg transition"
+                >
+                  {phiCalcLoading ? '⏳ Computing…' : 'Compute Φ'}
+                </button>
+              </div>
+            </div>
+
+            {/* Mathematical Framework */}
+            <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+              <h3 className="text-lg font-semibold mb-4 text-purple-400">MATHEMATICAL FRAMEWORK</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-gray-300 font-semibold">Consciousness Measure</p>
+                    <p className="font-mono text-purple-300 mt-1">Φ_total(B) = α·Φ_IIT(B) + β·GWT_S(B)</p>
+                    <p className="text-gray-500 text-xs mt-1">Block consciousness = IIT integration + Global Workspace broadcast</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-300 font-semibold">Density Matrix</p>
+                    <p className="font-mono text-cyan-300 mt-1">ρ_S = A_S / Tr(A_S)</p>
+                    <p className="text-gray-500 text-xs mt-1">Classical density matrix from network adjacency normalization</p>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-gray-300 font-semibold">Integration Measure</p>
+                    <p className="font-mono text-cyan-300 mt-1">Φ_S = −Σₖ λₖ log₂(λₖ)</p>
+                    <p className="text-gray-500 text-xs mt-1">Von Neumann entropy of the density matrix eigenvalue spectrum</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-300 font-semibold">Consensus Condition</p>
+                    <p className="font-mono text-green-300 mt-1">Φ_total &gt; log₂(n)</p>
+                    <p className="text-gray-500 text-xs mt-1">Block accepted when integrated information exceeds log₂(n_nodes)</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
           </div>
         )}
 
