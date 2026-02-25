@@ -615,7 +615,8 @@ class TestRiemannZeroProbe:
 
     @pytest.fixture
     def probe(self):
-        return RiemannZeroProbe(near_zero_threshold=1e-6, mpmath_dps=50)
+        return RiemannZeroProbe(near_zero_threshold=1e-6, mpmath_dps=50,
+                                zeta_near_zero_threshold=1e-6)
 
     # -- classify_zeta --------------------------------------------------
 
@@ -813,6 +814,174 @@ class TestRiemannZeroProbe:
         assert RiemannZeroEvidence is not None
         assert ScoreDiagnostic is not None
 
+
+class TestRiemannZeroProbeEnhancements:
+    """
+    Tests for the IIT v7.0 RiemannZeroProbe enhancements:
+      - Precision-aware zeta near-zero threshold
+      - t-refinement via golden-section search
+      - Margin-based critical-line signature
+      - New evidence fields (min_other_raw, separation_ratio, zeta_threshold,
+        margin_factor, refined_t, refine_iterations, refine_residual)
+    """
+
+    T0 = 14.134725141734693          # first known zero (float)
+    T0_HP = "14.134725141734693790457251983562470270784257115699"
+    T_NONZERO = 15.0
+
+    # ------------------------------------------------------------------
+    # Precision-aware threshold
+    # ------------------------------------------------------------------
+
+    def test_precision_aware_threshold_default_formula(self):
+        """Default zeta_threshold must equal 10^(-(dps//2)) when not overridden."""
+        for dps in (20, 30, 50):
+            probe = RiemannZeroProbe(mpmath_dps=dps)
+            expected = 10.0 ** (-(dps // 2))
+            assert probe._get_zeta_threshold() == expected, (
+                f"dps={dps}: expected {expected}, got {probe._get_zeta_threshold()}"
+            )
+
+    def test_precision_aware_threshold_override(self):
+        """Explicit zeta_near_zero_threshold must override the precision default."""
+        probe = RiemannZeroProbe(mpmath_dps=50, zeta_near_zero_threshold=1e-8)
+        assert probe._get_zeta_threshold() == 1e-8
+
+    def test_classify_zeta_hp_near_zero_with_default_threshold(self):
+        """HP string at known zero must be NEAR_ZERO using precision-aware threshold."""
+        probe = RiemannZeroProbe(mpmath_dps=50)  # threshold = 1e-25
+        diag = probe.classify_zeta(0.5, self.T0_HP)
+        assert diag.classification == CLASSIFICATION_NEAR_ZERO
+        assert diag.raw_value < 1e-25
+
+    def test_classify_zeta_float_t0_nonzero_with_default_threshold(self):
+        """Float T0 (limited precision) is NONZERO with strict precision-aware threshold."""
+        probe = RiemannZeroProbe(mpmath_dps=50)  # threshold = 1e-25
+        diag = probe.classify_zeta(0.5, self.T0)
+        # float T0 gives |ζ| ≈ 7e-16, well above 1e-25
+        assert diag.classification == CLASSIFICATION_NONZERO
+
+    def test_zeta_threshold_stored_in_score_diagnostic(self):
+        """ScoreDiagnostic.near_zero_threshold must reflect the zeta threshold."""
+        probe = RiemannZeroProbe(mpmath_dps=50)  # threshold = 1e-25
+        diag = probe.classify_zeta(0.5, self.T0_HP)
+        assert diag.near_zero_threshold == pytest.approx(1e-25)
+
+    # ------------------------------------------------------------------
+    # Evidence metadata fields
+    # ------------------------------------------------------------------
+
+    def test_evidence_has_zeta_threshold_field(self):
+        """RiemannZeroEvidence must include zeta_threshold metadata."""
+        probe = RiemannZeroProbe(mpmath_dps=50, zeta_near_zero_threshold=1e-6)
+        ev = probe.probe_zero(self.T0)
+        assert hasattr(ev, "zeta_threshold")
+        assert ev.zeta_threshold == pytest.approx(1e-6)
+
+    def test_evidence_has_margin_factor_field(self):
+        """RiemannZeroEvidence must record the margin_factor used."""
+        probe = RiemannZeroProbe(mpmath_dps=50, zeta_near_zero_threshold=1e-6,
+                                 margin_factor=2.0)
+        ev = probe.probe_zero(self.T0)
+        assert ev.margin_factor == pytest.approx(2.0)
+
+    def test_evidence_has_min_other_raw(self):
+        """RiemannZeroEvidence must include min_other_raw (min |ζ| off critical line)."""
+        probe = RiemannZeroProbe(mpmath_dps=50, zeta_near_zero_threshold=1e-6)
+        ev = probe.probe_zero(self.T0)
+        assert hasattr(ev, "min_other_raw")
+        assert not math.isnan(ev.min_other_raw)
+        # off-line |ζ| should be substantially larger than on-line |ζ|
+        assert ev.min_other_raw > 1e-6
+
+    def test_evidence_separation_ratio_positive(self):
+        """separation_ratio must be positive and > 1 for known zeros."""
+        probe = RiemannZeroProbe(mpmath_dps=50, zeta_near_zero_threshold=1e-6)
+        ev = probe.probe_zero(self.T0)
+        assert ev.separation_ratio is not None
+        assert ev.separation_ratio > 1.0
+
+    def test_evidence_no_refinement_fields_by_default(self):
+        """Without refine_t, refined_t/iterations/residual must all be None."""
+        probe = RiemannZeroProbe(mpmath_dps=50, zeta_near_zero_threshold=1e-6)
+        ev = probe.probe_zero(self.T0)
+        assert ev.refined_t is None
+        assert ev.refine_iterations is None
+        assert ev.refine_residual is None
+
+    # ------------------------------------------------------------------
+    # t-refinement
+    # ------------------------------------------------------------------
+
+    def test_refine_t_reduces_zeta_abs(self):
+        """t-refinement from a coarse start near a known zero must reduce |ζ|."""
+        probe = RiemannZeroProbe(mpmath_dps=50, zeta_near_zero_threshold=1e-6)
+        # Use a coarse approximation of the first known zero (errors ≈ 0.005)
+        # to ensure the unrefined probe gives a large |ζ| that refinement can improve.
+        T0_coarse = round(self.T0, 2)  # 14.13 -- clearly not at the zero
+        ev_raw = probe.probe_zero(T0_coarse)
+        ev_ref = probe.probe_zero(T0_coarse, refine_t=True,
+                                  refine_window=0.5, max_iter=50)
+        assert ev_ref.zeta_abs < ev_raw.zeta_abs, (
+            f"Refined zeta_abs {ev_ref.zeta_abs:.2e} should be < "
+            f"unrefined {ev_raw.zeta_abs:.2e}"
+        )
+
+    def test_refine_t_populates_metadata(self):
+        """With refine_t=True, refined_t, iterations, and residual must be set."""
+        probe = RiemannZeroProbe(mpmath_dps=50, zeta_near_zero_threshold=1e-6)
+        ev = probe.probe_zero(self.T0, refine_t=True)
+        assert ev.refined_t is not None
+        assert ev.refine_iterations is not None
+        assert ev.refine_iterations >= 1
+        assert ev.refine_residual is not None
+        assert ev.refine_residual >= 0.0
+
+    def test_refine_t_stays_near_true_zero(self):
+        """Refined t from coarse start must end up close to the known zero location."""
+        probe = RiemannZeroProbe(mpmath_dps=50, zeta_near_zero_threshold=1e-6)
+        T0_coarse = round(self.T0, 2)  # 14.13
+        ev = probe.probe_zero(T0_coarse, refine_t=True,
+                              refine_window=0.5, max_iter=50)
+        assert abs(ev.refined_t - self.T0) < 0.01, (
+            f"refined_t={ev.refined_t:.6f} too far from T0={self.T0:.6f}"
+        )
+
+    def test_refine_t_original_t_preserved(self):
+        """ev.t must equal the original input t, not the refined value."""
+        probe = RiemannZeroProbe(mpmath_dps=50, zeta_near_zero_threshold=1e-6)
+        ev = probe.probe_zero(self.T0, refine_t=True)
+        assert ev.t == pytest.approx(self.T0)
+
+    # ------------------------------------------------------------------
+    # Margin-based critical-line signature
+    # ------------------------------------------------------------------
+
+    def test_margin_signature_true_known_zero_hp(self):
+        """Known zero (HP string) must give critical_line_signature=True with default margin."""
+        probe = RiemannZeroProbe(mpmath_dps=50)  # precision-aware threshold
+        ev = probe.probe_zero(self.T0_HP)
+        assert ev.critical_line_signature is True, (
+            f"zeta_abs={ev.zeta_abs:.2e}, threshold={ev.zeta_threshold:.2e}, "
+            f"min_other={ev.min_other_raw:.2e}, ratio={ev.separation_ratio}"
+        )
+
+    def test_margin_signature_true_with_explicit_margin(self):
+        """Known zero with margin_factor=10 must still give critical_line_signature=True."""
+        probe = RiemannZeroProbe(
+            mpmath_dps=50,
+            zeta_near_zero_threshold=1e-6,
+            margin_factor=10.0,
+        )
+        ev = probe.probe_zero(self.T0)
+        # min_other_raw >> 10 * 1e-6, so signature should be True
+        assert ev.critical_line_signature is True
+
+    def test_margin_signature_false_non_zero_t(self):
+        """Non-zero t must give critical_line_signature=False with any margin."""
+        probe = RiemannZeroProbe(mpmath_dps=50, zeta_near_zero_threshold=1e-6)
+        ev = probe.probe_zero(self.T_NONZERO)
+        assert ev.critical_line_signature is False
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
