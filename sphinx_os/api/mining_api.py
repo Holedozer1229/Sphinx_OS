@@ -9,11 +9,14 @@ from pydantic import BaseModel
 from typing import Optional, Dict, List
 import sys
 import os
+import math
+import numpy as np
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from sphinx_os.blockchain.core import SphinxSkynetBlockchain
+from sphinx_os.blockchain.btc_hard_fork import SKYNTBTCChain, BTC_GENESIS_HASH
 from sphinx_os.mining.miner import SphinxMiner
 from sphinx_os.mining.merge_miner import MergeMiningCoordinator
 
@@ -40,6 +43,9 @@ class TransactionRequest(BaseModel):
 blockchain = SphinxSkynetBlockchain()
 miner: Optional[SphinxMiner] = None
 merge_coordinator: Optional[MergeMiningCoordinator] = None
+
+# SKYNT-BTC hard fork chain (singleton, lazy-deployed via API)
+skynt_btc_chain: SKYNTBTCChain = SKYNTBTCChain()
 
 
 # Create FastAPI app
@@ -252,6 +258,160 @@ async def get_chain_stats():
     try:
         return blockchain.get_chain_stats()
     
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/consciousness")
+async def get_consciousness_metrics(block_index: Optional[int] = None):
+    """
+    Compute IIT (Integrated Information Theory) consciousness metrics.
+
+    Returns von Neumann entropy, density matrix, eigenvalue spectrum,
+    network adjacency matrix, Φ timeline, and consensus validation for
+    the specified block (or latest block if none given).
+    """
+    try:
+        # Determine seed from block index or chain length
+        if block_index is not None:
+            seed = block_index
+        else:
+            stats = blockchain.get_chain_stats()
+            seed = stats.get("chain_length", 0)
+
+        rng = np.random.default_rng(seed % (2 ** 31))
+
+        # --- 9×9 Network adjacency matrix (raw, before zeroing diagonal) ---
+        n_nodes = 9
+        A_raw = rng.random((n_nodes, n_nodes))
+        A_raw = (A_raw + A_raw.T) / 2        # symmetric
+
+        # Display version: zero diagonal (no self-loops)
+        A_display = np.round(A_raw.copy(), 1)
+        np.fill_diagonal(A_display, 0)
+
+        # --- 8×8 density matrix ρ = A_S / Tr(A_S) ---
+        # Use raw matrix (non-zero diagonal) so Tr(A_S) ≠ 0
+        dim = 8
+        A_sub = A_raw[:dim, :dim].copy()
+        trace_A = float(np.trace(A_sub))
+        if trace_A <= 0:
+            trace_A = 1.0
+        rho = A_sub / trace_A
+
+        # --- Eigenvalue spectrum ---
+        eigenvalues = np.linalg.eigvalsh(rho)
+        eigenvalues = eigenvalues[::-1]          # descending order
+
+        # --- Von Neumann entropy Φ_S = -Σ λₖ log₂(λₖ) ---
+        entropy_bits = float(
+            -sum(lam * math.log2(lam) for lam in eigenvalues if lam > 1e-10)
+        )
+
+        # --- Normalised Φ ∈ [0, 1] ---
+        max_entropy = math.log2(dim)
+        phi = entropy_bits / max_entropy if max_entropy > 0 else 0.0
+
+        # --- IIT bonus = e^Φ ---
+        iit_bonus = math.exp(phi)
+
+        # --- GWT broadcast score (simplified global workspace theory) ---
+        gwt_score = float(0.5 * phi + 0.3)
+
+        # --- Φ_total = α·Φ_IIT + β·GWT ---
+        alpha, beta = 0.7, 0.3
+        phi_total = alpha * entropy_bits + beta * gwt_score
+
+        # --- Consensus: Φ_total > log₂(n_nodes) ---
+        consensus_threshold = math.log2(n_nodes)
+        consensus_valid = bool(phi_total > consensus_threshold)
+
+        # --- Consciousness level ---
+        if phi > 0.8:
+            level = "🧠 COSMIC"
+        elif phi > 0.6:
+            level = "🌟 SELF AWARE"
+        elif phi > 0.4:
+            level = "✨ SENTIENT"
+        elif phi > 0.2:
+            level = "🔵 AWARE"
+        else:
+            level = "⚫ UNCONSCIOUS"
+
+        # --- Φ timeline (5 samples up to current seed) ---
+        phi_timeline = []
+        for i in range(5):
+            s = (seed - (4 - i)) % (2 ** 31)
+            rng_t = np.random.default_rng(s)
+            A_t = rng_t.random((dim, dim))
+            A_t = (A_t + A_t.T) / 2
+            tr_t = float(np.trace(A_t))
+            rho_t = A_t / tr_t if tr_t > 0 else A_t
+            eigs_t = np.linalg.eigvalsh(rho_t)
+            ent_t = float(
+                -sum(e * math.log2(e) for e in eigs_t if e > 1e-10)
+            )
+            phi_t = ent_t / max_entropy
+            phi_timeline.append({"sample": i, "phi": round(phi_t, 3)})
+
+        return {
+            "block_index": seed,
+            "phi": round(phi, 4),
+            "entropy_bits": round(entropy_bits, 4),
+            "iit_bonus": round(iit_bonus, 4),
+            "phi_total": round(phi_total, 4),
+            "gwt_score": round(gwt_score, 4),
+            "alpha": alpha,
+            "beta": beta,
+            "consensus_valid": consensus_valid,
+            "consensus_threshold": round(consensus_threshold, 4),
+            "n_nodes": n_nodes,
+            "consciousness_level": level,
+            "lambda_max": round(float(np.max(eigenvalues)), 4),
+            "eigenvalues": [round(float(e), 4) for e in eigenvalues],
+            "adjacency_matrix": [[round(float(v), 1) for v in row] for row in A_display.tolist()],
+            "density_matrix": [[round(float(v), 2) for v in row] for row in rho.tolist()],
+            "phi_timeline": phi_timeline,
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ---------------------------------------------------------------------------
+# SKYNT-BTC hard fork endpoints
+# ---------------------------------------------------------------------------
+
+@app.get("/api/skynt-btc/info")
+async def skynt_btc_info():
+    """
+    Return current SKYNT-BTC chain state.
+
+    Includes genesis block details, hard-fork anchor (BTC genesis hash),
+    PoW algorithm (Spectral IIT), and deployment status.
+    """
+    try:
+        return skynt_btc_chain.get_chain_info()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/skynt-btc/deploy")
+async def skynt_btc_deploy():
+    """
+    Deploy the SKYNT-BTC hard fork chain (idempotent).
+
+    Seals the genesis block, records the deployment timestamp, and
+    returns the full deployment receipt including:
+
+    - ``genesis_hash``  — hash of the SKYNT-BTC genesis block
+    - ``btc_fork_point`` — Bitcoin genesis hash (canonical fork anchor)
+    - ``pow_algorithm``  — ``"spectral"`` (Spectral IIT PoW)
+    - ``iit_phi_threshold`` — minimum normalised Φ required per block
+    """
+    try:
+        receipt = skynt_btc_chain.deploy()
+        return receipt
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
