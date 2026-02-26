@@ -32,14 +32,14 @@ MINING_TIERS = {
         hashrate="10 MH/s",
         hashrate_value=10,
         cost=0.0,
-        daily_limit="1000 SPHINX"
+        daily_limit="1000 SKYNT"
     ),
     MiningTier.PREMIUM: TierConfig(
         name="Premium",
         hashrate="100 MH/s",
         hashrate_value=100,
         cost=5.0,
-        daily_limit="10000 SPHINX"
+        daily_limit="10000 SKYNT"
     ),
     MiningTier.PRO: TierConfig(
         name="Pro",
@@ -134,7 +134,7 @@ class FreeMiner:
         time.sleep(min(time_to_mine, 0.1))  # Cap at 0.1s for simulation
         
         # Calculate reward (base reward * tier multiplier)
-        base_reward = 50.0  # Base SPHINX reward
+        base_reward = 50.0  # Base SKYNT reward
         tier_multiplier = self.config.hashrate_value / 10  # Scale with hashrate
         reward = base_reward * min(tier_multiplier / 100, 1.0)  # Cap multiplier
         

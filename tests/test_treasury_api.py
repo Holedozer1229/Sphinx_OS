@@ -122,7 +122,7 @@ def test_treasury_accumulation_via_api():
 def test_deployment_readiness_check():
     """Test deployment readiness is reflected in stats"""
     # Collect enough fees for avalanche (threshold: 30)
-    # 430 * 0.1 * 0.7 = 30.1 SPHINX
+    # 430 * 0.1 * 0.7 = 30.1 SKYNT
     for _ in range(430):
         client.post("/api/treasury/collect/nft_mint?amount=0.1")
     

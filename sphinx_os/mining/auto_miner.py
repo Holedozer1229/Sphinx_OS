@@ -124,7 +124,7 @@ class AutoMiner:
         print("📊 FINAL MINING STATISTICS")
         print("=" * 70)
         print(f"Blocks Mined: {stats['blocks_mined']}")
-        print(f"Total Rewards: {stats['total_rewards']:.2f} SPHINX")
+        print(f"Total Rewards: {stats['total_rewards']:.2f} SKYNT")
         print(f"Average Φ Score: {stats['average_phi_score']:.2f}")
         print(f"Final Hashrate: {stats['hashrate']:.2f} H/s")
         print(f"Uptime: {stats['uptime_seconds']:.1f} seconds")
@@ -135,7 +135,7 @@ class AutoMiner:
             print(f"   BTC Blocks: {merge_stats['btc_blocks']}")
             print(f"   ETH Blocks: {merge_stats['eth_blocks']}")
             print(f"   ETC Blocks: {merge_stats['etc_blocks']}")
-            print(f"   Total with Bonus: {merge_stats['total_rewards']:.2f} SPHINX")
+            print(f"   Total with Bonus: {merge_stats['total_rewards']:.2f} SKYNT")
         
         print("=" * 70)
     
@@ -159,7 +159,7 @@ class AutoMiner:
         chain_stats = self.blockchain.get_chain_stats()
         
         print(f"⛏️  Mining | Blocks: {stats['blocks_mined']} | "
-              f"Rewards: {stats['total_rewards']:.2f} SPHINX | "
+              f"Rewards: {stats['total_rewards']:.2f} SKYNT | "
               f"Hashrate: {stats['hashrate']:.2f} H/s | "
               f"Chain Length: {chain_stats['chain_length']}")
     

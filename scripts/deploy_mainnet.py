@@ -271,7 +271,7 @@ class MainnetDeployer:
             {
                 "name": "SpaceFlightNFT",
                 "args": [
-                    os.getenv("SPHINX_TOKEN_ADDRESS"),
+                    os.getenv("SKYNT_TOKEN_ADDRESS"),
                     os.getenv("TREASURY_ADDRESS"),
                     os.getenv("OPENSEA_PROXY_ADDRESS")
                 ]

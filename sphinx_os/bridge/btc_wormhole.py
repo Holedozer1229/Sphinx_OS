@@ -133,10 +133,10 @@ ZERO_REPULSION_THRESHOLD: float = 0.1
 #: Supported wormhole routes.
 WORMHOLE_ROUTES: List[Tuple[str, str]] = [
     ("btc", "skynt-btc"),
-    ("btc", "sphinx"),
-    ("skynt-btc", "sphinx"),
-    ("sphinx", "btc"),
-    ("sphinx", "skynt-btc"),
+    ("btc", "skynt"),
+    ("skynt-btc", "skynt"),
+    ("skynt", "btc"),
+    ("skynt", "skynt-btc"),
     ("skynt-btc", "btc"),
 ]
 
@@ -253,6 +253,7 @@ class BTCWormhole:
         self.guardians: List[str] = [
             f"WORMHOLE_GUARDIAN_{i}" for i in range(1, guardian_count + 1)
         ]
+        self._guardians_set: set = set(self.guardians)
 
         # Storage
         self.transfers: Dict[str, WormholeTransfer] = {}
@@ -483,7 +484,7 @@ class BTCWormhole:
             return False
 
         # Validate multi-sig threshold
-        valid_sigs = [s for s in signatures if s in self.guardians]
+        valid_sigs = [s for s in signatures if s in self._guardians_set]
         if len(valid_sigs) < self.required_signatures:
             return False
 

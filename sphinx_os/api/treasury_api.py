@@ -92,7 +92,7 @@ def collect_nft_mint_fee(amount: float):
     Collect NFT mint fee (for testing/simulation)
     
     Args:
-        amount: Fee amount in SPHINX
+        amount: Fee amount in SKYNT
     
     Returns:
         Fee distribution
@@ -112,7 +112,7 @@ def collect_rarity_proof_fee(amount: float):
     Collect rarity proof fee (for testing/simulation)
     
     Args:
-        amount: Fee amount in SPHINX
+        amount: Fee amount in SKYNT
     
     Returns:
         Fee distribution

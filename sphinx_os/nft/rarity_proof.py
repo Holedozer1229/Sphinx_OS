@@ -12,7 +12,7 @@ class RarityProofSystem:
     Charges fees that fund bridge deployment
     """
     
-    PROOF_FEE = 0.05  # SPHINX per proof
+    PROOF_FEE = 0.05  # SKYNT per proof
     
     def __init__(self, treasury=None):
         from sphinx_os.treasury.self_funding import SelfFundingTreasury
@@ -30,7 +30,7 @@ class RarityProofSystem:
         Returns:
             Rarity proof and score
         """
-        # Check user has enough SPHINX for fee
+        # Check user has enough SKYNT for fee
         if balance is None:
             try:
                 from sphinx_os.wallet.builtin_wallet import BuiltInWallet
@@ -40,7 +40,7 @@ class RarityProofSystem:
                 raise ValueError("Balance must be provided or wallet must be available")
         
         if balance < self.PROOF_FEE:
-            raise ValueError(f"Insufficient balance. Need {self.PROOF_FEE} SPHINX")
+            raise ValueError(f"Insufficient balance. Need {self.PROOF_FEE} SKYNT")
         
         # Collect proof fee
         fee_distribution = self.treasury.collect_rarity_proof_fee(self.PROOF_FEE)

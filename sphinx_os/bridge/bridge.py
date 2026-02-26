@@ -69,7 +69,7 @@ class CrossChainBridge:
     - 0.1% bridge fee
     """
     
-    SUPPORTED_CHAINS = ['btc', 'eth', 'etc', 'matic', 'avax', 'bnb', 'stx', 'sphinx']
+    SUPPORTED_CHAINS = ['btc', 'eth', 'etc', 'matic', 'avax', 'bnb', 'stx', 'skynt']
     BRIDGE_FEE = 0.001  # 0.1%
     REQUIRED_SIGNATURES = 5  # 5-of-9 multi-sig
     TOTAL_GUARDIANS = 9
@@ -82,6 +82,7 @@ class CrossChainBridge:
         
         # Multi-sig guardians (would be real addresses in production)
         self.guardians = [f"GUARDIAN_{i}" for i in range(1, self.TOTAL_GUARDIANS + 1)]
+        self._guardians_set = set(self.guardians)
         
         # Statistics
         self.stats = {
@@ -131,7 +132,7 @@ class CrossChainBridge:
         bridge_tx = BridgeTransaction(
             tx_hash=tx_hash,
             source_chain=source_chain,
-            destination_chain='sphinx',
+            destination_chain='skynt',
             amount=net_amount,
             sender=sender,
             recipient=recipient
@@ -139,12 +140,8 @@ class CrossChainBridge:
         bridge_tx.status = BridgeStatus.LOCKED
         
         # Track locked funds
-        if source_chain not in self.locked_funds:
-            self.locked_funds[source_chain] = {}
-        
-        if sender not in self.locked_funds[source_chain]:
-            self.locked_funds[source_chain][sender] = 0.0
-        
+        self.locked_funds.setdefault(source_chain, {})
+        self.locked_funds[source_chain].setdefault(sender, 0.0)
         self.locked_funds[source_chain][sender] += net_amount
         
         # Save transaction
@@ -245,7 +242,7 @@ class CrossChainBridge:
         # Create bridge transaction
         bridge_tx = BridgeTransaction(
             tx_hash=tx_hash,
-            source_chain='sphinx',
+            source_chain='skynt',
             destination_chain=destination_chain,
             amount=net_amount,
             sender=sender,
@@ -326,7 +323,7 @@ class CrossChainBridge:
         valid_count = 0
         
         for sig in signatures:
-            if sig in self.guardians:
+            if sig in self._guardians_set:
                 valid_count += 1
         
         return valid_count

@@ -43,24 +43,16 @@ class ChronoScheduler:
                 weight *= 1.5  # Higher priority for Rydberg gates
             G.add_node(i, operation=op, weight=weight)
 
-        # Add edges based on operation dependencies
-        for i in range(len(circuit)):
-            op = circuit[i]
+        # Add edges based on operation dependencies using a qubit→last-op map (O(n)).
+        last_op_for_qubit: Dict[int, int] = {}
+        for i, op in enumerate(circuit):
             target = op.get('target')
             control = op.get('control')
-            qubits = {target}
-            if control is not None:
-                qubits.add(control)
-            # Look for dependent operations (same qubits)
-            for j in range(i + 1, len(circuit)):
-                next_op = circuit[j]
-                next_target = next_op.get('target')
-                next_control = next_op.get('control')
-                next_qubits = {next_target}
-                if next_control is not None:
-                    next_qubits.add(next_control)
-                if qubits & next_qubits:  # Overlapping qubits
-                    G.add_edge(i, j)
+            qubits = [q for q in (target, control) if q is not None]
+            for q in qubits:
+                if q in last_op_for_qubit:
+                    G.add_edge(last_op_for_qubit[q], i)
+                last_op_for_qubit[q] = i
 
         # Optimize using shortest path (minimize decoherence impact)
         try:

@@ -13,15 +13,15 @@ class FeeCollector:
     Collect transaction fees - YOUR revenue stream!
     
     Fee Structure:
-    - Transaction fee: 0.001 SPHINX per tx
-    - Withdrawal fee: 0.01 SPHINX per withdrawal
+    - Transaction fee: 0.001 SKYNT per tx
+    - Withdrawal fee: 0.01 SKYNT per withdrawal
     - Premium mining: $5.00 USD per month
     - Node hosting: $10.00 USD per month
     """
     
     FEE_STRUCTURE = {
-        "transaction_fee": 0.001,  # SPHINX per tx
-        "withdrawal_fee": 0.01,    # SPHINX per withdrawal
+        "transaction_fee": 0.001,  # SKYNT per tx
+        "withdrawal_fee": 0.01,    # SKYNT per withdrawal
         "premium_mining": 5.00,    # USD per month
         "node_hosting": 10.00      # USD per month
     }
