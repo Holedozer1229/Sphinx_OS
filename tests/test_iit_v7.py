@@ -983,5 +983,221 @@ class TestRiemannZeroProbeEnhancements:
         ev = probe.probe_zero(self.T_NONZERO)
         assert ev.critical_line_signature is False
 
+
+class TestRiemannZeroPublishResults:
+    """Tests for RiemannZeroEvidence.to_dict and RiemannZeroProbe.publish_results."""
+
+    T0 = 14.134725141734693
+    T0_HP = "14.134725141734693790457251983562470270784257115699"
+
+    @pytest.fixture
+    def probe(self):
+        return RiemannZeroProbe(near_zero_threshold=1e-6, mpmath_dps=50,
+                                zeta_near_zero_threshold=1e-6)
+
+    # -- to_dict -----------------------------------------------------------
+
+    def test_to_dict_returns_dict(self, probe):
+        """to_dict must return a plain dict."""
+        ev = probe.probe_zero(self.T0)
+        d = ev.to_dict()
+        assert isinstance(d, dict)
+
+    def test_to_dict_has_all_top_level_keys(self, probe):
+        """to_dict must contain all evidence fields."""
+        ev = probe.probe_zero(self.T0)
+        d = ev.to_dict()
+        expected_keys = {
+            "t", "zeta_abs", "zeta_classification", "zeta_scan",
+            "nonabelian_scan", "fano_at_critical", "critical_line_signature",
+            "gue_pair_correlation", "min_other_raw", "separation_ratio",
+            "refined_t", "refine_iterations", "refine_residual",
+            "zeta_threshold", "margin_factor",
+        }
+        assert expected_keys == set(d.keys())
+
+    def test_to_dict_is_json_serialisable(self, probe):
+        """to_dict output must be serialisable with json.dumps."""
+        import json
+        ev = probe.probe_zero(self.T0)
+        d = ev.to_dict()
+        text = json.dumps(d)
+        assert isinstance(text, str)
+
+    def test_to_dict_zeta_scan_sigma_keys_are_strings(self, probe):
+        """zeta_scan keys in the dict must be strings (for JSON compat)."""
+        ev = probe.probe_zero(self.T0)
+        d = ev.to_dict()
+        for key in d["zeta_scan"]:
+            assert isinstance(key, str)
+
+    def test_to_dict_preserves_values(self, probe):
+        """Round-trip key values must match the original evidence."""
+        ev = probe.probe_zero(self.T0)
+        d = ev.to_dict()
+        assert d["t"] == ev.t
+        assert d["zeta_abs"] == ev.zeta_abs
+        assert d["critical_line_signature"] == ev.critical_line_signature
+        assert d["zeta_classification"] == ev.zeta_classification
+
+    # -- publish_results ---------------------------------------------------
+
+    def test_publish_results_returns_dict(self, probe):
+        """publish_results must return a dict."""
+        result = probe.publish_results([self.T0])
+        assert isinstance(result, dict)
+
+    def test_publish_results_has_summary_and_evidence(self, probe):
+        """publish_results must contain 'summary' and 'evidence' keys."""
+        result = probe.publish_results([self.T0])
+        assert "summary" in result
+        assert "evidence" in result
+
+    def test_publish_results_summary_fields(self, probe):
+        """Summary must report zeros_probed and critical_line_confirmed."""
+        result = probe.publish_results([self.T0])
+        summary = result["summary"]
+        assert summary["zeros_probed"] == 1
+        assert "critical_line_confirmed" in summary
+        assert "mpmath_dps" in summary
+        assert "zeta_threshold" in summary
+        assert "margin_factor" in summary
+
+    def test_publish_results_evidence_count_matches(self, probe):
+        """Evidence list length must match the number of zeros supplied."""
+        zeros = RiemannZeroProbe.KNOWN_ZEROS[:2]
+        result = probe.publish_results(zeros)
+        assert len(result["evidence"]) == 2
+
+    def test_publish_results_is_json_serialisable(self, probe):
+        """publish_results output must serialise with json.dumps."""
+        import json
+        result = probe.publish_results([self.T0])
+        text = json.dumps(result)
+        assert isinstance(text, str)
+
+    def test_publish_results_default_uses_three_zeros(self, probe):
+        """Default publish_results (no args) must probe 3 zeros."""
+        result = probe.publish_results()
+        assert result["summary"]["zeros_probed"] == 3
+
+
+class TestRiemannHypothesisVerifier:
+    """Tests for the RiemannHypothesisVerifier computational proof framework."""
+
+    T0 = 14.134725141734693
+    T0_HP = "14.134725141734693790457251983562470270784257115699"
+    T_NONZERO = 15.0
+
+    @pytest.fixture
+    def verifier(self):
+        from sphinx_os.Artificial_Intelligence.riemann_proof import (
+            RiemannHypothesisVerifier,
+        )
+        return RiemannHypothesisVerifier(mpmath_dps=50)
+
+    # -- Imports -----------------------------------------------------------
+
+    def test_module_exports(self):
+        """riemann_proof must be importable from the AI package."""
+        from sphinx_os.Artificial_Intelligence import (
+            RiemannHypothesisVerifier,
+            VerificationReport,
+            VERDICT_CONSISTENT,
+            VERDICT_COUNTEREXAMPLE,
+        )
+        assert RiemannHypothesisVerifier is not None
+        assert VERDICT_CONSISTENT == "CONSISTENT_WITH_RH"
+
+    # -- Separation Theorem ------------------------------------------------
+
+    def test_separation_passes_known_zero(self, verifier):
+        """Separation Theorem must pass for the first known zero."""
+        ev = verifier._probe.probe_zero(self.T0_HP)
+        result = verifier.verify_separation(ev)
+        assert result.passes is True
+
+    def test_separation_log10_ratio_large(self, verifier):
+        """log10(separation_ratio) must exceed 10 for HP zeros."""
+        ev = verifier._probe.probe_zero(self.T0_HP)
+        result = verifier.verify_separation(ev)
+        assert result.log10_ratio > 10.0
+
+    # -- Classification Consistency ----------------------------------------
+
+    def test_classification_passes_known_zero(self, verifier):
+        """Classification Consistency must pass for the first known zero."""
+        ev = verifier._probe.probe_zero(self.T0_HP)
+        result = verifier.verify_classification(ev)
+        assert result.passes is True
+        assert result.on_line_classification == CLASSIFICATION_NEAR_ZERO
+        assert result.off_line_all_nonzero is True
+
+    def test_classification_fails_nonzero_t(self, verifier):
+        """Classification must fail for a non-zero t."""
+        ev = verifier._probe.probe_zero(self.T_NONZERO)
+        result = verifier.verify_classification(ev)
+        assert result.passes is False
+
+    # -- GUE Fingerprint ---------------------------------------------------
+
+    def test_gue_passes_known_zero(self, verifier):
+        """GUE Fingerprint must pass for the first known zero."""
+        ev = verifier._probe.probe_zero(self.T0)
+        result = verifier.verify_gue(ev)
+        assert result.passes is True
+        assert result.gue_pair_correlation is not None
+        assert result.gue_pair_correlation > 0.3
+
+    def test_gue_mean_nonabelian_positive(self, verifier):
+        """Mean non-abelian score must be positive for known zeros."""
+        ev = verifier._probe.probe_zero(self.T0)
+        result = verifier.verify_gue(ev)
+        assert result.mean_nonabelian > 0.0
+
+    # -- Single-zero verification ------------------------------------------
+
+    def test_verify_zero_passes_known_zero(self, verifier):
+        """verify_zero must pass for a known zero."""
+        result = verifier.verify_zero(self.T0_HP)
+        assert result.all_pass is True
+
+    def test_verify_zero_fails_nonzero(self, verifier):
+        """verify_zero must fail for a non-zero t."""
+        result = verifier.verify_zero(self.T_NONZERO)
+        assert result.all_pass is False
+
+    # -- Full verification -------------------------------------------------
+
+    def test_full_verification_consistent(self, verifier):
+        """Full verification on first known zero must be CONSISTENT_WITH_RH."""
+        from sphinx_os.Artificial_Intelligence.riemann_proof import (
+            VERDICT_CONSISTENT,
+        )
+        report = verifier.full_verification(
+            [RiemannZeroProbe.KNOWN_ZEROS_HP[0]]
+        )
+        assert report.verdict == VERDICT_CONSISTENT
+        assert report.zeros_tested == 1
+        assert report.zeros_passing == 1
+
+    def test_full_verification_report_to_dict(self, verifier):
+        """VerificationReport.to_dict must be JSON-serialisable."""
+        import json
+        report = verifier.full_verification(
+            [RiemannZeroProbe.KNOWN_ZEROS_HP[0]]
+        )
+        d = report.to_dict()
+        text = json.dumps(d)
+        assert isinstance(text, str)
+        assert d["verdict"] == "CONSISTENT_WITH_RH"
+
+    def test_full_verification_default_three_zeros(self, verifier):
+        """Default full_verification must test 3 zeros."""
+        report = verifier.full_verification()
+        assert report.zeros_tested == 3
+        assert report.verdict == "CONSISTENT_WITH_RH"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

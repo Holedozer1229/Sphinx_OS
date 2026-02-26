@@ -7,11 +7,23 @@ Trustless cross-chain bridge with:
 - Multi-signature validation (5-of-9)
 - Support for BTC, ETH, ETC, MATIC, AVAX, BNB, STX
 - ZK-proof verification
+- BTC Wormhole: quantum-secured BTC bridging with spectral attestations,
+  IIT Φ-gated guardian consensus, and zero-knowledge transfer proofs
 """
 
 from .bridge import CrossChainBridge, BridgeStatus, BridgeTransaction
 from .relayer import BridgeRelayer
 from .validator import BridgeValidator, ZKProofVerifier
+from .btc_wormhole import (
+    BTCWormhole,
+    WormholeStatus,
+    WormholeTransfer,
+    SpectralAttestation,
+    SpectralHashAttestation,
+    IITPhiGatedGuardian,
+    ZeroKnowledgeTransferProof,
+    BTCWormholeProtocol,
+)
 
 __all__ = [
     'CrossChainBridge',
@@ -19,5 +31,13 @@ __all__ = [
     'BridgeTransaction',
     'BridgeRelayer',
     'BridgeValidator',
-    'ZKProofVerifier'
+    'ZKProofVerifier',
+    'BTCWormhole',
+    'WormholeStatus',
+    'WormholeTransfer',
+    'SpectralAttestation',
+    'SpectralHashAttestation',
+    'IITPhiGatedGuardian',
+    'ZeroKnowledgeTransferProof',
+    'BTCWormholeProtocol',
 ]

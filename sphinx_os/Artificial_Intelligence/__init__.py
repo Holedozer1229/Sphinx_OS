@@ -39,6 +39,12 @@ from .iit_v7 import (
     CLASSIFICATION_NONZERO,
     NEAR_ZERO_THRESHOLD_DEFAULT,
 )
+from .riemann_proof import (
+    RiemannHypothesisVerifier,
+    VerificationReport,
+    VERDICT_CONSISTENT,
+    VERDICT_COUNTEREXAMPLE,
+)
 
 __version__ = "7.0.0"
 __all__ = [
@@ -53,6 +59,8 @@ __all__ = [
     "ScoreDiagnostic",
     "RiemannZeroEvidence",
     "RiemannZeroProbe",
+    "RiemannHypothesisVerifier",
+    "VerificationReport",
     "CauseEffectRepertoire",
     "Partition",
     "FANO_LINES",
@@ -61,4 +69,6 @@ __all__ = [
     "CLASSIFICATION_NEAR_ZERO",
     "CLASSIFICATION_NONZERO",
     "NEAR_ZERO_THRESHOLD_DEFAULT",
+    "VERDICT_CONSISTENT",
+    "VERDICT_COUNTEREXAMPLE",
 ]
