@@ -27,9 +27,9 @@ class SpinNetwork:
         self.total_points = np.prod(grid_size)
         self.state = np.ones(self.total_points, dtype=np.complex128) / np.sqrt(self.total_points)
         self.indices = np.arange(self.total_points).reshape(grid_size)
-        self.ctc_buffer = collections.deque(maxlen=self.ctc_steps)
         self.ctc_steps = CONFIG["time_delay_steps"]
         self.ctc_factor = CONFIG["ctc_feedback_factor"]
+        self.ctc_buffer = collections.deque(maxlen=self.ctc_steps)
         logger.info("SpinNetwork initialized with grid size %s", grid_size)
 
     def evolve(self, dt: float, lambda_field: np.ndarray, metric: np.ndarray, inverse_metric: np.ndarray,
@@ -211,14 +211,25 @@ class SpinNetwork:
             np.ndarray: Affine connection tensor.
         """
         connection = np.zeros((*self.grid_size, 6, 6, 6), dtype=np.float64)
+        # Pre-compute all partial derivatives of metric components once.
+        # partial_g[axis][a][b] stores ∂g_{a,b}/∂x^axis as a full grid array,
+        # so each of the 6×6×6 = 216 arrays is computed only once rather than
+        # once per grid point (the previous behaviour).
+        partial_g = [
+            [
+                [np.gradient(metric[..., a, b], deltas[axis], axis=axis) for b in range(6)]
+                for a in range(6)
+            ]
+            for axis in range(6)
+        ]
         for idx in np.ndindex(self.grid_size):
             if all(0 < i < s - 1 for i, s in zip(idx, self.grid_size)):
                 for rho in range(6):
                     for mu in range(6):
                         for nu in range(6):
-                            dg_mu = np.gradient(metric[..., mu, nu], deltas[rho], axis=rho)[idx]
-                            dg_nu = np.gradient(metric[..., rho, mu], deltas[nu], axis=nu)[idx]
-                            dg_rho = np.gradient(metric[..., rho, nu], deltas[mu], axis=mu)[idx]
+                            dg_mu = partial_g[rho][mu][nu][idx]
+                            dg_nu = partial_g[nu][rho][mu][idx]
+                            dg_rho = partial_g[mu][rho][nu][idx]
                             connection[idx + (rho, mu, nu)] = 0.5 * np.einsum('rs,s->r', inverse_metric[idx],
                                                                               dg_mu + dg_nu - dg_rho)
         if np.any(np.isnan(connection)):

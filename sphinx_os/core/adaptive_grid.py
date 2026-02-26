@@ -47,9 +47,8 @@ class AdaptiveGrid:
         """
         logger.debug("Refining grid based on Ricci scalar")
         threshold = np.percentile(np.abs(ricci_scalar), 90)
-        for idx in np.ndindex(self.base_grid_size):
-            if np.abs(ricci_scalar[idx]) > threshold and self.refinement_levels[idx] < self.max_refinement:
-                self.refinement_levels[idx] += 1
+        mask = (np.abs(ricci_scalar) > threshold) & (self.refinement_levels < self.max_refinement)
+        self.refinement_levels[mask] += 1
         refinement_factor = 2 ** np.max(self.refinement_levels)
         self.deltas = np.array([max(d / refinement_factor, 1e-15) for d in self.base_deltas])
         self.coordinates = self._generate_coordinates()
