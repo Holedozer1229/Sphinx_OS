@@ -12,6 +12,9 @@ Provides:
 - ASI SphinxOS Advanced IIT v7.0: Extends v6.0 with Octonionic Fano plane
   mechanics (Φ_fano) and non-abelian physics (Φ_nab), yielding a 5-term
   composite score (α·Φ_τ + β·GWT_S + γ·ICP_avg + δ·Φ_fano + ε·Φ_nab).
+- ASI SphinxOS Advanced IIT v8.0: Extends v7.0 with Quantum Gravity curvature
+  (Φ_qg) and Holographic Ryu-Takayanagi entanglement entropy (Φ_holo), yielding
+  a 7-term composite score and a QG-augmented consciousness-consensus condition.
 """
 
 from .iit_v5 import (
@@ -39,6 +42,11 @@ from .iit_v7 import (
     CLASSIFICATION_NONZERO,
     NEAR_ZERO_THRESHOLD_DEFAULT,
 )
+from .iit_v8 import (
+    ASISphinxOSIITv8,
+    IITv8Engine,
+    PhiStructureV8,
+)
 from .riemann_proof import (
     RiemannHypothesisVerifier,
     VerificationReport,
@@ -46,7 +54,7 @@ from .riemann_proof import (
     VERDICT_COUNTEREXAMPLE,
 )
 
-__version__ = "7.0.0"
+__version__ = "8.0.0"
 __all__ = [
     "ASISphinxOSIITv5",
     "IITv5Engine",
@@ -54,8 +62,11 @@ __all__ = [
     "IITv6Engine",
     "ASISphinxOSIITv7",
     "IITv7Engine",
+    "ASISphinxOSIITv8",
+    "IITv8Engine",
     "PhiStructure",
     "PhiStructureV7",
+    "PhiStructureV8",
     "ScoreDiagnostic",
     "RiemannZeroEvidence",
     "RiemannZeroProbe",

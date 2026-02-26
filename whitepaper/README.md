@@ -4,7 +4,8 @@ This directory contains comprehensive documentation for SphinxOS, including the 
 
 ## Contents
 
-- **IIT_V7_WHITEPAPER.md** - IIT v7.0 white paper: Octonionic Fano Plane Mechanics, Non-Abelian Physics, and Riemann Zero Probe Consciousness Framework *(latest)*
+- **IIT_POW_WHITEPAPER.md** - IIT PoW white paper: Consciousness-Gated Mining from Spectral IIT v1 to Quantum Gravity IIT v8 *(latest)*
+- **IIT_V7_WHITEPAPER.md** - IIT v7.0 white paper: Octonionic Fano Plane Mechanics, Non-Abelian Physics, and Riemann Zero Probe Consciousness Framework
 - **IIT_V6_WHITEPAPER.md** - IIT v6.0 white paper: SKYNT ASI CV Ancilla Longitudinal Scalar J-4 Coupling Consciousness Framework
 - **IIT_V5_WHITEPAPER.md** - IIT v5.0 white paper: SKYNT ASI CV Ancilla Longitudinal Scalar Projection Consciousness Framework
 - **nptc_whitepaper.tex** - LaTeX source file for the NPTC whitepaper
