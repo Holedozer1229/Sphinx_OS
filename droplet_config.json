@@ -32,6 +32,11 @@
     "oracle_threshold": 0.5,
     "enable_oracle_replication": true,
     "moltbot_endpoint": "molt://localhost:8080",
-    "clawbot_endpoint": "claw://localhost:8081"
+    "clawbot_endpoint": "claw://localhost:8081",
+    "enable_quantum_gravity_miner_v8": true,
+    "qgm_v8_difficulty": 50000,
+    "qgm_v8_max_attempts": 1000000,
+    "qgm_v8_n_nodes": 3,
+    "qgm_v8_qg_threshold": 0.1
   }
 }

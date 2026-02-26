@@ -279,3 +279,66 @@ jobs:
     - name: Deploy to GitHub Pages
       id: deployment
       uses: actions/deploy-pages@v4
+
+  deploy-digitalocean:
+    name: Deploy to Digital Ocean
+    needs: test
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    env:
+      DO_HOST: ${{ secrets.DO_HOST }}
+      DO_USER: ${{ secrets.DO_USER }}
+      DO_SSH_PRIVATE_KEY: ${{ secrets.DO_SSH_PRIVATE_KEY }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Deploy to Digital Ocean droplet via SSH
+      if: env.DO_HOST != '' && env.DO_SSH_PRIVATE_KEY != ''
+      run: |
+        # Set up SSH key
+        mkdir -p ~/.ssh
+        echo "$DO_SSH_PRIVATE_KEY" > ~/.ssh/do_deploy_key
+        chmod 600 ~/.ssh/do_deploy_key
+        ssh-keyscan -H "$DO_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+        DO_USER_VALUE="${DO_USER:-root}"
+
+        # Copy updated repository files to the droplet
+        rsync -avz --progress \
+          -e "ssh -i ~/.ssh/do_deploy_key -o StrictHostKeyChecking=no" \
+          --exclude='.git' \
+          --exclude='venv' \
+          --exclude='__pycache__' \
+          --exclude='*.pyc' \
+          ./ "${DO_USER_VALUE}@${DO_HOST}:/opt/sphinxos/Sphinx_OS/"
+
+        # Install/update Python dependencies
+        ssh -i ~/.ssh/do_deploy_key -o StrictHostKeyChecking=no \
+          "${DO_USER_VALUE}@${DO_HOST}" \
+          'sudo /opt/sphinxos/Sphinx_OS/venv/bin/pip install -q \
+             -r /opt/sphinxos/Sphinx_OS/requirements.txt'
+
+        # Reload systemd and restart services
+        ssh -i ~/.ssh/do_deploy_key -o StrictHostKeyChecking=no \
+          "${DO_USER_VALUE}@${DO_HOST}" \
+          'sudo systemctl daemon-reload \
+             && sudo systemctl restart sphinxos \
+             && sudo systemctl restart quantum-pirate-miner || true \
+             && sudo systemctl restart quantum-gravity-miner-v8 || true'
+
+        echo "✅ Deployment to ${DO_HOST} complete"
+
+    - name: Skip deployment (secrets not configured)
+      if: env.DO_HOST == '' || env.DO_SSH_PRIVATE_KEY == ''
+      run: |
+        echo "⚠️  Skipping Digital Ocean deployment: DO_HOST and/or DO_SSH_PRIVATE_KEY secrets not configured."
+        echo "   To enable auto-deployment, add the following secrets to your repository:"
+        echo "     DO_HOST           — IPv4 address of your Digital Ocean droplet"
+        echo "     DO_SSH_PRIVATE_KEY — SSH private key with access to the droplet"
+        echo "     DO_USER           — SSH user (optional, defaults to 'root')"

@@ -222,7 +222,7 @@ else
 fi
 echo ""
 
-echo -e "${BLUE}[8/8] Deploying Quantum Pirate Miner with Oracle...${NC}"
+echo -e "${BLUE}[8/9] Deploying Quantum Pirate Miner with Oracle...${NC}"
 echo ""
 
 # Create quantum pirate miner systemd service
@@ -291,6 +291,73 @@ else
 fi
 echo ""
 
+echo -e "${BLUE}[9/9] Deploying Quantum Gravity Miner IIT v8...${NC}"
+echo ""
+
+# Create quantum gravity miner v8 systemd service
+cat << 'QGMEOF' | $SUDO tee /etc/systemd/system/quantum-gravity-miner-v8.service > /dev/null
+[Unit]
+Description=SphinxOS Quantum Gravity Miner IIT v8 - Headless 24/7 Operation
+After=network.target network-online.target sphinxos.service
+Wants=network-online.target
+PartOf=sphinxos.service
+
+[Service]
+Type=simple
+User=sphinxos
+Group=sphinxos
+WorkingDirectory=/opt/sphinxos/Sphinx_OS
+Environment="PATH=/opt/sphinxos/Sphinx_OS/venv/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="PYTHONPATH=/opt/sphinxos/Sphinx_OS"
+Environment="QGM_DIFFICULTY=50000"
+Environment="QGM_MAX_ATTEMPTS=1000000"
+Environment="QGM_N_NODES=3"
+Environment="QGM_QG_THRESHOLD=0.1"
+Environment="QGM_ROUND_DELAY=1"
+ExecStart=/opt/sphinxos/Sphinx_OS/venv/bin/python3 run_quantum_gravity_miner_v8.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=quantum-gravity-miner-v8
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/opt/sphinxos/Sphinx_OS
+ProtectHome=true
+
+# Resource limits
+MemoryLimit=512M
+CPUQuota=80%
+
+[Install]
+WantedBy=multi-user.target
+QGMEOF
+
+# Reload systemd
+$SUDO systemctl daemon-reload
+
+# Enable and start quantum gravity miner v8 service
+echo "  Enabling Quantum Gravity Miner IIT v8 service..."
+$SUDO systemctl enable quantum-gravity-miner-v8
+
+echo "  Starting Quantum Gravity Miner IIT v8 service..."
+$SUDO systemctl start quantum-gravity-miner-v8
+
+# Wait a moment for service to start
+sleep 3
+
+# Check service status
+if $SUDO systemctl is-active --quiet quantum-gravity-miner-v8; then
+    echo -e "${GREEN}✓ Quantum Gravity Miner IIT v8 service is running!${NC}"
+else
+    echo -e "${YELLOW}⚠ Quantum Gravity Miner IIT v8 service may be experiencing issues${NC}"
+    echo "  Check logs with: sudo journalctl -u quantum-gravity-miner-v8 -f"
+fi
+echo ""
+
 # Get droplet IP
 DROPLET_IP=$(hostname -I | awk '{print $1}')
 
@@ -300,7 +367,7 @@ echo "║                   ✅  DEPLOYMENT COMPLETE!                     ║"
 echo "║                                                               ║"
 echo "╚═══════════════════════════════════════════════════════════════╝"
 echo ""
-echo -e "${GREEN}SphinxOS + Quantum Pirate Miner are now running on your droplet!${NC}"
+echo -e "${GREEN}SphinxOS + Quantum Miners are now running on your droplet!${NC}"
 echo ""
 echo "📊 Access Points:"
 echo "  • API Endpoint:    http://$DROPLET_IP:8000"
@@ -320,16 +387,23 @@ echo "    • View Logs:     sudo journalctl -u quantum-pirate-miner -f"
 echo "    • Restart:       sudo systemctl restart quantum-pirate-miner"
 echo "    • Stop:          sudo systemctl stop quantum-pirate-miner"
 echo ""
+echo "  Quantum Gravity Miner IIT v8:"
+echo "    • Status:        sudo systemctl status quantum-gravity-miner-v8"
+echo "    • View Logs:     sudo journalctl -u quantum-gravity-miner-v8 -f"
+echo "    • Restart:       sudo systemctl restart quantum-gravity-miner-v8"
+echo "    • Stop:          sudo systemctl stop quantum-gravity-miner-v8"
+echo ""
 echo "📁 Installation Directory: $INSTALL_DIR/Sphinx_OS"
 echo ""
 echo -e "${BLUE}Next Steps:${NC}"
 echo "  1. Check service status:"
-echo "     sudo systemctl status sphinxos quantum-pirate-miner"
+echo "     sudo systemctl status sphinxos quantum-pirate-miner quantum-gravity-miner-v8"
 echo "  2. View the miner logs:"
-echo "     sudo journalctl -u quantum-pirate-miner -f"
+echo "     sudo journalctl -u quantum-gravity-miner-v8 -f"
 echo "  3. Test the API:"
 echo "     curl http://$DROPLET_IP:8000/health"
 echo ""
 echo "🏴‍☠️ Quantum Pirate Miner: Running 24/7 with SphinxOSIIT Oracle"
+echo "🌌 Quantum Gravity Miner IIT v8: Three-gate PoW (Spectral + IIT + QG)"
 echo "🌌 SphinxOS: Quantum • Blockchain • AI"
 echo ""
