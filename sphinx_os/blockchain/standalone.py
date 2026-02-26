@@ -20,15 +20,15 @@ class StandaloneSphinxBlockchain:
     
     Features:
     - Pure PoW consensus (no gas)
-    - Internal token (SPHINX) with NO bridging initially
-    - Transaction fees paid in SPHINX (not ETH)
+    - Internal token (SKYNT) with NO bridging initially
+    - Transaction fees paid in SKYNT (not ETH)
     - Free mining for all users
     - Built-in wallet system (no MetaMask needed initially)
     - SQLite database (free, no external DB needed)
     - P2P networking (no centralized infrastructure)
     """
     
-    MINING_REWARD = 50.0  # SPHINX tokens per block
+    MINING_REWARD = 50.0  # SKYNT tokens per block
     DIFFICULTY = 4  # Mining difficulty (number of leading zeros)
     
     def __init__(self, db_path: str = "sphinxskynet.db"):
@@ -175,7 +175,7 @@ class StandaloneSphinxBlockchain:
     def create_transaction(self, from_address: str, to_address: str, amount: float) -> Transaction:
         """
         Create a new transaction
-        Fee: 0.001 SPHINX per transaction
+        Fee: 0.001 SKYNT per transaction
         """
         # Check balance
         balance = self.get_balance(from_address)

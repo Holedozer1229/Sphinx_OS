@@ -71,7 +71,7 @@ def test_utxo_balance():
     """Test UTXO balance calculation"""
     blockchain = SphinxSkynetBlockchain()
     
-    # Genesis block gives 50 SPHINX to GENESIS_ADDRESS
+    # Genesis block gives 50 SKYNT to GENESIS_ADDRESS
     balance = blockchain.get_balance("GENESIS_ADDRESS")
     assert balance == 50.0
 

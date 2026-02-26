@@ -133,10 +133,10 @@ ZERO_REPULSION_THRESHOLD: float = 0.1
 #: Supported wormhole routes.
 WORMHOLE_ROUTES: List[Tuple[str, str]] = [
     ("btc", "skynt-btc"),
-    ("btc", "sphinx"),
-    ("skynt-btc", "sphinx"),
-    ("sphinx", "btc"),
-    ("sphinx", "skynt-btc"),
+    ("btc", "skynt"),
+    ("skynt-btc", "skynt"),
+    ("skynt", "btc"),
+    ("skynt", "skynt-btc"),
     ("skynt-btc", "btc"),
 ]
 

@@ -10,7 +10,7 @@ collect them from the standard ``/metrics`` HTTP endpoint.
 Metric groups
 -------------
 - **Blockchain** – chain height, best block timestamp, total transactions,
-  total SPHINX mined.
+  total SKYNT mined.
 - **Mining** – hashrate, blocks found, average Φ score, total rewards,
   active miners in pool.
 - **Transaction pool** – number of pending transactions.
@@ -111,8 +111,8 @@ class SphinxMetrics:
             "Total number of transactions ever confirmed on-chain.",
         )
         self.blockchain_mined_supply = Gauge(
-            "sphinxos_blockchain_mined_supply_sphinx",
-            "Total SPHINX tokens mined so far.",
+            "sphinxos_blockchain_mined_supply_skynt",
+            "Total SKYNT tokens mined so far.",
         )
 
         # ------------------------------------------------------------------ #
@@ -128,8 +128,8 @@ class SphinxMetrics:
             "Total number of blocks mined by this node.",
         )
         self.mining_rewards_total = Counter(
-            "sphinxos_mining_rewards_total_sphinx",
-            "Total SPHINX rewards earned by this node.",
+            "sphinxos_mining_rewards_total_skynt",
+            "Total SKYNT rewards earned by this node.",
         )
         self.mining_phi_score = Gauge(
             "sphinxos_mining_phi_score",
@@ -208,7 +208,7 @@ class SphinxMetrics:
         block :
             The newly mined :class:`~sphinx_os.blockchain.block.Block`.
         rewards :
-            SPHINX tokens earned for this block.
+            SKYNT tokens earned for this block.
         block_time :
             Elapsed seconds from work-start to block acceptance.
         """

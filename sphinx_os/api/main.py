@@ -197,7 +197,7 @@ def get_balance(address: str):
     return {
         "address": address,
         "balance": balance,
-        "token": "SPHINX"
+        "token": "SKYNT"
     }
 
 
@@ -229,8 +229,8 @@ def list_wallets():
 @app.post("/api/transaction/send")
 def send_transaction(request: TransactionRequest):
     """
-    Send SPHINX tokens - fee paid in SPHINX (not ETH)
-    Fee: 0.001 SPHINX per transaction
+    Send SKYNT tokens - fee paid in SKYNT (not ETH)
+    Fee: 0.001 SKYNT per transaction
     """
     try:
         # Create transaction

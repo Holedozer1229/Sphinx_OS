@@ -13,7 +13,7 @@ class SelfFundingTreasury:
     """
     
     # Conversion rate (placeholder until real price feeds integrated)
-    SPHINX_TO_USD_RATE = 1.0
+    SKYNT_TO_USD_RATE = 1.0
     
     def __init__(self):
         self.treasury_balance = 0
@@ -29,7 +29,7 @@ class SelfFundingTreasury:
         Collect NFT minting fee and allocate
         
         Args:
-            amount: Fee amount in SPHINX tokens
+            amount: Fee amount in SKYNT tokens
         """
         treasury_share = amount * 0.70  # 70% to treasury
         operator_share = amount * 0.20  # 20% to operator
@@ -49,7 +49,7 @@ class SelfFundingTreasury:
         Collect rarity proof verification fee
         
         Args:
-            amount: Fee amount in SPHINX tokens
+            amount: Fee amount in SKYNT tokens
         """
         treasury_share = amount * 0.80  # 80% to treasury
         operator_share = amount * 0.15  # 15% to operator
@@ -71,8 +71,8 @@ class SelfFundingTreasury:
         """
         for chain, config in self.deployment_targets.items():
             if not config["deployed"]:
-                # Convert SPHINX to USD using conversion rate
-                treasury_usd = self.treasury_balance * self.SPHINX_TO_USD_RATE
+                # Convert SKYNT to USD using conversion rate
+                treasury_usd = self.treasury_balance * self.SKYNT_TO_USD_RATE
                 
                 if treasury_usd >= config["threshold"]:
                     self.trigger_deployment(chain, config["threshold"])
@@ -90,7 +90,7 @@ class SelfFundingTreasury:
         """
         print(f"🚀 Treasury funded! Deploying {chain} bridge...")
         
-        # Convert SPHINX to native token via DEX
+        # Convert SKYNT to native token via DEX
         native_token = self.swap_to_native(chain, cost)
         
         # Deploy bridge contract
@@ -106,7 +106,7 @@ class SelfFundingTreasury:
     
     def swap_to_native(self, chain: str, amount_usd: float):
         """
-        Swap SPHINX tokens to native token for gas
+        Swap SKYNT tokens to native token for gas
         Uses DEX aggregator (1inch, Uniswap, etc.)
         
         Args:
@@ -128,14 +128,14 @@ class SelfFundingTreasury:
             Dictionary with treasury stats
         """
         return {
-            "balance_sphinx": self.treasury_balance,
-            "balance_usd": self.treasury_balance * self.SPHINX_TO_USD_RATE,
+            "balance_skynt": self.treasury_balance,
+            "balance_usd": self.treasury_balance * self.SKYNT_TO_USD_RATE,
             "deployments": {
                 chain: {
-                    "ready": self.treasury_balance * self.SPHINX_TO_USD_RATE >= config["threshold"],
+                    "ready": self.treasury_balance * self.SKYNT_TO_USD_RATE >= config["threshold"],
                     "deployed": config["deployed"],
                     "threshold": config["threshold"],
-                    "progress": min(100, (self.treasury_balance * self.SPHINX_TO_USD_RATE / config["threshold"]) * 100)
+                    "progress": min(100, (self.treasury_balance * self.SKYNT_TO_USD_RATE / config["threshold"]) * 100)
                 }
                 for chain, config in self.deployment_targets.items()
             }

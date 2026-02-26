@@ -115,7 +115,7 @@ class SphinxMiner:
                         self.stats['average_phi_score'] = new_avg
                         
                         print(f"✅ Block #{block.index} mined! Hash: {block.hash[:16]}...")
-                        print(f"   Φ Score: {block.phi_score:.2f}, Reward: {self.stats['total_rewards']:.2f} SPHINX")
+                        print(f"   Φ Score: {block.phi_score:.2f}, Reward: {self.stats['total_rewards']:.2f} SKYNT")
                     else:
                         print("❌ Failed to add mined block to chain")
                 

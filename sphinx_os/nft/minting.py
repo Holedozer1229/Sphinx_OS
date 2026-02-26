@@ -8,7 +8,7 @@ class SphinxNFTMinter:
     NFT minting system with self-funding fees
     """
     
-    MINT_FEE = 0.1  # SPHINX per mint
+    MINT_FEE = 0.1  # SKYNT per mint
     
     def __init__(self, treasury=None):
         from sphinx_os.treasury.self_funding import SelfFundingTreasury
@@ -27,7 +27,7 @@ class SphinxNFTMinter:
         Returns:
             NFT token ID and transaction details
         """
-        # Check user has enough SPHINX for fee
+        # Check user has enough SKYNT for fee
         if balance is None:
             # Try to import wallet, but if not available, raise error
             try:
@@ -38,7 +38,7 @@ class SphinxNFTMinter:
                 raise ValueError("Balance must be provided or wallet must be available")
         
         if balance < self.MINT_FEE:
-            raise ValueError(f"Insufficient balance. Need {self.MINT_FEE} SPHINX")
+            raise ValueError(f"Insufficient balance. Need {self.MINT_FEE} SKYNT")
         
         # Collect minting fee
         fee_distribution = self.treasury.collect_nft_mint_fee(self.MINT_FEE)

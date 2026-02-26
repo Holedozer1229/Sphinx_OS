@@ -69,7 +69,7 @@ class CrossChainBridge:
     - 0.1% bridge fee
     """
     
-    SUPPORTED_CHAINS = ['btc', 'eth', 'etc', 'matic', 'avax', 'bnb', 'stx', 'sphinx']
+    SUPPORTED_CHAINS = ['btc', 'eth', 'etc', 'matic', 'avax', 'bnb', 'stx', 'skynt']
     BRIDGE_FEE = 0.001  # 0.1%
     REQUIRED_SIGNATURES = 5  # 5-of-9 multi-sig
     TOTAL_GUARDIANS = 9
@@ -132,7 +132,7 @@ class CrossChainBridge:
         bridge_tx = BridgeTransaction(
             tx_hash=tx_hash,
             source_chain=source_chain,
-            destination_chain='sphinx',
+            destination_chain='skynt',
             amount=net_amount,
             sender=sender,
             recipient=recipient
@@ -242,7 +242,7 @@ class CrossChainBridge:
         # Create bridge transaction
         bridge_tx = BridgeTransaction(
             tx_hash=tx_hash,
-            source_chain='sphinx',
+            source_chain='skynt',
             destination_chain=destination_chain,
             amount=net_amount,
             sender=sender,

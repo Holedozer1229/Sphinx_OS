@@ -63,7 +63,7 @@ def test_get_treasury_stats():
     
     stats = treasury.get_treasury_stats()
     
-    assert stats["balance_sphinx"] == 25.0
+    assert stats["balance_skynt"] == 25.0
     assert stats["balance_usd"] == 25.0
     assert "deployments" in stats
     assert "polygon" in stats["deployments"]
@@ -95,7 +95,7 @@ def test_deployment_readiness():
 
 
 def test_swap_to_native():
-    """Test SPHINX to native token swap"""
+    """Test SKYNT to native token swap"""
     treasury = SelfFundingTreasury()
     
     # Test mock conversion

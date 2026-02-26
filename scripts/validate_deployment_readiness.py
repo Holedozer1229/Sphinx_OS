@@ -18,7 +18,7 @@ def validate_environment():
         'ETH_RPC_URL',
         'TREASURY_ADDRESS',
         'ZK_VERIFIER_ADDRESS',
-        'SPHINX_TOKEN_ADDRESS',
+        'SKYNT_TOKEN_ADDRESS',
         'OPENSEA_PROXY_ADDRESS',
         'JWT_SECRET',
         'ETHERSCAN_API_KEY'
@@ -39,7 +39,7 @@ def validate_addresses():
     addresses = {
         'TREASURY_ADDRESS': os.getenv('TREASURY_ADDRESS'),
         'ZK_VERIFIER_ADDRESS': os.getenv('ZK_VERIFIER_ADDRESS'),
-        'SPHINX_TOKEN_ADDRESS': os.getenv('SPHINX_TOKEN_ADDRESS'),
+        'SKYNT_TOKEN_ADDRESS': os.getenv('SKYNT_TOKEN_ADDRESS'),
         'OPENSEA_PROXY_ADDRESS': os.getenv('OPENSEA_PROXY_ADDRESS'),
     }
     

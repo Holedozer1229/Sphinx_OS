@@ -22,7 +22,7 @@ def print_stats(treasury):
     """Print current treasury statistics"""
     stats = treasury.get_treasury_stats()
     
-    print(f"💰 Treasury Balance: ${stats['balance_usd']:.2f} (SPHINX)")
+    print(f"💰 Treasury Balance: ${stats['balance_usd']:.2f} (SKYNT)")
     print("\n📊 Deployment Status:")
     
     for chain, info in stats['deployments'].items():

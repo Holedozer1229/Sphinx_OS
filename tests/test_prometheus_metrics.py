@@ -188,7 +188,7 @@ class TestSphinxMetrics:
         metrics.set_mined_supply(12_345.678)
 
         snapshot = metrics.generate_latest().decode()
-        assert "sphinxos_blockchain_mined_supply_sphinx" in snapshot
+        assert "sphinxos_blockchain_mined_supply_skynt" in snapshot
 
 
 if __name__ == "__main__":

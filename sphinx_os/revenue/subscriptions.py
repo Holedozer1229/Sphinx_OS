@@ -32,7 +32,7 @@ TIER_PRICING = {
         name="Free",
         cost=0.0,
         hashrate="10 MH/s",
-        daily_limit="1000 SPHINX",
+        daily_limit="1000 SKYNT",
         features=[
             "Browser mining",
             "Instant payouts",
@@ -43,7 +43,7 @@ TIER_PRICING = {
         name="Premium",
         cost=5.0,
         hashrate="100 MH/s",
-        daily_limit="10000 SPHINX",
+        daily_limit="10000 SKYNT",
         features=[
             "10x faster mining",
             "Priority payouts",

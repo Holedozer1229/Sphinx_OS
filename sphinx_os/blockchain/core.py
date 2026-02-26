@@ -27,7 +27,7 @@ class SphinxSkynetBlockchain:
     # Constants
     BLOCK_TIME_TARGET = 10  # seconds
     MAX_BLOCK_SIZE = 2 * 1024 * 1024  # 2 MB
-    MAX_SUPPLY = 21_000_000  # 21 million SPHINX
+    MAX_SUPPLY = 21_000_000  # 21 million SKYNT
     HALVING_INTERVAL = 210_000  # blocks
     
     def __init__(self):
@@ -228,7 +228,7 @@ class SphinxSkynetBlockchain:
             address: Address to check
             
         Returns:
-            Balance in SPHINX
+            Balance in SKYNT
         """
         utxo_set = self.chain_manager.get_utxo_set(self.chain)
         return self.chain_manager.get_balance(address, utxo_set)
