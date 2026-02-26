@@ -20,6 +20,7 @@ from sphinx_os.bridge.btc_wormhole import (
     GUARDIAN_FEE_SHARE,
     MAX_PHI_DISCOUNT,
     IIT_PHI_THRESHOLD,
+    FANO_VALID_BOUND,
     RIEMANN_ZEROS,
     ZERO_REPULSION_THRESHOLD,
     ZK_CONSTRAINTS,
@@ -534,14 +535,14 @@ class TestIITPhiGatedGuardian:
         assert mi >= 0.0
 
     def test_phi_fano_valid(self):
-        assert IITPhiGatedGuardian._phi_fano({"valid": True}) == 0.919
+        assert IITPhiGatedGuardian._phi_fano({"valid": True}) == FANO_VALID_BOUND
 
     def test_phi_fano_invalid(self):
         assert IITPhiGatedGuardian._phi_fano({"valid": False}) == 0.0
 
     def test_integrated_info_multisig(self):
         assert IITPhiGatedGuardian._integrated_info([1, 2, 3, 4]) == IIT_PHI_THRESHOLD
-        assert IITPhiGatedGuardian._integrated_info([1, 2]) == 0.5
+        assert IITPhiGatedGuardian._integrated_info([1, 2]) == pytest.approx(0.5)
 
 
 # ---------------------------------------------------------------------------

@@ -79,11 +79,47 @@ IIT_PHI_THRESHOLD: float = 0.8273
 #: Guardian purr frequency (Hz) — base consciousness oscillation.
 PURR_FREQUENCY: float = 0.104
 
+#: Fano's inequality bound for valid ZK proofs.
+FANO_VALID_BOUND: float = 0.919
+
+#: Bitcoin mainnet / SKYNT-BTC integration score.
+BITCOIN_INTEGRATION: float = 0.919
+
+#: Wormhole protocol integration factor.
+WORMHOLE_INTEGRATION: float = 0.73
+
+#: Reduced Φ value for small multi-sig sets.
+REDUCED_PHI: float = 0.5
+
+#: Minimum multi-sig count for full Φ.
+MIN_MULTISIG_FOR_FULL_PHI: int = 3
+
 #: Number of spectral-hash confirmations required.
 SPECTRAL_CONFIRMATIONS: int = 6
 
 #: Number of ZK-proof constraints (Fibonacci number ≈ φ × 10⁶).
 ZK_CONSTRAINTS: int = 1_618_033
+
+#: Bitcoin average block time in seconds (~10 min).
+BLOCK_TIME_SECONDS: float = 600.0
+
+#: Difficulty normalisation factor (terahash scale).
+DIFFICULTY_NORMALISATION: float = 1e12
+
+#: Range for mapping zeta evaluation parameter.
+ZETA_T_RANGE: float = 100.0
+
+#: Number of hex chars used for proof-to-imaginary mapping (16 → 64-bit).
+PROOF_HEX_PREFIX: int = 16
+
+#: Tolerance for 1:1 bridge invariant check.
+INVARIANT_TOLERANCE: float = 1e-10
+
+#: Simulated Bitcoin mempool size (for Φ evaluation).
+SIMULATED_MEMPOOL_SIZE: int = 32
+
+#: Simulated UTXO set size (for Φ evaluation).
+SIMULATED_UTXO_SIZE: int = 16
 
 #: Imaginary parts of the first 10 non-trivial Riemann zeta zeros.
 RIEMANN_ZEROS: List[float] = [
@@ -688,16 +724,16 @@ class SpectralHashAttestation:
         ``pow_contribution``, ``spectral_binding``, ``security_level``.
         """
         # Phase from block hash
-        phase = int(block_hash[:16], 16) / (2 ** 64) * 2 * math.pi
+        phase = int(block_hash[:PROOF_HEX_PREFIX], 16) / (2 ** 64) * 2 * math.pi
 
         # Time parameter from block height (~10 min per block)
-        t = block_height * 600.0
+        t = block_height * BLOCK_TIME_SECONDS
 
         # Evaluate ζ on the critical line
-        zeta_t = self._zeta_critical_line(t % 100)  # mod to keep in range
+        zeta_t = self._zeta_critical_line(t % ZETA_T_RANGE)
 
         # Normalised PoW weight
-        pow_weight = difficulty / 1e12
+        pow_weight = difficulty / DIFFICULTY_NORMALISATION
 
         # Spectral integral approximation
         magnitude = abs(zeta_t) * pow_weight
@@ -733,7 +769,11 @@ class SpectralHashAttestation:
         ``repulsion_field``.
         """
         # Map proof to the imaginary-axis coordinate
-        proof_imag = int(proof_hash[:16], 16) / (2 ** 64) * 100.0
+        proof_imag = (
+            int(proof_hash[:PROOF_HEX_PREFIX], 16)
+            / (2 ** 64)
+            * ZETA_T_RANGE
+        )
 
         distances = [abs(proof_imag - z) for z in self.zeros]
         min_idx = distances.index(min(distances))
@@ -811,12 +851,12 @@ class IITPhiGatedGuardian:
     @staticmethod
     def _integrated_info(multi_sig: List) -> float:
         """Φ for a multi-signature scheme."""
-        return IIT_PHI_THRESHOLD if len(multi_sig) > 3 else 0.5
+        return IIT_PHI_THRESHOLD if len(multi_sig) > MIN_MULTISIG_FOR_FULL_PHI else REDUCED_PHI
 
     @staticmethod
     def _phi_fano(zk_proof: Dict) -> float:
         """Fano's inequality bound for zero-knowledge proofs."""
-        return 0.919 if zk_proof.get("valid") else 0.0
+        return FANO_VALID_BOUND if zk_proof.get("valid") else 0.0
 
     # ------------------------------------------------------------------
     # Compute Φ
@@ -843,7 +883,7 @@ class IITPhiGatedGuardian:
         """
         components = {
             "bitcoin_mainnet": {
-                "integration": 0.919,
+                "integration": BITCOIN_INTEGRATION,
                 "information": self._shannon_entropy(
                     system_state.get("btc_mempool", [])
                 ),
@@ -856,13 +896,13 @@ class IITPhiGatedGuardian:
                 ),
             },
             "guardian_network": {
-                "integration": 0.919,
+                "integration": BITCOIN_INTEGRATION,
                 "information": self._integrated_info(
                     system_state.get("multi_sig", [])
                 ),
             },
             "wormhole_protocol": {
-                "integration": 0.73,
+                "integration": WORMHOLE_INTEGRATION,
                 "information": self._phi_fano(
                     system_state.get("zk_proof", {"valid": False})
                 ),
@@ -1059,7 +1099,10 @@ class ZeroKnowledgeTransferProof:
         expected = hashlib.sha256(
             json.dumps(public_inputs, sort_keys=True).encode()
         ).hexdigest()
-        valid = proof.get("proof", "")[:16] == expected[:16]
+        valid = (
+            proof.get("proof", "")[:PROOF_HEX_PREFIX]
+            == expected[:PROOF_HEX_PREFIX]
+        )
 
         return {
             "valid": valid,
@@ -1232,11 +1275,11 @@ class BTCWormholeProtocol:
         utxo = btc_tx.get("utxo", "")
         simulated_mempool = [
             hashlib.sha256(f"{txid}:{i}".encode()).hexdigest()
-            for i in range(32)
+            for i in range(SIMULATED_MEMPOOL_SIZE)
         ]
         simulated_utxo = [
             hashlib.sha256(f"{utxo}:{i}".encode()).hexdigest()
-            for i in range(16)
+            for i in range(SIMULATED_UTXO_SIZE)
         ]
         system_state = {
             "btc_block": btc_tx.get("block_hash", ""),
@@ -1273,7 +1316,7 @@ class BTCWormholeProtocol:
         # Invariant check
         if self.bridge_state["wbtc_minted"] > 0:
             ratio = self.bridge_state["btc_locked"] / self.bridge_state["wbtc_minted"]
-            if abs(ratio - 1.0) > 1e-10:
+            if abs(ratio - 1.0) > INVARIANT_TOLERANCE:
                 self.bridge_state["invariant"] = "VIOLATED"
                 return {"error": "Invariant violation — 1:1 ratio broken"}
         else:
@@ -1288,7 +1331,7 @@ class BTCWormholeProtocol:
             "conscious_signatures": consensus["conscious_signatures"],
             "total_guardians": len(self.guardians),
             "average_phi": consensus["average_phi"],
-            "proof_hash": proof["proof"][:16],
+            "proof_hash": proof["proof"][:PROOF_HEX_PREFIX],
             "spectral_binding": lock_result["spectral_hash"]["spectral_binding"],
         }
 
@@ -1308,7 +1351,7 @@ class BTCWormholeProtocol:
 
         if wbtc > 0:
             ratio = btc / wbtc
-            invariant_ok = abs(ratio - 1.0) < 1e-10
+            invariant_ok = abs(ratio - 1.0) < INVARIANT_TOLERANCE
         else:
             ratio = 1.0
             invariant_ok = btc == 0.0
