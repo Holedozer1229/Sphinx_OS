@@ -618,7 +618,7 @@ class TestMultiNodeGossip:
         net_b = P2PNetwork(host="127.0.0.1", port=9002, node_id="B", bootstrap_nodes=[])
 
         att = {
-            "spectral_hash": "ζ(1/2+it) × 87T",
+            "spectral_hash": "zeta(1/2+it) * 87T",
             "phi_score": 0.919,
             "bridge_invariant": "PRESERVED",
         }

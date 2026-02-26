@@ -35,6 +35,9 @@ PROTOCOL_VERSION: str = "1.0.0"
 #: Maximum payload size in bytes (1 MiB).
 MAX_PAYLOAD_SIZE: int = 1_048_576
 
+#: Maximum allowed clock skew (seconds) for future-dated messages.
+MAX_CLOCK_SKEW: int = 60
+
 #: Message time-to-live (seconds).  Messages older than this are discarded.
 MESSAGE_TTL: int = 300
 
@@ -114,7 +117,7 @@ class P2PMessage:
         if self.ttl <= 0:
             return False
         age = time.time() - self.timestamp
-        if age > MESSAGE_TTL or age < -60:
+        if age > MESSAGE_TTL or age < -MAX_CLOCK_SKEW:
             return False
         payload_bytes = json.dumps(self.payload, sort_keys=True).encode()
         if len(payload_bytes) > MAX_PAYLOAD_SIZE:
