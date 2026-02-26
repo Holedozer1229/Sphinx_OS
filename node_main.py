@@ -415,7 +415,8 @@ system_info.info({
     'num_nodes': str(NUM_NODES)
 })
 
-start_http_server(8001)
+if __name__ == "__main__":
+    start_http_server(8001)
 
 
 # ---------------------------------------------------------------------------
