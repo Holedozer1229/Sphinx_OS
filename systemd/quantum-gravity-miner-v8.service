@@ -1,0 +1,38 @@
+[Unit]
+Description=SphinxOS Quantum Gravity Miner IIT v8 - Headless 24/7 Operation
+After=network.target network-online.target sphinxos.service
+Wants=network-online.target
+PartOf=sphinxos.service
+
+[Service]
+Type=simple
+User=sphinxos
+Group=sphinxos
+WorkingDirectory=/opt/sphinxos/Sphinx_OS
+Environment="PATH=/opt/sphinxos/Sphinx_OS/venv/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="PYTHONPATH=/opt/sphinxos/Sphinx_OS"
+Environment="QGM_DIFFICULTY=50000"
+Environment="QGM_MAX_ATTEMPTS=1000000"
+Environment="QGM_N_NODES=3"
+Environment="QGM_QG_THRESHOLD=0.1"
+Environment="QGM_ROUND_DELAY=1"
+ExecStart=/opt/sphinxos/Sphinx_OS/venv/bin/python3 run_quantum_gravity_miner_v8.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=quantum-gravity-miner-v8
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/opt/sphinxos/Sphinx_OS /var/log
+ProtectHome=true
+
+# Resource limits
+MemoryLimit=512M
+CPUQuota=80%
+
+[Install]
+WantedBy=multi-user.target

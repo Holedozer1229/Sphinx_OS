@@ -1,0 +1,30 @@
+[Unit]
+Description=SphinxOS Quantum Blockchain Node
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=sphinxos
+Group=sphinxos
+WorkingDirectory=/opt/sphinxos/Sphinx_OS
+Environment="PATH=/opt/sphinxos/Sphinx_OS/venv/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="PYTHONPATH=/opt/sphinxos/Sphinx_OS"
+Environment="NODE_PORT=8000"
+Environment="METRICS_PORT=9090"
+ExecStart=/opt/sphinxos/Sphinx_OS/venv/bin/python3 node_main.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=sphinxos
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/opt/sphinxos/Sphinx_OS /var/log
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

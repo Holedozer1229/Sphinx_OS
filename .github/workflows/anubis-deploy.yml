@@ -17,7 +17,7 @@ jobs:
       uses: actions/checkout@v4
     
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.10'
     
@@ -203,7 +203,7 @@ jobs:
                     const c = document.getElementById('console');
                     const l = document.createElement('div');
                     l.className = 'console-line';
-                    l.textContent = \`[\${new Date().toLocaleTimeString()}] \${msg}\`;
+                    l.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
                     c.appendChild(l);
                     c.scrollTop = c.scrollHeight;
                 }
@@ -223,7 +223,7 @@ jobs:
                     setTimeout(() => {
                         const phi = 0.5 + Math.random() * 0.4;
                         update('oracle-phi', 'Φ = ' + phi.toFixed(3));
-                        log(\`🔮 Oracle Φ=\${phi.toFixed(3)}\`);
+                        log(`🔮 Oracle Φ=${phi.toFixed(3)}`);
                         log('⚛️ Gates: H, CNOT, T');
                         const xi = 0.95 + Math.random() * 0.1;
                         update('nptc-xi', 'Ξ = ' + xi.toFixed(3));
@@ -235,7 +235,7 @@ jobs:
                     setTimeout(() => {
                         const phi = 0.3 + Math.random() * 0.6;
                         update('oracle-phi', 'Φ = ' + phi.toFixed(3));
-                        log(\`🧠 Φ=\${phi.toFixed(3)} (\${phi > 0.5 ? 'CONSCIOUS' : 'UNCONSCIOUS'})\`);
+                        log(`🧠 Φ=${phi.toFixed(3)} (${phi > 0.5 ? 'CONSCIOUS' : 'UNCONSCIOUS'})`);
                         log('✅ Consultation done');
                     }, 600);
                 }
@@ -279,6 +279,20 @@ jobs:
     - name: Deploy to GitHub Pages
       id: deployment
       uses: actions/deploy-pages@v4
+      continue-on-error: true
+
+    - name: Report Pages deployment status
+      if: steps.deployment.outcome == 'failure'
+      run: |
+        echo "⚠️  GitHub Pages deployment failed."
+        echo "   This usually means GitHub Pages has not been enabled for this repository."
+        echo ""
+        echo "   To enable GitHub Pages:"
+        echo "   1. Go to: https://github.com/Holedozer1229/Sphinx_OS/settings/pages"
+        echo "   2. Under 'Build and deployment', set Source to 'GitHub Actions'"
+        echo "   3. Save changes"
+        echo ""
+        echo "   Once enabled, the next push to main/master will deploy automatically."
 
   deploy-digitalocean:
     name: Deploy to Digital Ocean
@@ -323,6 +337,11 @@ jobs:
           "${DO_USER_VALUE}@${DO_HOST}" \
           'sudo /opt/sphinxos/Sphinx_OS/venv/bin/pip install -q \
              -r /opt/sphinxos/Sphinx_OS/requirements.txt'
+
+        # Copy systemd unit files
+        ssh -i ~/.ssh/do_deploy_key -o StrictHostKeyChecking=no \
+          "${DO_USER_VALUE}@${DO_HOST}" \
+          'sudo cp /opt/sphinxos/Sphinx_OS/systemd/*.service /etc/systemd/system/ 2>/dev/null || true'
 
         # Reload systemd and restart services
         ssh -i ~/.ssh/do_deploy_key -o StrictHostKeyChecking=no \
