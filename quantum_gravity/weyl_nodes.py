@@ -109,45 +109,55 @@ class ChernProfile:
 
 class TaAsLikeHamiltonian:
     """
-    Minimal 2-band lattice Hamiltonian for a TaAs-like Weyl semimetal.
+    Qi–Hughes–Zhang (QHZ) 2-band lattice Hamiltonian for a TaAs-like Weyl semimetal.
 
     H(k) = d_x σ_x + d_y σ_y + d_z σ_z
 
-    d_x = t_x sin k_x
-    d_y = t_y sin k_y
-    d_z = M − t_z cos k_z − 2t(2 − cos k_x − cos k_y)
+    d_x = A sin k_x
+    d_y = A sin k_y
+    d_z = M + B(cos k_x + cos k_y + cos k_z)
 
-    TaAs-inspired defaults produce a pair of Weyl nodes on the Γ–Z axis
-    at k_z = ±arccos(M/t_z) with opposite chirality.
+    Weyl nodes on Γ–Z axis (k_x = k_y = 0):
+        cos(k_z^node) = −(M + 2B) / B   →   k_z = ±arccos(−(M+2B)/B)
+
+    Defaults: A=1, B=1, M=−2  →  nodes at k_z = ±π/2 ≈ ±1.5708 rad
+
+    The kx–ky slice BETWEEN the nodes has d_z changing sign across the torus,
+    giving a non-trivial Chern number C = ±1 (proper Weyl semimetal topology).
+
+    Chirality convention (physical / Fermi-arc):
+        χ = −sign(det J)  where J_{ij} = ∂d_i/∂k_j
+    This ensures χ = +1 for the monopole (outward Berry flux Φ = +2π) and
+    χ = −1 for the antipole (inward Berry flux Φ = −2π).
     """
 
     def __init__(
         self,
-        M: float = 1.5,
-        t_x: float = 1.0,
-        t_y: float = 1.0,
-        t_z: float = 2.0,
-        t: float = 0.5,
+        M: float = -2.0,
+        A: float = 1.0,
+        B: float = 1.0,
     ):
         """
         Args:
-            M:   Mass / time-reversal-breaking parameter.
-            t_x: Hopping amplitude along x.
-            t_y: Hopping amplitude along y.
-            t_z: Hopping amplitude along z.
-            t:   In-plane hopping (warping term).
+            M: Mass parameter.  Nodes exist for −3B < M < −B.
+            A: Fermi-velocity prefactor (off-diagonal hoppings).
+            B: Diagonal hopping (controls gap and node position).
         """
-        self.M, self.t_x, self.t_y, self.t_z, self.t = M, t_x, t_y, t_z, t
+        self.M, self.A, self.B = M, A, B
+        # Also expose legacy aliases so existing callers still work
+        self.t_x = A
+        self.t_y = A
+        self.t_z = B
 
-        # Validate that Weyl nodes exist: need |M/t_z| < 1
-        if abs(M / t_z) >= 1.0:
+        arg = -(M + 2 * B) / B
+        if abs(arg) >= 1.0:
             raise ValueError(
-                f"No Weyl nodes: |M/t_z| = {abs(M/t_z):.3f} ≥ 1. "
-                "Reduce |M| or increase t_z."
+                f"No Weyl nodes: |-(M+2B)/B| = {abs(arg):.3f} ≥ 1. "
+                "Use −3B < M < −B."
             )
-        self._kz_node = float(np.arccos(M / t_z))
+        self._kz_node = float(np.arccos(arg))
         logger.info(
-            "TaAsLikeHamiltonian: Weyl nodes at k_z = ±%.4f rad  (%.2f°)",
+            "TaAsLikeHamiltonian (QHZ): Weyl nodes at k_z = ±%.4f rad  (%.2f°)",
             self._kz_node, np.degrees(self._kz_node),
         )
 
@@ -156,6 +166,10 @@ class TaAsLikeHamiltonian:
     def d_vector(self, k: np.ndarray) -> np.ndarray:
         """
         Return the 3-component d-vector at momentum k = (k_x, k_y, k_z).
+
+        d_x = A sin k_x
+        d_y = A sin k_y
+        d_z = M + B(cos k_x + cos k_y + cos k_z)
 
         Args:
             k: Array of shape (3,) or (N, 3).
@@ -168,11 +182,9 @@ class TaAsLikeHamiltonian:
         if scalar:
             k = k[None, :]
         kx, ky, kz = k[:, 0], k[:, 1], k[:, 2]
-        dx = self.t_x * np.sin(kx)
-        dy = self.t_y * np.sin(ky)
-        dz = (self.M
-              - self.t_z * np.cos(kz)
-              - 2 * self.t * (2 - np.cos(kx) - np.cos(ky)))
+        dx = self.A * np.sin(kx)
+        dy = self.A * np.sin(ky)
+        dz = self.M + self.B * (np.cos(kx) + np.cos(ky) + np.cos(kz))
         d = np.stack([dx, dy, dz], axis=-1)
         return d[0] if scalar else d
 
@@ -219,24 +231,23 @@ class TaAsLikeHamiltonian:
 
     def find_weyl_nodes(self) -> List[WeylNode]:
         """
-        Locate Weyl nodes analytically (on Γ–Z axis) and verify numerically.
+        Locate Weyl nodes analytically (on Γ–Z axis) and assign chirality.
+
+        Nodes at k_x = k_y = 0, k_z = ±arccos(−(M+2B)/B).
+        Labels: χ = +1 node → "W1+" (monopole),  χ = −1 → "W1−" (antipole).
 
         Returns:
             List of two WeylNode objects with opposite chirality.
         """
-        # Analytical positions: k_x = k_y = 0, k_z = ±arccos(M/t_z)
-        kz_plus = +self._kz_node
+        kz_plus  = +self._kz_node
         kz_minus = -self._kz_node
 
         nodes = []
-        for kz, label in [(kz_plus, "W+"), (kz_minus, "W−")]:
-            k0 = np.array([0.0, 0.0, kz])
+        for kz, raw_label in [(kz_plus, "W+"), (kz_minus, "W−")]:
+            k0  = np.array([0.0, 0.0, kz])
             chi = self._chirality_at_node(k0)
-            nodes.append(WeylNode(
-                position=k0,
-                chirality=chi,
-                label=label,
-            ))
+            label = "W1+" if chi > 0 else "W1−"
+            nodes.append(WeylNode(position=k0, chirality=chi, label=label))
             logger.info("Found Weyl node %-4s at kz=%.4f  χ=%+d", label, kz, chi)
 
         return nodes
@@ -260,7 +271,10 @@ class TaAsLikeHamiltonian:
             km = k0.copy(); km[j] -= eps
             J[:, j] = (self.d_vector(kp) - self.d_vector(km)) / (2 * eps)
         det = float(np.linalg.det(J))
-        return int(np.sign(det)) if abs(det) > 1e-10 else 0
+        # Physical convention: χ = −sign(det J)
+        # Ensures χ = +1 ↔ monopole (outward flux Φ = +2π),
+        #         χ = −1 ↔ antipole  (inward  flux Φ = −2π)
+        return -int(np.sign(det)) if abs(det) > 1e-10 else 0
 
 
 # ---------------------------------------------------------------------------
