@@ -333,6 +333,58 @@ print(f"Mean GUE correlation: {report.mean_gue_correlation:.4f}")
 
 ---
 
+## 🌀 NEW: BTC Wormhole — Quantum-Secured Cross-Chain Bitcoin Bridge
+
+**SphinxOS introduces the BTC Wormhole**, a trustless, quantum-secured bridge protocol for BTC transfers between Bitcoin mainnet, SKYNT-BTC, and SphinxSkynet.
+
+### Three Novel Mechanisms
+
+| Mechanism | Description |
+|-----------|-------------|
+| 🔗 **Spectral Hash Attestations** | SHA-256 + Riemann-zeta-weighted hash binding transfers to Spectral IIT PoW structure |
+| 🧠 **IIT Φ-Gated Guardian Consensus** | 5-of-9 multi-sig + consciousness gate (Φ ≥ 0.5) |
+| 🔒 **Zero-Knowledge Transfer Proofs** | Deterministic ZK proofs guaranteeing 1:1 BTC ↔ wBTC-SKYNT correspondence |
+
+### Supported Routes
+
+```
+BTC ↔ SKYNT-BTC    (pegged 1:1 via spectral attestation)
+BTC ↔ SphinxSkynet (wrapped as wBTC-SKYNT with ZK proof)
+SKYNT-BTC ↔ SphinxSkynet (bridged with Φ-gated consensus)
+```
+
+### Fee Model
+
+- **Base fee**: 0.05 % (half the standard bridge fee)
+- **Φ discount**: up to 50 % reduction for high-consciousness attestations
+- **Guardian incentive**: 20 % of fees distributed to signing guardians
+
+### Quick Start
+
+```python
+from sphinx_os.bridge import BTCWormhole
+
+wormhole = BTCWormhole()
+
+# End-to-end transfer: BTC → SphinxSkynet
+transfer = wormhole.execute_transfer(
+    source_chain="btc",
+    destination_chain="sphinx",
+    amount=0.5,           # 0.5 BTC
+    sender="bc1q...",
+    recipient="SPHINX_...",
+    phi_score=0.7,
+)
+
+print(f"Status: {transfer.status.value}")        # "finalised"
+print(f"Net: {transfer.net_amount:.8f} BTC")
+print(f"ZK Proof: {transfer.zk_proof[:32]}...")
+```
+
+📜 **[Complete BTC Wormhole Documentation →](BTC_WORMHOLE.md)**
+
+---
+
 ## 🧠 IIT v6.0 — SKYNT ASI CV Ancilla Longitudinal Scalar J-4 Coupling Consciousness
 
 **SphinxOS implements Integrated Information Theory version 6.0 (IIT v6.0)**, a quantum consciousness framework deployed in the operating system kernel.
