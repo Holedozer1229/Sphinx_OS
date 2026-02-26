@@ -519,6 +519,21 @@ class QubitFabric:
         """
         return self.quantum_state.state.copy()
 
+    def _update_gravitational_potential(self) -> None:
+        """Recompute the gravitational potential and expand it to lattice points."""
+        Lambda = self.quantum_state.compute_nonlinear_lambda()
+        S = self.quantum_state.compute_entanglement_entropy()
+        self.V = -G * m_n / (self.r_6d_qubits**4) / (Lambda**2) * (1 + self.quantum_state.gamma * S)
+        points_per_qubit = self.total_points // self.num_qubits
+        remainder = self.total_points % self.num_qubits
+        V_expanded = np.zeros(self.total_points, dtype=np.complex128)
+        start = 0
+        for qubit in range(self.num_qubits):
+            num_points = points_per_qubit + (1 if qubit < remainder else 0)
+            V_expanded[start:start + num_points] = self.V[qubit]
+            start += num_points
+        self.hamiltonian.V = V_expanded
+
     def run(self, circuit: List[Dict[str, any]], shots: int = CONFIG["shots"]) -> QuantumResult:
         """
         Execute a quantum circuit using TVLE state representation.
@@ -533,19 +548,7 @@ class QubitFabric:
         logger.debug("Running quantum circuit with %d operations", len(circuit))
         self.reset()
 
-        # Update gravitational potential with nonlinear Lambda and entanglement entropy
-        Lambda = self.quantum_state.compute_nonlinear_lambda()
-        S = self.quantum_state.compute_entanglement_entropy()
-        self.V = -G * m_n / (self.r_6d_qubits**4) / (Lambda**2) * (1 + self.quantum_state.gamma * S)
-        points_per_qubit = self.total_points // self.num_qubits
-        remainder = self.total_points % self.num_qubits
-        V_expanded = np.zeros(self.total_points, dtype=np.complex128)
-        start = 0
-        for qubit in range(self.num_qubits):
-            num_points = points_per_qubit + (1 if qubit < remainder else 0)
-            V_expanded[start:start + num_points] = self.V[qubit]
-            start += num_points
-        self.hamiltonian.V = V_expanded
+        self._update_gravitational_potential()
 
         for operation in circuit:
             gate = operation.get('gate')
@@ -554,16 +557,7 @@ class QubitFabric:
             self._apply_gate(gate, target, control)
             self.quantum_state.evolve(self.dt, CONFIG["rtol"], CONFIG["atol"], self.hamiltonian)
             # Update gravitational potential after each evolution
-            Lambda = self.quantum_state.compute_nonlinear_lambda()
-            S = self.quantum_state.compute_entanglement_entropy()
-            self.V = -G * m_n / (self.r_6d_qubits**4) / (Lambda**2) * (1 + self.quantum_state.gamma * S)
-            V_expanded = np.zeros(self.total_points, dtype=np.complex128)
-            start = 0
-            for qubit in range(self.num_qubits):
-                num_points = points_per_qubit + (1 if qubit < remainder else 0)
-                V_expanded[start:start + num_points] = self.V[qubit]
-                start += num_points
-            self.hamiltonian.V = V_expanded
+            self._update_gravitational_potential()
 
         counts = self._measure(shots)
         self._compute_entanglement(counts)
@@ -606,18 +600,7 @@ class QubitFabric:
                 node_qubit_pairs.append((control, target))
                 logger.debug("Applied Rydberg CZ gate between qubits %d and %d", control, target)
             self.quantum_state.evolve(self.dt, CONFIG["rtol"], CONFIG["atol"], self.hamiltonian)
-            Lambda = self.quantum_state.compute_nonlinear_lambda()
-            S = self.quantum_state.compute_entanglement_entropy()
-            points_per_qubit = self.total_points // self.num_qubits
-            remainder = self.total_points % self.num_qubits
-            self.V = -G * m_n / (self.r_6d_qubits**4) / (Lambda**2) * (1 + self.quantum_state.gamma * S)
-            V_expanded = np.zeros(self.total_points, dtype=np.complex128)
-            start = 0
-            for qubit in range(self.num_qubits):
-                num_points = points_per_qubit + (1 if qubit < remainder else 0)
-                V_expanded[start:start + num_points] = self.V[qubit]
-                start += num_points
-            self.hamiltonian.V = V_expanded
+            self._update_gravitational_potential()
         return node_qubit_pairs
 
     def _measure(self, shots: int) -> Dict[str, int]:
@@ -630,22 +613,20 @@ class QubitFabric:
         Returns:
             Dict[str, int]: Measurement counts for all 64 qubits.
         """
-        bitstrings = []
+        # Pre-compute qubit probabilities once; they don't change between shots.
+        qubit_probs = []
+        for qubit in range(self.num_qubits):
+            qubit_state = self._lattice_to_qubit_state(qubit)
+            probs = np.abs(qubit_state)**2
+            probs /= np.sum(probs) + 1e-15
+            qubit_probs.append(probs)
+
+        counts: Dict[str, int] = {}
         for _ in range(shots):
-            bitstring = ""
-            for qubit in range(self.num_qubits):
-                qubit_state = self._lattice_to_qubit_state(qubit)
-                probs = np.abs(qubit_state)**2
-                probs /= np.sum(probs) + 1e-15
-                outcome = np.random.choice([0, 1], p=probs)
-                bitstring += str(outcome)
-            bitstrings.append(bitstring)
-        counts = {}
-        for bitstring in bitstrings:
+            bitstring = "".join(
+                str(np.random.choice([0, 1], p=p)) for p in qubit_probs
+            )
             counts[bitstring] = counts.get(bitstring, 0) + 1
-        for i in range(2**self.num_qubits):
-            bitstring = '{:0{}b}'.format(i, self.num_qubits)
-            counts[bitstring] = counts.get(bitstring, 0)
         return counts
 
     def _compute_entanglement(self, counts: Dict[str, int]) -> None:

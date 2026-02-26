@@ -82,6 +82,7 @@ class CrossChainBridge:
         
         # Multi-sig guardians (would be real addresses in production)
         self.guardians = [f"GUARDIAN_{i}" for i in range(1, self.TOTAL_GUARDIANS + 1)]
+        self._guardians_set = set(self.guardians)
         
         # Statistics
         self.stats = {
@@ -139,12 +140,8 @@ class CrossChainBridge:
         bridge_tx.status = BridgeStatus.LOCKED
         
         # Track locked funds
-        if source_chain not in self.locked_funds:
-            self.locked_funds[source_chain] = {}
-        
-        if sender not in self.locked_funds[source_chain]:
-            self.locked_funds[source_chain][sender] = 0.0
-        
+        self.locked_funds.setdefault(source_chain, {})
+        self.locked_funds[source_chain].setdefault(sender, 0.0)
         self.locked_funds[source_chain][sender] += net_amount
         
         # Save transaction
@@ -326,7 +323,7 @@ class CrossChainBridge:
         valid_count = 0
         
         for sig in signatures:
-            if sig in self.guardians:
+            if sig in self._guardians_set:
                 valid_count += 1
         
         return valid_count
