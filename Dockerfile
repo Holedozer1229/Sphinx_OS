@@ -24,11 +24,13 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Application code and circuits
+# Application code
+COPY sphinx_os/ sphinx_os/
 COPY node_main.py .
 COPY rarity_api.py .
 COPY circuits/ circuits/
 COPY frontend/ frontend/
+COPY config/ config/
 
 # Expose FastAPI port and Prometheus metrics port
 EXPOSE 8000 8001
