@@ -3,7 +3,7 @@ FastAPI Main Application
 SphinxSkynet Gasless Blockchain API
 """
 
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List
@@ -15,6 +15,7 @@ from ..mining.free_miner import FreeMiner, MiningTier, MiningPool
 from ..revenue.fee_collector import FeeCollector
 from ..revenue.subscriptions import SubscriptionManager, SubscriptionTier
 from ..revenue.referrals import ReferralProgram
+from ..monitoring.prometheus_metrics import SphinxMetrics
 
 
 # ==================== FastAPI App Setup ====================
@@ -34,6 +35,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Mount Prometheus /metrics endpoint
+_sphinx_metrics = SphinxMetrics()
+if _sphinx_metrics.enabled:
+    app.mount("/metrics", _sphinx_metrics.make_asgi_app())
 
 # ==================== Global Instances ====================
 
