@@ -353,7 +353,7 @@ export default function Dashboard() {
               {miningStatus && (
                 <div className="mt-6 p-4 bg-gray-900 rounded-lg border border-gray-700">
                   <h4 className="font-semibold mb-3 text-lg">Current Status</h4>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                     <div><span className="text-gray-400">Status:</span> <span className={`font-bold ml-2 ${miningStatus.is_mining ? 'text-green-400' : 'text-red-400'}`}>{miningStatus.is_mining ? '🟢 MINING' : '🔴 STOPPED'}</span></div>
                     <div><span className="text-gray-400">Algorithm:</span> <span className="ml-2">{miningStatus.algorithm || 'N/A'}</span></div>
                     <div><span className="text-gray-400">Blocks Mined:</span> <span className="ml-2 font-mono">{miningStatus.blocks_mined || 0}</span></div>
@@ -462,7 +462,7 @@ export default function Dashboard() {
                       <span className="text-green-400 font-mono text-lg">Φ {block.phi_score?.toFixed(1)}</span>
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                       <div><span className="text-gray-400">Hash:</span> <span className="ml-2 font-mono text-xs text-blue-400">{block.hash?.substring(0, 32)}...</span></div>
                       <div><span className="text-gray-400">Previous:</span> <span className="ml-2 font-mono text-xs">{block.previous_hash?.substring(0, 16)}...</span></div>
                       <div><span className="text-gray-400">Miner:</span> <span className="ml-2 font-mono text-xs">{block.miner?.substring(0, 20)}...</span></div>
@@ -832,29 +832,36 @@ export default function Dashboard() {
                 {consciousnessData ? (
                   <>
                     <p className="text-xs text-gray-400 mb-3">
-                      8×8 | Tr(ρ) = 1.0 &nbsp;|&nbsp;
+                      {(() => { const n = Math.round(Math.sqrt(consciousnessData.density_matrix.flat().length)); return `${n}×${n}`; })()} | Tr(ρ) = 1.0 &nbsp;|&nbsp;
                       Quantum density matrix — normalized from network adjacency A_S / Tr(A_S)
                     </p>
                     <div className="overflow-x-auto">
-                      <div className="inline-grid gap-px text-xs font-mono" style={{ gridTemplateColumns: 'repeat(8, minmax(2.5rem, 1fr))' }}>
-                        {consciousnessData.density_matrix.flat().map((val: number, idx: number) => {
-                          const intensity = Math.abs(val) / Math.max(...consciousnessData.density_matrix.flat().map(Math.abs))
-                          return (
-                            <div
-                              key={idx}
-                              className="flex items-center justify-center h-8 rounded-sm"
-                              style={{
-                                backgroundColor: val >= 0
-                                  ? `rgba(34, 197, 94, ${intensity * 0.8})`
-                                  : `rgba(239, 68, 68, ${intensity * 0.8})`,
-                                color: 'white'
-                              }}
-                            >
-                              {val.toFixed(2)}
-                            </div>
-                          )
-                        })}
-                      </div>
+                      {(() => {
+                        const flatMatrix = consciousnessData.density_matrix.flat()
+                        const cols = Math.round(Math.sqrt(flatMatrix.length))
+                        const maxAbs = Math.max(...flatMatrix.map(Math.abs))
+                        return (
+                          <div className="inline-grid gap-px text-xs font-mono" style={{ gridTemplateColumns: `repeat(${cols}, minmax(2.5rem, 1fr))` }}>
+                            {flatMatrix.map((val: number, idx: number) => {
+                              const intensity = Math.abs(val) / maxAbs
+                              return (
+                                <div
+                                  key={idx}
+                                  className="flex items-center justify-center h-8 rounded-sm"
+                                  style={{
+                                    backgroundColor: val >= 0
+                                      ? `rgba(34, 197, 94, ${intensity * 0.8})`
+                                      : `rgba(239, 68, 68, ${intensity * 0.8})`,
+                                    color: 'white'
+                                  }}
+                                >
+                                  {val.toFixed(2)}
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )
+                      })()}
                     </div>
                   </>
                 ) : <p className="text-gray-400 text-sm">Loading…</p>}
