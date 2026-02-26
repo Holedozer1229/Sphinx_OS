@@ -35,11 +35,11 @@ primary_region = "sjc"
   [services.http_checks]
     interval = "10s"
     timeout = "2s"
-    grace_period = "5s"
+    grace_period = "30s"
     method = "GET"
     path = "/health"
 
 [[vm]]
   cpu_kind = "shared"
   cpus = 1
-  memory_mb = 256  # FREE tier
+  memory_mb = 512  # 512 MB needed to avoid OOM kills during Python startup
