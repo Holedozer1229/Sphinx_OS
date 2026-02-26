@@ -27,11 +27,11 @@ SyslogIdentifier=quantum-gravity-miner-v8
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
-ReadWritePaths=/opt/sphinxos/Sphinx_OS /var/log
+ReadWritePaths=/opt/sphinxos/Sphinx_OS
 ProtectHome=true
 
 # Resource limits
-MemoryLimit=512M
+MemoryMax=512M
 CPUQuota=80%
 
 [Install]

@@ -23,7 +23,7 @@ SyslogIdentifier=sphinxos
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
-ReadWritePaths=/opt/sphinxos/Sphinx_OS /var/log
+ReadWritePaths=/opt/sphinxos/Sphinx_OS
 ProtectHome=true
 
 [Install]
