@@ -1082,5 +1082,122 @@ class TestRiemannZeroPublishResults:
         assert result["summary"]["zeros_probed"] == 3
 
 
+class TestRiemannHypothesisVerifier:
+    """Tests for the RiemannHypothesisVerifier computational proof framework."""
+
+    T0 = 14.134725141734693
+    T0_HP = "14.134725141734693790457251983562470270784257115699"
+    T_NONZERO = 15.0
+
+    @pytest.fixture
+    def verifier(self):
+        from sphinx_os.Artificial_Intelligence.riemann_proof import (
+            RiemannHypothesisVerifier,
+        )
+        return RiemannHypothesisVerifier(mpmath_dps=50)
+
+    # -- Imports -----------------------------------------------------------
+
+    def test_module_exports(self):
+        """riemann_proof must be importable from the AI package."""
+        from sphinx_os.Artificial_Intelligence import (
+            RiemannHypothesisVerifier,
+            VerificationReport,
+            VERDICT_CONSISTENT,
+            VERDICT_COUNTEREXAMPLE,
+        )
+        assert RiemannHypothesisVerifier is not None
+        assert VERDICT_CONSISTENT == "CONSISTENT_WITH_RH"
+
+    # -- Separation Theorem ------------------------------------------------
+
+    def test_separation_passes_known_zero(self, verifier):
+        """Separation Theorem must pass for the first known zero."""
+        ev = verifier._probe.probe_zero(self.T0_HP)
+        result = verifier.verify_separation(ev)
+        assert result.passes is True
+
+    def test_separation_log10_ratio_large(self, verifier):
+        """log10(separation_ratio) must exceed 10 for HP zeros."""
+        ev = verifier._probe.probe_zero(self.T0_HP)
+        result = verifier.verify_separation(ev)
+        assert result.log10_ratio > 10.0
+
+    # -- Classification Consistency ----------------------------------------
+
+    def test_classification_passes_known_zero(self, verifier):
+        """Classification Consistency must pass for the first known zero."""
+        ev = verifier._probe.probe_zero(self.T0_HP)
+        result = verifier.verify_classification(ev)
+        assert result.passes is True
+        assert result.on_line_classification == CLASSIFICATION_NEAR_ZERO
+        assert result.off_line_all_nonzero is True
+
+    def test_classification_fails_nonzero_t(self, verifier):
+        """Classification must fail for a non-zero t."""
+        ev = verifier._probe.probe_zero(self.T_NONZERO)
+        result = verifier.verify_classification(ev)
+        assert result.passes is False
+
+    # -- GUE Fingerprint ---------------------------------------------------
+
+    def test_gue_passes_known_zero(self, verifier):
+        """GUE Fingerprint must pass for the first known zero."""
+        ev = verifier._probe.probe_zero(self.T0)
+        result = verifier.verify_gue(ev)
+        assert result.passes is True
+        assert result.gue_pair_correlation is not None
+        assert result.gue_pair_correlation > 0.3
+
+    def test_gue_mean_nonabelian_positive(self, verifier):
+        """Mean non-abelian score must be positive for known zeros."""
+        ev = verifier._probe.probe_zero(self.T0)
+        result = verifier.verify_gue(ev)
+        assert result.mean_nonabelian > 0.0
+
+    # -- Single-zero verification ------------------------------------------
+
+    def test_verify_zero_passes_known_zero(self, verifier):
+        """verify_zero must pass for a known zero."""
+        result = verifier.verify_zero(self.T0_HP)
+        assert result.all_pass is True
+
+    def test_verify_zero_fails_nonzero(self, verifier):
+        """verify_zero must fail for a non-zero t."""
+        result = verifier.verify_zero(self.T_NONZERO)
+        assert result.all_pass is False
+
+    # -- Full verification -------------------------------------------------
+
+    def test_full_verification_consistent(self, verifier):
+        """Full verification on first known zero must be CONSISTENT_WITH_RH."""
+        from sphinx_os.Artificial_Intelligence.riemann_proof import (
+            VERDICT_CONSISTENT,
+        )
+        report = verifier.full_verification(
+            [RiemannZeroProbe.KNOWN_ZEROS_HP[0]]
+        )
+        assert report.verdict == VERDICT_CONSISTENT
+        assert report.zeros_tested == 1
+        assert report.zeros_passing == 1
+
+    def test_full_verification_report_to_dict(self, verifier):
+        """VerificationReport.to_dict must be JSON-serialisable."""
+        import json
+        report = verifier.full_verification(
+            [RiemannZeroProbe.KNOWN_ZEROS_HP[0]]
+        )
+        d = report.to_dict()
+        text = json.dumps(d)
+        assert isinstance(text, str)
+        assert d["verdict"] == "CONSISTENT_WITH_RH"
+
+    def test_full_verification_default_three_zeros(self, verifier):
+        """Default full_verification must test 3 zeros."""
+        report = verifier.full_verification()
+        assert report.zeros_tested == 3
+        assert report.verdict == "CONSISTENT_WITH_RH"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
