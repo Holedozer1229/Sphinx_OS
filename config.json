@@ -1,0 +1,19 @@
+{
+  "bitcoin_rpc": {
+    "url": "http://solo.cat:3333",
+    "user": "worker.bc1qk8hpva9yezsrgrwx7e6tae3hgfzpctkgm04x4u",
+    "password": "x"
+  },
+  "ordinals_api": {
+    "url": "https://testnet.ordinals.com/api/inscribe",
+    "api_key": "your_api_key_optional"
+  },
+  "qgm_wallet": "bc1qk8hpva9yezsrgrwx7e6tae3hgfzpctkgm04x4u",
+  "block_data": "genesis",
+  "difficulty": 50000,
+  "max_attempts": 1000000,
+  "qg_threshold": 0.1,
+  "n_network_nodes": 1,
+  "use_merged_mining": true,
+  "log_file": "miner.log"
+}
