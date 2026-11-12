@@ -26,6 +26,9 @@ def compute_entanglement_entropy(field: np.ndarray, grid_size: tuple) -> float:
         # Reshape or reduce dimensions (e.g., for electron_field, compute norm over Dirac components)
         if len(field.shape) > len(grid_size):
             field = np.linalg.norm(field, axis=tuple(range(len(grid_size), len(field.shape))))
+        elif field.ndim == 1 and field.shape[0] == total_points:
+            # 1D field that matches total points — reshape to grid
+            field = field.reshape(grid_size)
         else:
             logger.error("Field shape %s does not match grid size %s", field.shape, grid_size)
             raise ValueError("Field shape does not match grid size")

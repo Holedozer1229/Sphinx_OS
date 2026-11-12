@@ -59,6 +59,14 @@ for i in range(8):
         for k in range(8):
             f_su3[j, i, k] = -f_su3[i, j, k]
 
+# Additional constants used by quantum modules
+INV_LAMBDA_SQ = 1e-20  # Inverse lambda squared for Yukawa potential (m^2)
+TEMPORAL_CONSTANT = 1e-15  # Temporal constant for CTC feedback (s)
+SECP256K1_N = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141  # secp256k1 curve order
+SECP256k1_N = SECP256K1_N  # Alias for compatibility
+SEARCH_START = 0  # Key search range start
+SEARCH_END = SECP256K1_N - 1  # Key search range end
+
 # Simulation configuration
 CONFIG = {
     "grid_size": (2, 2, 2, 2, 2, 2),  # 6D grid size
@@ -109,5 +117,11 @@ CONFIG = {
     "rydberg_blockade_radius": 1e-6,  # Blockade radius in meters
     "rydberg_interaction_strength": 1e6,  # Interaction strength in Hz
     "rydberg_coupling": 1e-3,  # Coupling factor for Rydberg effects
-    "rydberg_decoherence_factor": 1.1  # Decoherence increase factor for Rydberg gates
+    "rydberg_decoherence_factor": 1.1,  # Decoherence increase factor for Rydberg gates
+    "anisotropic_weights": [1.0, 1.0, 1.0, 0.5, 0.5, 0.5],  # Weights for 6D anisotropic grid
+    "scalar_coupling": 1e-3,  # Scalar field coupling strength
+    "entanglement_coupling": 1e-4,  # Entanglement coupling between grid points
+    "hopping_strength": 1.0,  # Quantum hopping amplitude
+    "wormhole_coupling": 1e-3,  # Wormhole state coupling strength
+    "j4_coupling": 1e-5,  # J4 current coupling factor
 }

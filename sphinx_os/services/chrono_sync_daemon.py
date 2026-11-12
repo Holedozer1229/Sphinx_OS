@@ -5,14 +5,17 @@ ChronoSyncDaemon: Daemon for synchronizing spacetime metrics.
 import threading
 import time
 import logging
-from ..core.anubis_core import AnubisCore
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..core.anubis_core import AnubisCore
 
 logger = logging.getLogger("SphinxOS.ChronoSyncDaemon")
 
 class ChronoSyncDaemon(threading.Thread):
     """Daemon for synchronizing spacetime metrics."""
     
-    def __init__(self, kernel: AnubisCore):
+    def __init__(self, kernel: "AnubisCore"):
         """
         Initialize the ChronoSyncDaemon.
 

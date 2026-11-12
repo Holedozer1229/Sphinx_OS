@@ -134,7 +134,7 @@ class KeyExtractor:
         state_6d = state.reshape_to_6d()
         demon_observation = np.sum(state_6d, axis=(0, 1, 2, 3, 4))
         demon_observation = demon_observation.flatten()
-        demon_factor = np.tile(demon_observation, total_points // 3)[:total_points]
+        demon_factor = np.tile(demon_observation, int(np.ceil(total_points / max(len(demon_observation), 1))))[:total_points]
         scalar_wave = CONFIG["j4_coupling"] * np.sin(state_phase)
         combined = state_magnitude + 0.5 * (state_phase / np.pi) + 0.1 * demon_factor + 0.1 * scalar_wave
         indices = np.argsort(combined)
@@ -391,6 +391,7 @@ class QubitFabric:
         self.hamiltonian = Hamiltonian(self.grid_size, self.dx, self.V, self.wormhole_state, logger)
         self.qubit_to_lattice = self._map_qubits_to_lattice()
         self.metric_tensor = self._initialize_quantum_geometry(self.num_qubits)
+        self.state = self.quantum_state.state  # Expose state for compatibility
         logger.info("QubitFabric initialized with %d qubits on TVLE lattice (%d points)", num_qubits, self.total_points)
 
     def _map_qubits_to_lattice(self) -> Dict[int, List[int]]:

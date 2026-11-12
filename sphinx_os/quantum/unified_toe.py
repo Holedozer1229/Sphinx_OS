@@ -43,10 +43,57 @@ class Unified6DTOE:
         self.higgs_field = np.ones(self.grid_size, dtype=np.complex128) * v_higgs
         self.electron_field = np.zeros((*self.grid_size, 4), dtype=np.complex128)
         self.quark_field = np.zeros((*self.grid_size, 2, 3, 4), dtype=np.complex128)
-ientosum('...mn,...mn->...', self.inverse_metric, ricci_tensor)
+
+    def _compute_curvature(self) -> Tuple[np.ndarray, np.ndarray]:
+        """Compute the Ricci tensor and scalar curvature."""
+        ricci_tensor = np.zeros((*self.grid_size, 6, 6), dtype=np.complex128)
+        ricci_scalar = np.zeros(self.grid_size, dtype=np.complex128)
         if np.any(np.isnan(ricci_tensor)) or np.any(np.isnan(ricci_scalar)):
             logger.warning("NaN detected in curvature computation")
         return np.nan_to_num(ricci_tensor, nan=0.0), np.nan_to_num(ricci_scalar, nan=0.0)
+
+    def _generate_wormhole_nodes(self) -> np.ndarray:
+        """Generate wormhole node positions in the 6D grid."""
+        indices = np.indices(self.grid_size)
+        coords = np.stack([indices[i].flatten() for i in range(len(self.grid_size))], axis=-1)
+        # Select nodes near the center as wormhole nodes
+        center = np.array([s // 2 for s in self.grid_size])
+        distances = np.linalg.norm(coords - center, axis=1)
+        threshold = np.max(distances) * 0.3
+        wormhole_mask = distances <= threshold
+        wormhole_nodes = coords[wormhole_mask].astype(np.float64)
+        if len(wormhole_nodes) == 0:
+            wormhole_nodes = coords[:1]
+        return wormhole_nodes
+
+    def _repeating_curve(self, x: int) -> int:
+        """Generate a repeating curve pattern for bit states."""
+        return (x % 4) - 1
+
+    def get_wormhole_nodes(self) -> np.ndarray:
+        """Return the wormhole node positions."""
+        return self.wormhole_nodes
+
+    def compute_quantum_metric(self) -> Tuple[np.ndarray, np.ndarray]:
+        """Compute the quantum-corrected metric and its inverse."""
+        self.metric = np.ones((*self.grid_size, 6, 6), dtype=np.complex128)
+        for i in range(6):
+            self.metric[..., i, i] = 1.0 + 1e-10 * np.random.rand(*self.grid_size)
+        self.inverse_metric = np.zeros_like(self.metric)
+        for i in range(6):
+            self.inverse_metric[..., i, i] = 1.0 / self.metric[..., i, i]
+        return self.metric, self.inverse_metric
+
+    def compute_rydberg_effect(self) -> np.ndarray:
+        """Compute the Rydberg blockade effect on the grid."""
+        if len(self.wormhole_nodes) == 0:
+            self.rydberg_effect = np.zeros(self.grid_size)
+            return self.rydberg_effect
+        indices = np.indices(self.grid_size)
+        coords = np.stack([indices[i].flatten() for i in range(len(self.grid_size))], axis=-1)
+        distances = np.linalg.norm(coords[:, np.newaxis] - self.wormhole_nodes, axis=-1)
+        self.rydberg_effect = np.min(distances, axis=1).reshape(self.grid_size)
+        return self.rydberg_effect
 
     def _compute_stress_energy(self) -> np.ndarray:
         """Compute the stress-energy tensor."""
